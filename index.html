@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gare de train Aligato</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <header class="hud">
+    <div class="brand">Gare <b>Aligato</b></div>
+    <div class="stat"><small>Budget</small><b data-k="budget"></b></div>
+    <div class="stat" id="dayStat"><small><span data-k="weekday"></span> · jour <span data-k="day"></span></small><b data-k="clock"></b></div>
+    <div class="stat" id="scoreStat"><small>Score</small><b data-k="score"></b></div>
+    <div class="stat" id="repStat"><small>Appréciation</small><span class="stars" id="stars">★★★★★</span></div>
+    <div class="stat"><small>Voyageurs aujourd'hui / prévus</small><b data-k="pax"></b></div>
+    <button class="stat goal" data-modal="goals">
+      <small data-k="goalTitle"></small>
+      <b data-k="goalText"></b>
+      <span class="bar"><i id="goalBar"></i></span>
+    </button>
+  </header>
+
+  <div class="stage">
+    <div class="window">
+      <canvas id="scene"></canvas>
+      <div id="toasts" class="toasts"></div>
+      <div class="overlay">
+        <div class="kv" id="weatherRow"><span>Météo</span><b data-k="weather"></b></div>
+        <div class="kv"><span>🚆 Prochain train</span><b data-k="nextTrain"></b></div>
+        <div class="kv"><span>🧍 À quai</span><b data-k="waiting"></b></div>
+        <div class="kv"><span>🧳 Attente hôtel</span><b data-k="hotelQueue"></b></div>
+        <div class="kv"><span>🛏️ Chambres libres</span><b data-k="freeRooms"></b></div>
+        <div class="kv"><span>😊 Clients satisfaits</span><b data-k="sat"></b></div>
+        <button class="stocks" id="stockBars" data-modal="stocks"></button>
+        <button class="stocks" data-modal="staff"><span class="kv"><span>🧹</span><span class="bar" id="bar-clean"><i></i></span></span></button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="toolbar">
+    <div class="speed">
+      <button data-speed="0" title="Pause (Espace)">⏸</button>
+      <button data-speed="1">1×</button>
+      <button data-speed="2">2×</button>
+      <button data-speed="4">4×</button>
+    </div>
+    <button data-modal="prices">💲 Tarifs</button>
+    <button data-modal="staff">👥 Personnel</button>
+    <button data-modal="stocks">🛒 Stocks</button>
+    <button data-modal="upgrades">🏗️ Améliorations <span class="badge" id="upBadge"></span></button>
+    <button data-modal="goals">🎯 Objectifs</button>
+    <button data-modal="report">📊 Bilan</button>
+    <button id="newGame" title="Nouvelle partie">↺</button>
+  </nav>
+</main>
+
+<dialog id="modal">
+  <div class="sheet">
+    <header>
+      <h2 id="modalTitle"></h2>
+      <span class="paused">⏸ Jeu en pause</span>
+      <button id="modalClose" aria-label="Fermer">✕</button>
+    </header>
+    <div id="modalBody"></div>
+  </div>
+</dialog>
+
+<dialog id="over">
+  <div class="sheet">
+    <h2>Faillite !</h2>
+    <p>Votre budget est resté négatif 3 soirs de suite. La gare Aligato ferme ses portes.</p>
+    <button onclick="location.reload()">Recommencer</button>
+  </div>
+</dialog>
+
+<script src="game.js"></script>
+</body>
+</html>
