@@ -90,6 +90,7 @@ const SERVICES = {
   lockers: { icon: '🧳', name: 'Consigne à bagages', desc: 'Recette sur les voyageurs de loisir', req: 3, cost: 25000, upkeep: 200, rep: 0.05 },
   relay: { icon: '📦', name: 'Point relais colis', desc: 'Recette sur les travailleurs', req: 4, cost: 40000, upkeep: 300, rep: 0.05 },
   spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1 },
+  workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 60000, upkeep: 1500, rep: 0.05 },
   lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1 },
 };
 const ROOMS = [['Une Chambre Simple', 350], ['Une Chambre Double', 600], ['Une Suite', 1500]];
@@ -130,7 +131,7 @@ const S = {
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastDelay: 0, broken: {}, strike: false, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -150,7 +151,8 @@ const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar 
 const shelterCap = () => S.shelters * SHELTER_SEATS + WAITROOM[S.waitroom]; // voyageurs à l'abri : abris + salle d'attente
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
-const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT + S.machines.kiosk * KIOSK_TICKETS) * screensMult());
+// en cas de grève, les guichetiers ne vendent presque plus : seules les bornes tournent normalement
+const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (S.strike ? 0.3 : 1) + S.machines.kiosk * KIOSK_TICKETS) * screensMult());
 const cleanRate = () => S.staff.entretien * STAFF_CLEAN + S.machines.robot * ROBOT_CLEAN;
 const roomCap = () => Math.min(S.hotel * ROOMS_PER_FLOOR, S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
@@ -161,7 +163,7 @@ const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 // Objectifs : chacun débloque de nouvelles améliorations (S.goal = nombre d'objectifs atteints)
 const GOALS = [
   { text: 'Transporter 2 000 voyageurs en une journée', value: () => S.today.passengers, target: 2000, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
-  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente' },
+  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance' },
   { text: 'Atteindre une appréciation de 3,5 ★', value: () => S.rep, target: 3.5, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
   { text: 'Transporter 3 000 voyageurs en une journée', value: () => S.today.passengers, target: 3000, unlocks: 'Boutique · Robots nettoyeurs · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis' },
   { text: `Faire ${money(150000)} de bénéfice en une journée`, value: () => S.lastNet, target: 150000, money: true, unlocks: 'Navette · Café du quai · Mini-supermarché · Grande salle d\'attente' },
@@ -224,6 +226,7 @@ const EVENTS = [
     if (S.svc.security) toast('👮 L\'agent de sécurité a fait fuir les vandales', 'good');
     else { S.budget -= VANDAL_COST; S.dirt = Math.min(100, S.dirt + 20); toast(`Vandalisme : ${money(VANDAL_COST)} de dégâts`, 'bad', 'upgrades'); }
   } },
+  { msg: '✊ Grève des guichetiers jusqu\'à ce soir : seules les bornes de billets vendent normalement', kind: 'bad', run: () => { S.strike = true; } },
   { msg: '🔍 Inspection sanitaire…', run: () => {
     if (S.dirt > 50) { S.budget -= 25000; S.rep -= 0.4; toast(`Quai sale : amende de ${money(25000)}`, 'bad'); }
     else toast('Quai impeccable : félicitations de l\'inspecteur', 'good');
@@ -376,6 +379,7 @@ function qualityFactors(missRatio = S.lastMiss, exposure = S.lastExposure) {
     ['Services (sécurité, écrans, consigne…)', others],
     ['Gare agrandie', 0.25 * (S.station - 1)],
     ['Voyageurs restés sans billet', -missRatio * 4],
+    ['Train en retard', -S.lastDelay * 3],
     [`Attente dehors sans abri (${weather().name.toLowerCase()})`, -exposure],
   ].filter(([, v]) => Math.abs(v) >= 0.01);
 }
@@ -442,6 +446,19 @@ function stepMinute() {
 
   if (m === 0) {
     S.dirt = Math.max(0, S.dirt - cleanRate());
+    if (h >= 6 && h <= 21) {
+      for (const k of Object.keys(S.broken)) {
+        if (S.broken[k] && S.svc.workshop) {
+          S.broken[k] = false;
+          toast(`🔧 L'atelier a réparé le distributeur de ${PRODUCTS[k].name.toLowerCase()}`, 'good');
+        }
+      }
+      const k = pick(Object.keys(PRODUCTS));
+      if (!S.broken[k] && Math.random() < (S.svc.workshop ? 0.004 : 0.015)) {
+        S.broken[k] = true;
+        toast(`⚠️ Un distributeur de ${PRODUCTS[k].name.toLowerCase()} est en panne : réparez-le`, 'bad', 'stocks');
+      }
+    }
     if (!S.event && h >= 7 && h <= 20 && Math.random() < 0.05) {
       S.event = pick(EVENTS);
       toast(S.event.msg, S.event.kind);
@@ -456,7 +473,12 @@ function stepMinute() {
 
 function exchange(h) {
   S.disembark = Math.round((S.plan.trains[h] ?? 0) * (0.5 + Math.random() * 0.2));
-  const present = Math.round(S.waiting);
+  // incident : train en retard, une partie des voyageurs abandonne
+  const delayed = Math.random() < (S.svc.workshop ? 0.01 : 0.04);
+  const giveUp = delayed ? Math.round(S.waiting * 0.15) : 0;
+  const present = Math.round(S.waiting) - giveUp;
+  S.lastDelay = giveUp / Math.max(1, present + giveUp);
+  if (delayed) toast(`🕒 Train de ${pad(h)}:00 en retard : ${giveUp} voyageur(s) abandonnent`, 'bad', 'upgrades');
   const type = TRAIN_TYPES[S.plan.types[h]];
   const walkins = Math.min(present, Math.round(seatsPerTrain() * type.seats), ticketCap());
   const missed = present - walkins;
@@ -530,7 +552,9 @@ function sell(prof, regular = false) {
       S.today.served += c;
       d -= c;
     }
-    const sold = Math.min(d, S.stock[k]);
+    // un distributeur en panne ne vend plus sa part du stock
+    const usable = S.broken[k] ? Math.floor((S.stock[k] * (S.vending[k] - 1)) / S.vending[k]) : S.stock[k];
+    const sold = Math.min(d, usable);
     S.stock[k] -= sold;
     total += sold * p.price;
     S.today.demand += d;
@@ -563,7 +587,11 @@ function sell(prof, regular = false) {
 function closeDay() {
   S.today.refused += S.hotelQueue; // les clients encore en attente repartent
   S.hotelQueue = 0;
-  const costs = dailyCosts(S.today.rooms, S.today.restock);
+  // les distributeurs encore en panne sont réparés la nuit, plus cher qu'en journée
+  const repairs = Object.values(S.broken).filter(Boolean).length * 3000;
+  S.broken = {};
+  S.strike = false;
+  const costs = [...dailyCosts(S.today.rooms, S.today.restock), ...(repairs ? [['Réparations de nuit', repairs]] : [])];
   const total = sum(costs.map(([, v]) => v));
   const revenue = S.today.revenue + S.pub * PUB_INCOME;
   S.budget += S.pub * PUB_INCOME - total;
@@ -1073,7 +1101,8 @@ function drawStaff(t) {
   for (const [k, p] of Object.entries(PRODUCTS)) {
     for (let i = 0; i < S.vending[k]; i++, vx += 12) {
       ctx.fillStyle = p.color; ctx.beginPath(); ctx.roundRect(vx - 5, y - 27, 10, 27, [3, 3, 1, 1]); ctx.fill();
-      ctx.fillStyle = S.stock[k] ? '#bfe0f5' : '#ff5b4a'; ctx.fillRect(vx - 3, y - 24, 6, 5);
+      ctx.fillStyle = S.broken[k] && i === 0 ? (Math.floor(t * 3) % 2 ? '#ff9f1a' : '#3a2a10') : S.stock[k] ? '#bfe0f5' : '#ff5b4a';
+      ctx.fillRect(vx - 3, y - 24, 6, 5);
       ctx.fillStyle = 'rgb(0 0 0 / .35)'; ctx.fillRect(vx - 3, y - 8, 6, 3);
     }
   }
@@ -1258,6 +1287,10 @@ function drawClockHands() {
 
 // Silhouettes dans la salle d'attente et écran des départs (par-dessus les fenêtres éclairées)
 function drawInsideDetails(inside) {
+  if (S.strike) {
+    ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.roundRect(DOOR_X - 34, 326, 68, 12, 3); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✊ GRÈVE', DOOR_X, 335);
+  }
   if (S.waitroom) {
     const heads = Math.round((inside / WAITROOM[S.waitroom]) * 12);
     ctx.fillStyle = 'rgb(40 32 36 / .8)';
@@ -1600,6 +1633,7 @@ const VIEWS = {
             <div><b>${p.icon} ${p.name}</b>
               <small>${S.vending[k]} distributeur(s) · stock ${S.stock[k]} / ${cap} · demande prévue ${fmt(e.demandBy[k])} par jour</small>
               <span class="bar ${S.stock[k] < cap * 0.2 ? 'low' : ''}"><i style="width:${(S.stock[k] / cap) * 100}%"></i></span></div>
+            ${S.broken[k] ? `<button class="primary" data-act="repair:${k}" ${S.budget < 1500 ? 'disabled' : ''}>⚠️ Réparer · ${money(1500)}</button>` : ''}
             <button data-act="refill:${k}" ${S.stock[k] >= cap ? 'disabled' : ''}>Remplir · ${money((cap - S.stock[k]) * p.cost)}</button>
             <button data-act="vending:${k}" ${S.vending[k] >= VENDING_MAX || S.budget < VENDING_PRICE ? 'disabled' : ''}>+ Distributeur · ${money(VENDING_PRICE)}</button>
           </div>`;
@@ -1728,6 +1762,11 @@ $('#modalBody').addEventListener('click', (e) => {
   if (act === 'close') return modal.close();
   if (act === 'open') return openModal(key);
   if (act === 'refill') refill(key);
+  if (act === 'repair' && S.budget >= 1500) {
+    S.broken[key] = false;
+    S.budget -= 1500;
+    toast(`🔧 Distributeur de ${PRODUCTS[key].name.toLowerCase()} réparé : −${money(1500)}`, 'warn');
+  }
   if (act === 'vending' && S.vending[key] < VENDING_MAX && S.budget >= VENDING_PRICE) {
     S.vending[key]++;
     S.budget -= VENDING_PRICE;

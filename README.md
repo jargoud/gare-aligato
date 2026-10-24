@@ -7,13 +7,13 @@ Les graphismes ont été modernisés : on ne cherche pas à imiter le pixel art 
 
 ## Lancer le jeu
 
-Le jeu charge ses fichiers par des chemins relatifs : il faut le servir avec un petit serveur web local.
+Ouvrez simplement `index.html` dans un navigateur récent (double-clic) : aucun serveur ni installation n'est nécessaire.
+
+Un serveur local reste possible, par exemple pour tester sur un autre appareil du réseau :
 
 ```bash
 python3 -m http.server 8765
 ```
-
-Puis ouvrir <http://localhost:8765>.
 
 La partie est **sauvegardée automatiquement** dans le navigateur, chaque soir à minuit, après chaque achat ou embauche,
 et quand on ferme la page. Le bouton ↺ en bas à droite lance une nouvelle partie.
@@ -192,13 +192,31 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
 La cafétéria et le café du quai servent en premier : les distributeurs ne prennent que le reste de la demande.
 
+### Incidents
+
+- 🕒 **Train en retard** : 15 % des voyageurs qui attendaient abandonnent, et l'appréciation baisse.
+- ⚠️ **Distributeur en panne** (écran orange clignotant) : il ne vend plus sa part du stock. Réparez-le dans la fenêtre
+  Stocks (1 500 €) ; sinon il est réparé la nuit pour 3 000 €.
+- 🔧 L'**atelier de maintenance** (objectif 2) rend retards et pannes 4 fois plus rares et répare les distributeurs dans l'heure.
+
 ### Événements
 
-Une fois par jour au plus, un imprévu peut survenir : car de touristes, congrès en ville, panne de courant, vandalisme,
+Une fois par jour au plus, un imprévu peut survenir : car de touristes, congrès en ville, panne de courant, vandalisme, grève des guichetiers (seules les bornes vendent normalement),
 article de presse ou inspection sanitaire (amende si le quai est sale).
+
+## Vérifier l'équilibrage
+
+```bash
+node sim.mjs
+```
+
+Joue 3 parties d'une année (56 jours) sans navigateur, avec une stratégie simple, et échoue si une journée finit en perte,
+si le budget reste négatif deux soirs de suite, en cas de faillite ou si les 8 objectifs ne sont pas atteints avant le jour 40.
+Options : `node sim.mjs <parties> <jours>`.
 
 ## Fichiers
 
 - `index.html` : structure de la page
 - `style.css` : interface
 - `game.js` : simulation, rendu du décor (canvas) et fenêtres
+- `sim.mjs` : vérification automatique de l'équilibrage
