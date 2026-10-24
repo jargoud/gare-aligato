@@ -130,7 +130,7 @@ const S = {
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, lastMiss: 0, lastExposure: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -576,6 +576,7 @@ function closeDay() {
   S.score += S.report.points;
   S.report.record = S.score > bestScore();
   if (S.report.record) setBest(S.score);
+  S.history = [...S.history, { day: S.day, budget: S.budget, pax: T.passengers, rep: S.rep, net: S.lastNet }].slice(-14);
   S.lastSat = satisfaction();
   S.today = newDay(S.rep);
   if (S.autoRefill) Object.keys(PRODUCTS).forEach(refill);
@@ -1667,13 +1668,39 @@ const VIEWS = {
           <div class="row"><span>Résultat prévu</span>${net(m.revenue - m.costs)}</div></section>
         <section><h3>Hier</h3>${R
           ? row('Voyageurs', fmt(R.passengers)) + row('Clients hôtel', R.rooms) + row('Recettes', money(R.revenue))
-            + R.costs.map(([k, v]) => row(k, '−' + money(v))).join('')
+            + R.costs.filter(([, v]) => v).map(([k, v]) => row(k, '−' + money(v))).join('')
             + `<div class="row"><span>Résultat</span>${net(R.revenue - R.total)}</div>`
           : '<p class="hint">Premier bilan à minuit.</p>'}</section>
-      </div>`;
+      </div>
+      <h3 class="hist-title">Historique · ${S.history.length} dernier(s) jour(s)</h3>
+      ${S.history.length < 2 ? '<p class="hint">Les courbes apparaissent après deux journées.</p>' : `<div class="charts">
+        ${chart('Budget', S.history.map((h) => h.budget), 'line', money)}
+        ${chart('Résultat du jour', S.history.map((h) => h.net), 'bars', money)}
+        ${chart('Voyageurs', S.history.map((h) => h.pax), 'bars', fmt)}
+        ${chart('Appréciation', S.history.map((h) => h.rep), 'line', (v) => `${v.toFixed(2).replace('.', ',')} ★`, [0, 5])}
+      </div>`}`;
     },
   },
 };
+
+// Petit graphique SVG (une série) : courbe ou barres, infobulle native sur chaque point, dernière valeur affichée
+function chart(title, values, kind, format, range) {
+  const w = 240, h = 72, pad = 4, n = values.length, days = S.history.map((x) => x.day);
+  const lo = range?.[0] ?? Math.min(0, ...values), hi = range?.[1] ?? Math.max(1, ...values);
+  const y = (v) => h - pad - ((v - lo) / (hi - lo || 1)) * (h - 2 * pad);
+  const step = (w - 2 * pad) / n, x = (i) => pad + step * (i + 0.5);
+  const tip = (i) => `<title>Jour ${days[i]} : ${format(values[i])}</title>`;
+  const marks = kind === 'line'
+    ? `<polyline points="${values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`
+      + values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(--accent)" stroke="#fff" stroke-width="2">${tip(i)}</circle>`).join('')
+    : values.map((v, i) => {
+      const top = Math.min(y(v), y(0)), bh = Math.max(1, Math.abs(y(v) - y(0)));
+      return `<rect x="${x(i) - step * 0.35}" y="${top}" width="${step * 0.7}" height="${bh}" rx="2" fill="${v < 0 ? 'var(--bad)' : 'var(--accent)'}">${tip(i)}</rect>`;
+    }).join('');
+  return `<figure class="chart"><figcaption><span>${title}</span><b>${format(values[n - 1])}</b></figcaption>
+    <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${title} sur ${n} jours">
+      <line x1="0" x2="${w}" y1="${y(Math.max(lo, 0))}" y2="${y(Math.max(lo, 0))}" stroke="var(--line)"/>${marks}</svg></figure>`;
+}
 
 function openModal(name) {
   if (!modal.open) {
@@ -1778,7 +1805,8 @@ $('#newGame').onclick = () => {
   location.reload();
 };
 
-if (load()) {
+const resumed = load();
+if (resumed) {
   rebuild();
   toast(`Partie reprise : ${DAYS[weekday()].toLowerCase()}, jour ${S.day}.`, 'good');
 } else {
@@ -1786,6 +1814,47 @@ if (load()) {
   Object.assign(S.staff, expect(S.plan).need); // effectif de départ adapté à la demande prévue
   toast(`Bienvenue, directeur ! Aujourd'hui, ${fmt(S.plan.total)} voyageurs attendus.`);
 }
+
+// ---------- Première journée guidée (une seule fois, jeu en pause) ----------
+const TUTORIAL = [
+  ['.stat.goal', '🎯 Votre objectif du moment. Chaque objectif atteint débloque de nouvelles améliorations.'],
+  ['.overlay', '👀 L\'état de la gare en direct : prochain train, voyageurs à quai, hôtel, clients satisfaits et stocks. Survolez les jauges pour le détail.'],
+  ['.toolbar [data-modal="prices"]', '💲 Le prix du billet : bas, il attire du monde ; haut, il rapporte plus par voyageur. Il agit sur le lendemain.'],
+  ['.toolbar [data-modal="staff"]', '👥 Le personnel conseillé est calculé pour vous. Un guichetier manquant, et des voyageurs restent à quai.'],
+  ['.toolbar [data-modal="stocks"]', '🛒 Cafés, repas et goodies : un distributeur vide fait des mécontents. Ajoutez-en dès que possible.'],
+  ['.toolbar [data-modal="upgrades"]', '🏗️ Bancs, abris, quai, hôtel… Une amélioration de chaque type par jour.'],
+  ['#repStat', '⭐ Survolez la note pour savoir ce qui plaît ou déplaît aux voyageurs. À minuit, un bilan vous attend. Bon jeu !'],
+];
+function startTutorial() {
+  try { if (localStorage.getItem('aligato-tuto')) return; } catch { return; }
+  const box = document.createElement('div');
+  box.className = 'coach';
+  document.body.append(box);
+  let i = 0, target = null;
+  const end = () => {
+    target?.classList.remove('coach-target');
+    box.remove();
+    try { localStorage.setItem('aligato-tuto', '1'); } catch { /* stockage indisponible */ }
+    setSpeed(1);
+  };
+  const show = () => {
+    target?.classList.remove('coach-target');
+    if (i >= TUTORIAL.length) return end();
+    const [sel, text] = TUTORIAL[i];
+    target = $(sel);
+    target.classList.add('coach-target');
+    box.innerHTML = `<p>${text}</p><div><small>${i + 1} / ${TUTORIAL.length}</small>
+      <button class="link" data-skip>Passer</button><button class="primary" data-next>${i < TUTORIAL.length - 1 ? 'Suivant' : 'Jouer'}</button></div>`;
+    const r = target.getBoundingClientRect(), below = r.bottom + 160 < innerHeight;
+    box.style.left = `${clamp(r.left + r.width / 2 - 160, 10, innerWidth - 330)}px`;
+    box.style.top = below ? `${r.bottom + 10}px` : `${r.top - box.offsetHeight - 10}px`;
+    box.querySelector('[data-next]').onclick = () => { i++; show(); };
+    box.querySelector('[data-skip]').onclick = end;
+  };
+  setSpeed(0);
+  show();
+}
+if (!resumed) startTutorial();
 let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.min(100, now - last);

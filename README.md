@@ -25,12 +25,19 @@ pour devenir une **Légende du rail**.
 
 ## Comment jouer
 
+### Première partie
+
+Une visite guidée de 7 étapes présente l'écran (objectif, état de la gare, tarifs, personnel, stocks, améliorations, note).
+Elle ne s'affiche qu'une fois ; « Passer » la ferme.
+
 ### Une journée
 
 - Un train s'arrête toutes les heures, de 5 h à 23 h. Les voyageurs s'accumulent sur le quai pendant l'heure qui précède.
 - À vitesse 1×, une journée dure environ 10 minutes. Boutons ⏸ 1× 2× 4× en bas, ou la barre **Espace** pour mettre en pause.
 - **À minuit**, les frais du jour sont payés et un panneau de fin de journée s'ouvre : résumé, objectifs, prévisions du
   lendemain et conseils.
+- La fenêtre **Bilan** montre aussi l'historique des 14 derniers jours : budget, résultat, voyageurs et appréciation
+  (survolez un point ou une barre pour la valeur).
 
 ### La semaine
 
