@@ -1305,7 +1305,8 @@ function drawInsideDetails(inside) {
     ctx.fillStyle = '#0b1020'; ctx.beginPath(); ctx.roundRect(sx, sy, 42, 20, 3); ctx.fill();
     ctx.fillStyle = '#ffb547'; ctx.font = '700 7px ui-monospace, monospace'; ctx.textAlign = 'center';
     ctx.fillText('DÉPART', sx + 21, sy + 8);
-    ctx.fillText(nextTrain().slice(0, 5), sx + 21, sy + 17);
+    const next = nextTrain();
+    ctx.fillText(next.startsWith('à quai') ? 'À QUAI' : next.slice(0, 5), sx + 21, sy + 17);
   }
 }
 
