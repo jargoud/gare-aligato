@@ -5,6 +5,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-25
+
+### Corrigé
+
+- Le bouton **nouvelle partie** reprenait la partie abandonnée au lieu d'en commencer une nouvelle.
+
 ## [1.1.0] - 2026-10-25
 
 Une gare plus vivante et plus longue à maîtriser : nouveaux services, nouveaux métiers, travaux d'entretien
