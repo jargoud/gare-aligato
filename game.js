@@ -2329,6 +2329,7 @@ function load() {
 addEventListener('pagehide', save);
 $('#newGame').onclick = () => {
   if (!confirm('Abandonner cette partie et en commencer une nouvelle ?')) return;
+  removeEventListener('pagehide', save); // sinon le rechargement réécrit la sauvegarde qu'on vient d'effacer
   clearSave();
   location.reload();
 };
