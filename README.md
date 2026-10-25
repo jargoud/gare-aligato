@@ -87,7 +87,8 @@ et niveau des trois stocks (un clic ouvre la fenêtre Stocks). Toutes les action
 ### L'hôtel
 
 Une partie des voyageurs qui descendent veulent une chambre. Ils font la queue à la réception (on les voit avec leur valise)
-et sont enregistrés au rythme du personnel d'hôtel et des bornes de check-in. Si l'hôtel est plein, ils repartent ;
+et sont enregistrés au rythme du personnel d'hôtel et des bornes de check-in. Sur la façade, les chambres occupées ont les rideaux tirés,
+allumées en soirée et éteintes la nuit. Si l'hôtel est plein, ils repartent ;
 ceux qui attendent encore à minuit aussi.
 
 ### Stocks et distributeurs

@@ -786,8 +786,8 @@ function bricks(g, x, y, w, h, color) {
   }
 }
 
-function windowAt(g, x, y, w, h) {
-  WINDOWS.push({ x, y, w, h });
+function windowAt(g, x, y, w, h, hotel = false) {
+  WINDOWS.push({ x, y, w, h, hotel });
   g.fillStyle = '#e9dccb'; g.fillRect(x - 3, y - 3, w + 6, h + 6);
   g.fillStyle = '#2b3d5c'; g.fillRect(x, y, w, h);
   g.fillStyle = 'rgb(255 255 255 / .18)'; g.fillRect(x, y, w / 2, h);
@@ -820,14 +820,12 @@ function drawBack(g) {
   if (S.parking) {
     g.fillStyle = '#4a4f58'; g.fillRect(300, 301, 330, 15);
     g.fillStyle = '#e9ecf1';
-    for (let x = 300; x <= 630; x += 30) g.fillRect(x, 301, 2, 15);
-    const cols = ['#e85d3a', '#3aa0d8', '#f4f4f4', '#f2b134', '#5b6b7a', '#2b8a9e'];
-    for (let i = 0; i < 9; i++) {
-      if (i === 3 || i === 7) continue; // places libres
-      g.fillStyle = cols[i % cols.length];
-      g.beginPath(); g.roundRect(305 + i * 30, 305, 22, 9, 3); g.fill();
-      g.fillStyle = 'rgb(0 0 0 / .35)'; g.fillRect(309 + i * 30, 307, 14, 4);
-    }
+    for (let x = 300; x <= 630; x += 47) g.fillRect(x, 312, 2, 4); // marquage des places, au pied des voitures
+    // voitures garées, vues de profil comme celles de la route, en plus petit (plus loin)
+    const keep = ctx;
+    ctx = g;
+    PARKED.forEach((c, i) => c && drawCar({ ...c, x: 324 + i * 47 }, 315, 0.55));
+    ctx = keep;
     g.fillStyle = '#2f6fd6'; g.beginPath(); g.roundRect(280, 284, 16, 16, 3); g.fill();
     g.fillStyle = '#fff'; g.font = '800 12px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('P', 288, 297);
     g.fillStyle = '#5b616b'; g.fillRect(287, 300, 2, 16);
@@ -904,7 +902,7 @@ function drawFront(g) {
   for (let f = 1; f <= S.hotel; f++) {
     const fy = GF - f * FLOOR_H;
     g.fillStyle = '#e9dccb'; g.fillRect(MX - 4, fy + FLOOR_H - 6, MW + 8, 6);
-    for (let k = 0; k < 7; k++) windowAt(g, MX + 20 + k * 45, fy + 8, 22, 24);
+    for (let k = 0; k < 7; k++) windowAt(g, MX + 20 + k * 45, fy + 8, 22, 24, true);
   }
   for (let k = 0; k < 7; k++) if (k !== 3) windowAt(g, MX + 20 + k * 45, 340, 22, 24);
 
@@ -981,8 +979,14 @@ function drawFront(g) {
   if (S.svc.wifi) plaque(DOOR_X + 60, 368, 30, 'WI-FI', '#6c5ce7');
 
   // galerie de commerces le long de la route
-  for (const sh of shopFronts()) {
+  const fronts = shopFronts();
+  for (const sh of fronts) {
     const { x, w } = sh, top = SHOP_TOP, s = sh;
+    // mur de liaison avec le commerce voisin : la route ne se voit plus entre deux façades
+    if (fronts.some((o) => o.x === x + 68)) {
+      g.fillStyle = '#d9cfc0'; g.fillRect(x + w, top, 68 - w, Y.platform + 2 - top);
+      g.fillStyle = '#4a3a3e'; g.fillRect(x + w, top - 4, 68 - w, 5);
+    }
     g.fillStyle = '#efe6d8'; g.fillRect(x, top, w, Y.platform + 2 - top);
     g.fillStyle = '#4a3a3e'; g.fillRect(x - 2, top - 4, w + 4, 5);
     g.fillStyle = s.color; g.fillRect(x + 3, top + 3, w - 6, 11);
@@ -1047,6 +1051,12 @@ const CAR_TYPES = [
   { kind: 'van', len: 64, colors: ['#2f6fd6', '#2b8a9e', '#e8e8e8'] },
 ];
 const cars = [];
+// voitures du parking, une par place (null : place libre)
+const PARKED = [
+  { kind: 'car', len: 56, color: '#e85d3a', dir: 1 }, { kind: 'van', len: 64, color: '#2f6fd6', dir: -1 }, null,
+  { kind: 'car', len: 56, color: '#f4f4f4', dir: 1 }, { kind: 'pickup', len: 70, color: '#c99a52', dir: -1 }, null,
+  { kind: 'car', len: 56, color: '#3aa0d8', dir: -1 },
+];
 let carTimer = 0;
 
 function updateCars(dt, t) {
@@ -1066,10 +1076,11 @@ function updateCars(dt, t) {
 
 const laneY = (lane) => (lane ? 360 : 336);
 
-function drawCar(c) {
-  const s = c.lane ? 1 : 0.88, L = c.len;
+// y et s : position et échelle, par défaut celles de la voie de circulation
+function drawCar(c, y = laneY(c.lane), s = c.lane ? 1 : 0.88) {
+  const L = c.len;
   ctx.save();
-  ctx.translate(c.x, laneY(c.lane));
+  ctx.translate(c.x, y);
   ctx.scale(c.dir * s, s);
   ctx.fillStyle = 'rgb(0 0 0 / .25)';
   ctx.beginPath(); ctx.ellipse(0, 0, L / 2, 3, 0, 0, Math.PI * 2); ctx.fill();
@@ -1435,6 +1446,14 @@ function drawWeather(t) {
   }
 }
 
+// Chambres occupées : une fenêtre sur sept par tranche de chambres, dans un ordre fixe ; les clients d'hier partent à 10 h
+const ROOM_ORDER = (() => { const r = rng(42); return Array.from({ length: 28 }, (_, i) => [r(), i]).sort((a, b) => a[0] - b[0]).map(([, i]) => i); })();
+function occupiedWindows() {
+  const hw = WINDOWS.filter((wn) => wn.hotel), cap = S.hotel * ROOMS_PER_FLOOR;
+  const guests = Math.min(cap, S.today.rooms + (S.minutes < 600 ? S.report?.rooms ?? 0 : 0));
+  return ROOM_ORDER.filter((i) => i < hw.length).slice(0, Math.round((guests / cap) * hw.length)).map((i) => hw[i]);
+}
+
 // ---------- Rendu ----------
 let simT = 0; // temps d'animation, figé en pause
 function render(now) {
@@ -1453,6 +1472,13 @@ function render(now) {
   for (const c of cars) if (c.lane) drawCar(c);
   ctx.drawImage(front, 0, 0, W, H);
   if (S.station >= 3) drawClockHands();
+  // rideaux tirés des chambres occupées ; lumière allumée en soirée et au réveil, éteinte la nuit
+  const occupied = occupiedWindows(), roomLights = (t >= 17 && t < 23) || (t >= 6 && t < 8);
+  for (const wn of occupied) {
+    ctx.fillStyle = '#c0624a'; ctx.fillRect(wn.x, wn.y, wn.w, wn.h);
+    ctx.fillStyle = '#9c4a36'; ctx.fillRect(wn.x + wn.w / 2 - 0.5, wn.y, 1, wn.h); // jonction des deux rideaux
+    ctx.fillStyle = '#e9dccb'; ctx.fillRect(wn.x, wn.y, wn.w, 2); // tringle
+  }
 
   ctx = spriteCtx;
   ctx.clearRect(0, 0, W, H);
@@ -1492,14 +1518,18 @@ function render(now) {
     ctx.globalCompositeOperation = 'lighter';
     for (const lx of LAMPS) glow(lx + 17, 308, 70, `rgb(255 200 110 / ${dark * 0.45})`);
     ctx.save(); // les phares disparaissent derrière les bâtiments de la gare et les commerces
-    ctx.beginPath(); ctx.rect(0, 0, S.station >= 2 ? 760 : MX, H);
+    ctx.beginPath(); ctx.rect(0, 0, S.station >= 2 ? SHOP_X : MX, H);
     for (const sh of shopFronts()) ctx.rect(sh.x - 2, SHOP_TOP - 4, sh.w + 4, H);
     ctx.clip('evenodd');
     for (const c of cars) glow(c.x + c.dir * c.len / 2, laneY(c.lane) - 10, 30, `rgb(255 230 160 / ${dark * 0.5})`);
     ctx.restore();
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = `rgb(255 214 130 / ${dark * 0.85})`;
-    for (const wn of WINDOWS) ctx.fillRect(wn.x, wn.y, wn.w, wn.h);
+    for (const wn of WINDOWS) if (!wn.hotel) ctx.fillRect(wn.x, wn.y, wn.w, wn.h); // les chambres vides restent sombres
+    if (roomLights) {
+      ctx.fillStyle = `rgb(255 190 110 / ${dark * 0.8})`;
+      for (const wn of occupied) ctx.fillRect(wn.x, wn.y, wn.w, wn.h);
+    }
     for (const lx of LAMPS) { ctx.fillStyle = `rgb(255 236 190 / ${dark})`; ctx.fillRect(lx + 12, 305, 10, 2); }
   }
   drawInsideDetails(split.inside);

@@ -18,6 +18,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
   et verbalisent. Fraudeurs et amendes dans le bilan du soir.
 - La **boutique** vend des goodies avant les distributeurs ; la fenêtre Stocks indique ce que servent café,
   cafétéria et boutique.
+- **Chambres occupées** visibles sur l'hôtel : rideaux tirés, lumière allumée en soirée et au réveil, éteinte la nuit ;
+  les chambres vides restent sombres.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié
@@ -32,6 +34,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Les **abris** sont plus grands (60 voyageurs au lieu de 40) et accueillent un banc dessous : +0,05 ★ par abri équipé.
 - Les cartes de la fenêtre **Améliorations** placent le prix ou l'état sous la description : tailles plus homogènes.
 - La **boutique** commence après le **café du quai**, qui ne la chevauche plus ; la tour de l'horloge est centrée dessus.
+- Les **commerces voisins** sont reliés par un mur : la navette ne se voit plus entre les façades.
+- Le **parking** montre des voitures garées de profil, dessinées comme celles de la route.
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)
