@@ -90,7 +90,7 @@ const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des goodies avant l
 // Services : bonus d'appréciation et coût d'entretien par jour
 const SERVICES = {
   wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 1, cost: 20000, upkeep: 600, rep: 0.15 },
-  security: { icon: '👮', name: 'Agent de sécurité', desc: 'Protège contre le vandalisme', req: 1, cost: 25000, upkeep: 2500, rep: 0.1 },
+  security: { icon: '👮', name: 'Agent de sécurité', desc: 'Protège contre le vandalisme et les tags : travaux d\'entretien 25 % moins chers', req: 1, cost: 25000, upkeep: 2500, rep: 0.1 },
   screens: { icon: '📺', name: 'Écrans d\'information', desc: 'Guichets et bornes 25 % plus efficaces', req: 2, cost: 30000, upkeep: 300, rep: 0.1 },
   cafeteria: { icon: '🍽️', name: 'Cafétéria', desc: `Repas à ${CAFETERIA_PRICE} € servis par des serveurs, dîner des clients de l'hôtel`, req: 3, cost: 90000, upkeep: 1500, rep: 0.2 },
   lockers: { icon: '🧳', name: 'Consigne à bagages', desc: 'Recette sur les voyageurs de loisir', req: 3, cost: 25000, upkeep: 200, rep: 0.05 },
@@ -776,9 +776,10 @@ function nightWorks() {
     S.nextWorks ??= nextWorksDay();
     if (S.day >= S.nextWorks) {
       const kind = pick(Object.keys(WORKS).filter((k) => WORKS[k].ok())), w = WORKS[kind], size = stationSize();
+      const guard = S.svc.security ? 0.75 : 1; // l'agent de sécurité limite tags et dégradations
       S.worksOffer = w.days
-        ? { kind, days: 1 + rand(1 + Math.min(3, Math.floor(size / 15))), cost: 2000 + 300 * size, delay: 0 }
-        : { kind, days: 0, cost: w.quote(), delay: 0 };
+        ? { kind, days: 1 + rand(1 + Math.min(3, Math.floor(size / 15))), cost: (2000 + 300 * size) * guard, delay: 0 }
+        : { kind, days: 0, cost: w.quote() * guard, delay: 0 };
       S.nextWorks = nextWorksDay();
     }
   }
@@ -1039,10 +1040,13 @@ function drawFront(g) {
   g.fillStyle = '#54474e'; g.fillRect(MX - 16, top, MW + 32, 4);
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
-  // marquise vitrée : devant la gare, puis sur tout le grand quai une fois achetée
+  // fine verrière d'origine devant la gare ; la marquise achetée la prolonge sur le quai, sans passer devant la façade
   const cx = S.canopy >= 2 ? platX() + 10 : S.canopy ? PLATFORM_X[2] + 10 : MX - 20;
-  g.fillStyle = 'rgb(180 210 235 / .6)'; g.fillRect(cx, 362, W - cx, 10);
-  g.fillStyle = '#4a4f58'; g.fillRect(cx, 360, W - cx, 2); g.fillRect(cx, 371, W - cx, 1); // armature
+  g.fillStyle = 'rgb(180 210 235 / .55)'; g.fillRect(MX - 20, 366, W - MX + 20, 6);
+  if (S.canopy) {
+    g.fillStyle = 'rgb(180 210 235 / .6)'; g.fillRect(cx, 362, MX - 20 - cx, 10);
+    g.fillStyle = '#4a4f58'; g.fillRect(cx, 360, MX - 20 - cx, 2); g.fillRect(cx, 371, MX - 20 - cx, 1); // armature
+  }
   g.fillStyle = '#4a4f58';
   for (let px = cx + 10; px <= W; px += 120) g.fillRect(px, 372, 3, Y.platform - 372 + 4);
 

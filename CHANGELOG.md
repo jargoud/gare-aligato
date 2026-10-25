@@ -30,6 +30,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Les voyageurs à l'abri se placent **sous les abris** sur la scène.
 - **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;
   frais immédiats ou chantier de quelques jours qui réduit la capacité ; les reporter coûte de l'appréciation.
+  L'agent de sécurité les rend 25 % moins chers.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié

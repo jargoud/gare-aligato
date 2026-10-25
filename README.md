@@ -208,7 +208,7 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | Service | Débloqué à l'objectif | Effet |
 |---|---|---|
 | 📶 Wi-Fi gratuit | 1 | Appréciation +0,15 |
-| 👮 Agent de sécurité | 1 | Fait fuir les vandales (sinon 15 000 € de dégâts) ; on le voit faire sa ronde |
+| 👮 Agent de sécurité | 1 | Fait fuir les vandales (sinon 15 000 € de dégâts) et rend les travaux d'entretien 25 % moins chers ; on le voit faire sa ronde |
 | 📺 Écrans d'information | 2 | Guichets et bornes 25 % plus efficaces ; écran des départs sur la gare |
 | 🪑 Salle d'attente (2 niveaux) | 2 et 5 | +80 puis +160 voyageurs par train sans agrandir le quai ; on voit les silhouettes derrière les vitres |
 | ☕ Café du quai (3 niveaux) | 5, 6 et 7 (quai niveau 2, puis boutique) | 600 cafés par jour à 3,50 € sans personnel ; **Terrasse** : jusqu'à 1 500 cafés et viennoiseries à 6 € ; **Grand café** : jusqu'à 2 700. Au-delà de 600, il faut des **baristas** (1 200 €/jour, 600 cafés chacun). Appréciation +0,4, puis +0,1 par niveau |
