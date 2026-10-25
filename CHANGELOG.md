@@ -25,7 +25,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Le bilan du soir conseille le prix des chambres ou l'hôtel partenaire quand l'hôtel est plein, au lieu d'un étage de plus.
 - Environ 35 % des clients **préfèrent les distributeurs** aux comptoirs pour les cafés et les repas : les distributeurs
   restent utiles avec une cafétéria ou un grand café.
-- **Marquise du quai** à deux niveaux : marquise (quai niveau 2, +120 voyageurs à l'abri), puis grande marquise sur tout
+- **Extension des abris** à deux niveaux : abris sur tout le quai niveau 2 (+120 voyageurs à l'abri), puis sur tout
   le grand quai (+250 au total).
 - Les voyageurs à l'abri se placent **sous les abris** sur la scène.
 - **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;

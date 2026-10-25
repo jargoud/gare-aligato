@@ -171,8 +171,15 @@ const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GO
 const cafeCap = () => (S.cafe ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
-const CANOPY_SEATS = [0, 120, 250]; // marquise (quai niveau 2), puis grande marquise sur tout le grand quai
-// voyageurs à l'abri : abris, marquise et salle d'attente
+// extension des abris (id 'canopy') : sur tout le quai niveau 2, puis sur tout le grand quai
+const CANOPY_SEATS = [0, 120, 250];
+// modules d'abris de l'extension, à gauche des trois abris, au même pas qu'eux
+const extensionX = () => {
+  const start = S.canopy >= 2 ? platX() + 10 : PLATFORM_X[2] + 10, xs = [];
+  if (S.canopy) for (let x = SHELTER_X[2] - 140; x >= start; x -= 140) xs.push(x);
+  return xs;
+};
+// voyageurs à l'abri : abris, extension et salle d'attente
 const shelterCap = () => S.shelters * SHELTER_SEATS + CANOPY_SEATS[S.canopy] + waitroomSeats();
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
@@ -237,9 +244,9 @@ const UPGRADES = [
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
     level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
-  { id: 'canopy', icon: '☂️', name: 'Marquise du quai',
-    desc: () => (S.canopy ? `Grande marquise sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
-      : `Verrière du début du quai jusqu'à la gare : abrite ${CANOPY_SEATS[1]} voyageurs de plus · ${money(200)} / jour`),
+  { id: 'canopy', icon: '⛱️', name: 'Extension des abris',
+    desc: () => (S.canopy ? `Abris sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
+      : `Abris sur tout le quai niveau 2 : ${CANOPY_SEATS[1]} voyageurs de plus à l'abri · ${money(200)} / jour`),
     level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [60000, 80000][l], buy: () => S.canopy++,
     pre: () => S.platform >= S.canopy + 2, preText: () => (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') },
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
@@ -1041,13 +1048,9 @@ function drawFront(g) {
   g.fillStyle = '#54474e'; g.fillRect(MX - 16, top, MW + 32, 4);
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
-  // fine verrière d'origine devant la gare ; la marquise achetée la prolonge sur le quai, sans passer devant la façade
-  const cx = S.canopy >= 2 ? platX() + 10 : S.canopy ? PLATFORM_X[2] + 10 : MX - 20;
-  g.fillStyle = 'rgb(180 210 235 / .55)'; g.fillRect(MX - 20, 366, W - MX + 20, 6);
-  if (S.canopy) {
-    g.fillStyle = 'rgb(180 210 235 / .6)'; g.fillRect(cx, 362, MX - 20 - cx, 10);
-    g.fillStyle = '#4a4f58'; g.fillRect(cx, 360, MX - 20 - cx, 2); g.fillRect(cx, 371, MX - 20 - cx, 1); // armature
-  }
+  // fine verrière devant la gare
+  const cx = MX - 20;
+  g.fillStyle = 'rgb(180 210 235 / .55)'; g.fillRect(cx, 366, W - cx, 6);
   g.fillStyle = '#4a4f58';
   for (let px = cx + 10; px <= W; px += 120) g.fillRect(px, 372, 3, Y.platform - 372 + 4);
 
@@ -1266,7 +1269,7 @@ const crowd = (() => {
   return arr.sort((a, b) => a.y - b.y);
 })();
 const crowdX = (u) => platX() + 20 + u * (1250 - platX() - 20);
-// voyageurs abrités : les premiers se placent sous les abris (sous la marquise, tout le quai est couvert)
+// voyageurs abrités : les premiers se placent sous les abris (avec l'extension, tout le quai est couvert)
 const shelterX = (u) => {
   const zones = SHELTER_X.slice(0, S.shelters), i = Math.floor(u * zones.length), f = u * zones.length - i;
   return zones[i] + 8 + f * (SHELTER_W - 16);
@@ -1636,15 +1639,15 @@ function render(now) {
   drawStaff(simT);
   const split = crowdSplit();
   const vc = Math.min(CROWD_MAX, Math.round(split.classic - split.inside)), vw = Math.min(CROWD_MAX - vc, Math.round(split.commuters));
-  const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec la marquise, tout le quai est couvert
+  const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec l'extension, tout le quai est couvert
   for (const p of crowd) {
     const x = p.order < underShelters ? shelterX(p.u) : crowdX(p.u);
     if (p.order < vc) drawPerson(p, x, p.y, simT, false);
     else if (p.order < vc + vw) drawPerson(p.suit, x, p.y, simT, false);
   }
   for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
-  // abris voyageurs, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
-  for (const x of SHELTER_X.slice(0, S.shelters)) {
+  // abris voyageurs et leur extension, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
+  for (const x of [...SHELTER_X.slice(0, S.shelters), ...extensionX()]) {
     const w = SHELTER_W;
     ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 350, w, 60);
     ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 344, 3, 80); ctx.fillRect(x + w - 3, 344, 3, 80);
@@ -2215,7 +2218,7 @@ function load() {
       S[k] = v && def && typeof v === 'object' && typeof def === 'object' && !Array.isArray(v) ? { ...def, ...v } : v;
     }
     S.event = EVENTS[d.event] ?? null;
-    if (!d.v && d.canopy) S.canopy = 2; // sauvegarde d'avant la marquise à deux niveaux : c'était la grande marquise
+    if (!d.v && d.canopy) S.canopy = 2; // sauvegarde d'avant l'extension à deux niveaux : elle couvrait tout le grand quai
     S.v = 2;
     S.today.goals = d.today.goals.map((i) => GOALS[i]);
     if (S.report) S.report.goals = d.report.goals.map((i) => GOALS[i]);

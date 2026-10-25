@@ -176,8 +176,8 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
 Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
-La **marquise du quai** a deux niveaux : la marquise (objectif 2, quai niveau 2, 60 000 €) abrite 120 voyageurs de plus,
-la grande marquise (objectif 4, grand quai, 80 000 €) couvre tout le quai et en abrite 250 au total.
+L'**extension des abris** a deux niveaux : sur tout le quai niveau 2 (objectif 2, 60 000 €), elle abrite 120 voyageurs de plus ;
+sur tout le grand quai (objectif 4, 80 000 €), 250 au total.
 Sur la scène, les voyageurs abrités se placent sous les abris.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
 Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc donne +0,05 ★ de plus.
