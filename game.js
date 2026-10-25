@@ -694,7 +694,8 @@ mainCtx.scale(DPR, DPR);
 const Y = { grass: 300, road: 316, roadEnd: 366, platform: 384, platformEdge: 440, track: 452, rail: 474, ground: 494 };
 const MX = 900, MW = 330, GF = 330, FLOOR_H = 42; // bâtiment principal : x, largeur, haut du rez-de-chaussée
 const DOOR_X = MX + MW / 2;
-const TOWER = { x: 800, clockY: 236 };
+const SHOP_X = 804; // bord gauche de la boutique, à droite du café du quai (720 à 796)
+const TOWER = { x: 852, clockY: 236 }; // tour de l'horloge centrée sur la boutique
 const CAR_W = 146, GAP = 4, LOCO_W = 170;
 const LAMPS = [70, 290, 510, 700];
 const WINDOWS = [];
@@ -841,14 +842,15 @@ function drawFront(g) {
     g.beginPath(); g.arc(TOWER.x, TOWER.clockY, 17, 0, Math.PI * 2); g.fill(); g.stroke();
   }
   if (S.station >= 2) {
-    bricks(g, 760, 318, MX - 760, bottom - 318, '#b5432f');
-    g.fillStyle = '#4a3a3e'; g.fillRect(756, 310, MX - 756 + 4, 10);
-    g.fillStyle = '#e9dccb'; g.fillRect(764, 334, MX - 772, 40);
-    g.fillStyle = '#7fb3d9'; g.fillRect(768, 338, MX - 780, 32);
-    g.fillStyle = 'rgb(255 255 255 / .25)'; g.fillRect(768, 338, (MX - 780) / 2, 32);
-    WINDOWS.push({ x: 768, y: 338, w: MX - 780, h: 32 });
-    g.fillStyle = '#2f6fd6'; g.beginPath(); g.roundRect(788, 321, 84, 12, 3); g.fill();
-    g.fillStyle = '#fff'; g.font = '700 9px system-ui, sans-serif'; g.fillText('BOUTIQUE', 830, 330);
+    const bx = SHOP_X; // la boutique commence après le café du quai
+    bricks(g, bx, 318, MX - bx, bottom - 318, '#b5432f');
+    g.fillStyle = '#4a3a3e'; g.fillRect(bx - 4, 310, MX - bx + 4, 10);
+    g.fillStyle = '#e9dccb'; g.fillRect(bx + 4, 334, MX - bx - 12, 40);
+    g.fillStyle = '#7fb3d9'; g.fillRect(bx + 8, 338, MX - bx - 20, 32);
+    g.fillStyle = 'rgb(255 255 255 / .25)'; g.fillRect(bx + 8, 338, (MX - bx - 20) / 2, 32);
+    WINDOWS.push({ x: bx + 8, y: 338, w: MX - bx - 20, h: 32 });
+    g.fillStyle = '#2f6fd6'; g.beginPath(); g.roundRect((bx + MX) / 2 - 42, 321, 84, 12, 3); g.fill();
+    g.fillStyle = '#fff'; g.font = '700 9px system-ui, sans-serif'; g.fillText('BOUTIQUE', (bx + MX) / 2, 330);
   }
 
   // rez-de-chaussée (gare) + étages (hôtel)

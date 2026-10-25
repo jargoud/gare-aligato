@@ -26,6 +26,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Les **saisons** durent une semaine au lieu de deux.
 - Les **abris** sont plus grands (60 voyageurs au lieu de 40) et accueillent un banc dessous : +0,05 ★ par abri équipé.
 - Les cartes de la fenêtre **Améliorations** placent le prix ou l'état sous la description : tailles plus homogènes.
+- La **boutique** commence après le **café du quai**, qui ne la chevauche plus ; la tour de l'horloge est centrée dessus.
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)
