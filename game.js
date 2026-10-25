@@ -2007,7 +2007,7 @@ function frame(now) {
   }
   const sdt = S.over ? 0 : (dt / 1000) * S.speed;
   simT += sdt;
-  updateCars(sdt ? dt / 1000 : 0, S.minutes / 60);
+  updateCars(sdt, S.minutes / 60); // voitures au rythme du jeu, comme les voyageurs
   updateWalkers(sdt);
   updateFloats(dt / 1000);
   render(now / 1000);
