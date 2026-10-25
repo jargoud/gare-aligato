@@ -49,6 +49,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Le **parking** montre des voitures garées de profil, dessinées comme celles de la route.
 - L'**effectif conseillé** est fixé pour la journée : plus d'alertes « en trop » ou « il manque » qui changent au fil
   des heures sans que le joueur ait rien fait. Il est recalculé après un achat qui le modifie.
+- L'effectif conseillé en **agents d'entretien** tient compte des heures de passage des trains : le quai reste
+  propre toute la journée (environ 80 % au lieu de 50 % le soir).
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)

@@ -452,7 +452,8 @@ function expect(plan) {
     revenue, costs, demandBy, counterBy, stockShort, roomDemand,
     need: {
       guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
-      entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / 24 - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
+      // la saleté arrive avec les trains (19 heures sur 24) : il faut la retirer au même rythme, pas sur toute la journée
+      entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / TRAIN_HOURS.length - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
       hotel: Math.max(0, Math.ceil((Math.min(roomDemand, hotelRooms()) - S.machines.checkin * CHECKIN_ROOMS) / ROOMS_PER_STAFF)),
       cafe: S.svc.cafeteria ? Math.ceil(cafeteriaDemand / MEALS_PER_WAITER) : 0,
       controleur: controllers,
