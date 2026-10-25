@@ -20,6 +20,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
   cafétéria et boutique.
 - **Chambres occupées** visibles sur l'hôtel : rideaux tirés, lumière allumée en soirée et au réveil, éteinte la nuit ;
   les chambres vides restent sombres.
+- **Prix des chambres** réglable dans Tarifs, avec le prix le plus rentable et les demandes prévues.
+- **Hôtel partenaire** (objectif 6) : une partie des clients refusés accepte le trajet en ville, contre une commission.
+- Le bilan du soir conseille le prix des chambres ou l'hôtel partenaire quand l'hôtel est plein, au lieu d'un étage de plus.
+- Environ 35 % des clients **préfèrent les distributeurs** aux comptoirs pour les cafés et les repas : les distributeurs
+  restent utiles avec une cafétéria ou un grand café.
+- **Marquise du quai** (grand quai) : verrière sur tout le quai qui abrite 250 voyageurs de plus.
+- Les voyageurs à l'abri se placent **sous les abris** sur la scène.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié

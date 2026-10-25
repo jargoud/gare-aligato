@@ -91,6 +91,10 @@ et sont enregistrés au rythme du personnel d'hôtel et des bornes de check-in. 
 allumées en soirée et éteintes la nuit. Si l'hôtel est plein, ils repartent ;
 ceux qui attendent encore à minuit aussi.
 
+Le **prix des chambres** se règle dans la fenêtre **Tarifs** (de 50 % à 200 % du tarif de base) et agit tout de suite :
+plus cher, moins de clients mais plus de recette par chambre. La fenêtre indique les demandes prévues et le prix le plus
+rentable ; quand l'hôtel est plein, montez-le.
+
 ### Stocks et distributeurs
 
 Chaque visiteur peut acheter un ☕ café, un 🥪 repas ou un 🎁 goodies dans les distributeurs automatiques.
@@ -172,6 +176,8 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
 Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
+La **marquise du quai** (objectif 4, grand quai, 120 000 €, 400 € / jour) couvre tout le quai et abrite 250 voyageurs de plus.
+Sur la scène, les voyageurs abrités se placent sous les abris.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
 Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc donne +0,05 ★ de plus.
 
@@ -209,11 +215,13 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 🧳 Consigne à bagages | 3 | Recette sur les voyageurs de loisir, surtout le week-end |
 | 📦 Point relais colis | 4 | Recette sur les travailleurs |
 | 🧖 Spa de l'hôtel | 6 (hôtel de 3 étages) | Chambres 30 % plus chères le week-end |
+| 🤝 Hôtel partenaire | 6 (hôtel de 4 étages) | Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre ; ils ne dînent pas à la gare |
 | 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
 
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
-La cafétéria, le café du quai et la boutique servent en premier : les distributeurs ne prennent que le reste de la demande.
+Environ 35 % des clients préfèrent les distributeurs pour les cafés et les repas (plus rapides, moins chers) ; les autres vont
+d'abord à la cafétéria ou au café du quai. Chacun se rabat sur l'autre s'il est plein ou vide. La boutique sert les goodies en premier.
 
 ### Fraude et contrôleurs
 

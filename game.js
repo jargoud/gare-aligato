@@ -98,10 +98,13 @@ const SERVICES = {
   spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1,
     pre: () => S.hotel >= 3, preText: () => 'Hôtel de 3 étages requis' },
   workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 60000, upkeep: 1500, rep: 0.05 },
+  partner: { icon: '🤝', name: 'Hôtel partenaire', desc: 'Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre', req: 6, cost: 60000, upkeep: 500, rep: 0.05,
+    pre: () => S.hotel >= 4, preText: () => 'Hôtel de 4 étages requis' },
   welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Moins d\'abandons en cas de retard, 20 billets par train même en grève, une partie des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
   lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1,
     pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
 };
+const PARTNER = { share: 0.6, commission: 0.2 }; // part des clients refusés qui acceptent le trajet, commission de la gare
 const ROOMS = [['Une Chambre Simple', 350], ['Une Chambre Double', 600], ['Une Suite', 1500]];
 // Distributeurs : demande par visiteur, prix de vente, coût d'achat, contenance d'un distributeur
 const PRODUCTS = {
@@ -129,16 +132,16 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
-  tarif: 50, rep: 3, dirt: 10, lastSat: 0.9,
+  tarif: 50, roomTarif: 100, rep: 3, dirt: 10, lastSat: 0.9,
   stock: { coffee: 320, meal: 170, goodies: 80 }, vending: { coffee: 1, meal: 1, goodies: 1 }, autoRefill: true,
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
-  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
+  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
   plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
 };
@@ -168,7 +171,9 @@ const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GO
 const cafeCap = () => (S.cafe ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
-const shelterCap = () => S.shelters * SHELTER_SEATS + WAITROOM[S.waitroom]; // voyageurs à l'abri : abris + salle d'attente
+const CANOPY_SEATS = 250; // marquise vitrée sur tout le grand quai
+// voyageurs à l'abri : abris, marquise et salle d'attente
+const shelterCap = () => S.shelters * SHELTER_SEATS + CANOPY_SEATS * S.canopy + WAITROOM[S.waitroom];
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
 // en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
@@ -228,6 +233,9 @@ const UPGRADES = [
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
     level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
+  { id: 'canopy', icon: '☂️', name: 'Marquise du quai', desc: () => `Verrière sur tout le grand quai : abrite ${CANOPY_SEATS} voyageurs de plus · ${money(400)} / jour`,
+    level: () => S.canopy, max: 1, req: [4], cost: () => 120000, buy: () => S.canopy++,
+    pre: () => S.platform >= 3, preText: () => 'Grand quai requis' },
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
     level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
@@ -314,6 +322,19 @@ function makePlan(noise = true, day = S.day) {
     total: classic + commuterTotal, peak: Math.max(...per) };
 }
 
+// Prix des chambres (en %) qui maximise le résultat prévu du lendemain (par pas de 10 %)
+function bestRoomTarif() {
+  const keep = S.roomTarif;
+  let best = keep, bestNet = -Infinity;
+  for (let t = 50; t <= 200; t += 10) {
+    S.roomTarif = t;
+    const e = expect(makePlan(false, S.day + 1));
+    if (e.revenue - e.costs > bestNet) { bestNet = e.revenue - e.costs; best = t; }
+  }
+  S.roomTarif = keep;
+  return best;
+}
+
 // Tarif qui maximise le résultat prévu du lendemain (par pas de 5 points)
 function bestTarif() {
   const keep = S.tarif;
@@ -328,11 +349,15 @@ function bestTarif() {
 }
 
 const satisfaction = () => (S.today.demand > 20 ? S.today.served / S.today.demand : S.lastSat);
-const roomRate = () => 0.007 * (0.5 + satisfaction()) * (0.4 + S.rep / 5);
+// Prix des chambres en % du tarif de base : plus cher, moins de clients (130 % environ est le plus rentable quand il reste de la place)
+const roomMult = () => S.roomTarif / 100;
+const roomRate = () => 0.007 * (0.5 + satisfaction()) * (0.4 + S.rep / 5) * Math.max(0, 1.6 - 0.6 * roomMult());
 const stockCap = (k) => S.vending[k] * PRODUCTS[k].cap;
 const productRate = (k) => PRODUCTS[k].rate * (WEATHERS[S.plan?.weather]?.misc ?? 1);
 // Comptoirs servis avant les distributeurs : la cafétéria pour les repas, le café du quai pour les cafés,
 // la boutique de la gare pour les goodies
+// part des clients qui préfèrent les distributeurs (plus rapides, moins chers) ; chacun se rabat sur l'autre s'il est plein ou vide
+const VENDING_PREF = { meal: 0.35, coffee: 0.35 };
 const COUNTERS = {
   meal: { name: 'la cafétéria', owned: () => S.svc.cafeteria, cap: () => cafeteriaCap(), price: () => CAFETERIA_PRICE, cost: () => CAFETERIA_COST },
   coffee: { name: 'le café du quai', owned: () => S.cafe, cap: cafeCap, price: cafePrice, cost: cafeCost },
@@ -348,7 +373,7 @@ function refill(k) {
 }
 const roomPrice = () => { // prix moyen d'une chambre selon la répartition de sell()
   const k = 1 + S.hotel * 0.15;
-  return (0.55 * ROOMS[0][1] + 0.4 * ROOMS[1][1] + (k - 0.95) * ROOMS[2][1]) / k;
+  return ((0.55 * ROOMS[0][1] + 0.4 * ROOMS[1][1] + (k - 0.95) * ROOMS[2][1]) / k) * roomMult();
 };
 
 function dailyCosts(rooms, restock) {
@@ -358,7 +383,7 @@ function dailyCosts(rooms, restock) {
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
     ['Redevance réseau', CATEGORIES[S.category].fee],
-    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + BAR.upkeep * S.barCar],
+    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 400 * S.canopy + BAR.upkeep * S.barCar],
     ['Entretien machines', sum(Object.entries(MACHINE_UPKEEP).map(([k, v]) => S.machines[k] * v)) + VENDING_UPKEEP * sum(Object.values(S.vending))],
   ];
 }
@@ -370,23 +395,29 @@ function expect(plan) {
   const boarded = sum(Object.values(plan.trains).map((d) => Math.min(d, ticketCap())));
   const roomDemand = dis * roomRate() * prof.rooms * (plan.rooms ?? 1);
   const rooms = Math.min(roomDemand, roomCap());
+  // hôtel partenaire : une partie des clients refusés accepte le trajet jusqu'en ville, la gare touche une commission
+  const partner = S.svc.partner ? Math.max(0, roomDemand - S.hotel * ROOMS_PER_FLOOR) * PARTNER.share : 0;
   const visitors = boarded + dis;
   let products = 0, restock = 0;
   const demandBy = {}, counterBy = {}, stockShort = [];
   let cafeteriaDemand = 0, coffeeDemand = 0;
   for (const [k, p] of Object.entries(PRODUCTS)) {
-    let d = (demandBy[k] = (visitors * prof[k] * barShare(k) + cVis * cp[k]) * productRate(k));
-    const c = COUNTERS[k];
-    if (c?.owned()) { // le comptoir sert d'abord, les distributeurs prennent le relais
-      const want = d + (k === 'meal' ? rooms * 0.8 : 0), served = (counterBy[k] = Math.min(want, c.cap()));
+    const d = (demandBy[k] = (visitors * prof[k] * barShare(k) + cVis * cp[k]) * productRate(k));
+    const c = COUNTERS[k], pref = d * (VENDING_PREF[k] ?? 0);
+    let toVending = d;
+    if (c?.owned()) { // même répartition que sell() : comptoir pour la plupart, distributeurs pour les autres, repli de chaque côté
+      const diners = k === 'meal' ? rooms * 0.8 : 0, want = diners + d - pref;
       if (k === 'meal') cafeteriaDemand = want;
       if (k === 'coffee') coffeeDemand = want;
+      let served = Math.min(want, c.cap());
+      toVending = pref + Math.max(0, d - pref - Math.max(0, served - diners));
+      served += Math.min(Math.max(0, toVending - stockCap(k)), c.cap() - served);
+      counterBy[k] = served;
       products += served * c.price();
       restock += served * c.cost();
-      d = Math.max(0, d - served);
     }
-    const sold = Math.min(d, stockCap(k));
-    if (d > stockCap(k)) stockShort.push(k);
+    const sold = Math.min(toVending, stockCap(k));
+    if (toVending > stockCap(k)) stockShort.push(k);
     products += sold * p.price;
     restock += sold * p.cost;
   }
@@ -407,11 +438,11 @@ function expect(plan) {
     const gain = (n) => fareIncome(n) - n * STAFF.controleur.salary;
     for (let n = 1; n <= 10; n++) if (gain(n) > gain(controllers)) controllers = n;
   }
-  const revenue = fareIncome(S.staff.controleur) + commuters * SUB_SHARE * ticketPrice() + rooms * roomPrice() * spaMult(plan.weekend)
+  const revenue = fareIncome(S.staff.controleur) + commuters * SUB_SHARE * ticketPrice() + (rooms + partner * PARTNER.commission) * roomPrice() * spaMult(plan.weekend)
     + bar + products + shops + extras + S.pub * PUB_INCOME;
   const costs = sum(dailyCosts(rooms, restock).map(([, v]) => v));
   return {
-    revenue, costs, demandBy, counterBy, stockShort,
+    revenue, costs, demandBy, counterBy, stockShort, roomDemand,
     need: {
       guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
       entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / 24 - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
@@ -491,7 +522,7 @@ function stepMinute() {
       let rev = 0;
       for (let i = 0; i < n; i++) {
         const r = Math.random() * (1 + S.hotel * 0.15);
-        rev += ROOMS[r < 0.55 ? 0 : r < 0.95 ? 1 : 2][1] * spaMult(S.plan.weekend);
+        rev += ROOMS[r < 0.55 ? 0 : r < 0.95 ? 1 : 2][1] * roomMult() * spaMult(S.plan.weekend);
       }
       rev += serveCounter('meal', Math.round(n * 0.8)) * CAFETERIA_PRICE; // les clients de l'hôtel dînent à la cafétéria
       S.checkinAcc -= n;
@@ -619,21 +650,18 @@ function sell(prof, regular = false) {
   const visitors = S.boarding + S.disembark;
   let total = regular && S.barCar ? binom(S.boarding, BAR.rate) * BAR.spend : 0;
   for (const [k, p] of Object.entries(PRODUCTS)) {
-    let d = binom(visitors, productRate(k) * prof[k] * barShare(k, regular));
-    if (COUNTERS[k] && d) {
-      const c = serveCounter(k, d);
-      total += c * COUNTERS[k].price();
-      S.today.demand += c;
-      S.today.served += c;
-      d -= c;
-    }
+    const want = binom(visitors, productRate(k) * prof[k] * barShare(k, regular));
+    // les clients qui préfèrent le comptoir y vont d'abord ; les autres, et ceux qui le trouvent plein, vont aux distributeurs
+    const c1 = serveCounter(k, want - binom(want, VENDING_PREF[k] ?? 0));
+    const d = want - c1;
     // un distributeur en panne ne vend plus sa part du stock
     const usable = S.broken[k] ? Math.floor((S.stock[k] * (S.vending[k] - 1)) / S.vending[k]) : S.stock[k];
     const sold = Math.min(d, usable);
+    const c2 = serveCounter(k, d - sold); // distributeurs vides : repli sur le comptoir
     S.stock[k] -= sold;
-    total += sold * p.price;
-    S.today.demand += d;
-    S.today.served += sold;
+    total += sold * p.price + (c1 + c2) * (COUNTERS[k]?.price() ?? 0);
+    S.today.demand += want;
+    S.today.served += c1 + sold + c2;
     if (!S.stock[k] && !S.today.empty[k]) {
       S.today.empty[k] = true;
       toast(`${p.icon} Distributeurs de ${p.name.toLowerCase()} vides : remplissez-les`, 'bad', 'stocks');
@@ -652,8 +680,15 @@ function sell(prof, regular = false) {
   S.hotelQueue += accepted;
   S.today.demand += wanted;
   if (wanted > accepted) {
-    if (!S.today.refused) toast('Hôtel complet : des clients sont refusés', 'bad', 'staff');
-    S.today.refused += wanted - accepted;
+    // hôtel partenaire : ceux qui acceptent le trajet sont servis (ils ne dînent pas à la gare)
+    const sent = S.svc.partner ? binom(wanted - accepted, PARTNER.share) : 0;
+    total += sent * roomPrice() * spaMult(S.plan.weekend) * PARTNER.commission;
+    S.today.partner += sent;
+    S.today.served += sent;
+    if (wanted - accepted > sent) {
+      if (!S.today.refused) toast('Hôtel complet : des clients sont refusés', 'bad', 'prices');
+      S.today.refused += wanted - accepted - sent;
+    }
   }
   S.budget += total;
   return total;
@@ -674,7 +709,7 @@ function closeDay() {
   checkGoals();
   const T = S.today;
   S.report = { day: S.day, costs, total, revenue, passengers: T.passengers, planned: S.plan.total, rooms: T.rooms,
-    commuters: T.commuters, missed: T.missed, fraud: T.fraud, caught: T.caught, fines: T.fines, refused: T.refused, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
+    commuters: T.commuters, missed: T.missed, fraud: T.fraud, caught: T.caught, fines: T.fines, refused: T.refused, partner: T.partner, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
   S.report.points = dayPoints(S.report);
   S.score += S.report.points;
   S.report.record = S.score > bestScore();
@@ -921,9 +956,10 @@ function drawFront(g) {
   g.fillStyle = '#54474e'; g.fillRect(MX - 16, top, MW + 32, 4);
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
-  // marquise vitrée (sur tout le quai au niveau 3)
-  const cx = S.platform >= 3 ? platX() + 10 : MX - 20;
-  g.fillStyle = 'rgb(180 210 235 / .55)'; g.fillRect(cx, 366, W - cx, 6);
+  // marquise vitrée : devant la gare, puis sur tout le grand quai une fois achetée
+  const cx = S.canopy && S.platform >= 3 ? platX() + 10 : MX - 20;
+  g.fillStyle = 'rgb(180 210 235 / .6)'; g.fillRect(cx, 362, W - cx, 10);
+  g.fillStyle = '#4a4f58'; g.fillRect(cx, 360, W - cx, 2); g.fillRect(cx, 371, W - cx, 1); // armature
   g.fillStyle = '#4a4f58';
   for (let px = cx + 10; px <= W; px += 120) g.fillRect(px, 372, 3, Y.platform - 372 + 4);
 
@@ -1142,6 +1178,11 @@ const crowd = (() => {
   return arr.sort((a, b) => a.y - b.y);
 })();
 const crowdX = (u) => platX() + 20 + u * (1250 - platX() - 20);
+// voyageurs abrités : les premiers se placent sous les abris (sous la marquise, tout le quai est couvert)
+const shelterX = (u) => {
+  const zones = SHELTER_X.slice(0, S.shelters), i = Math.floor(u * zones.length), f = u * zones.length - i;
+  return zones[i] + 8 + f * (SHELTER_W - 16);
+};
 
 // Personnel : uniformes reconnaissables
 const r2 = rng(9);
@@ -1489,9 +1530,11 @@ function render(now) {
   drawStaff(simT);
   const split = crowdSplit();
   const vc = Math.min(CROWD_MAX, Math.round(split.classic - split.inside)), vw = Math.min(CROWD_MAX - vc, Math.round(split.commuters));
+  const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec la marquise, tout le quai est couvert
   for (const p of crowd) {
-    if (p.order < vc) drawPerson(p, crowdX(p.u), p.y, simT, false);
-    else if (p.order < vc + vw) drawPerson(p.suit, crowdX(p.u), p.y, simT, false);
+    const x = p.order < underShelters ? shelterX(p.u) : crowdX(p.u);
+    if (p.order < vc) drawPerson(p, x, p.y, simT, false);
+    else if (p.order < vc + vw) drawPerson(p.suit, x, p.y, simT, false);
   }
   for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
   // abris voyageurs, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
@@ -1745,7 +1788,11 @@ function advice() {
     if (d > 0) tips.push(`${r.icon} Il manquera ${d} ${r.name.toLowerCase()} demain : ${link('embauchez', 'staff')} avant le premier train.`);
     else if (d < 0) tips.push(`${r.icon} ${link(`${-d} ${r.name.toLowerCase()} en trop`, 'staff')} : ${money(-d * r.salary)} de salaires inutiles par jour.`);
   }
-  if (R?.refused) tips.push(`🏨 Des clients ont été refusés à l'hôtel : ajoutez du ${link('personnel d\'hôtel', 'staff')}, une ${link('borne de check-in ou un étage', 'upgrades')}.`);
+  if (R?.refused) {
+    tips.push(S.hotel * ROOMS_PER_FLOOR <= R.rooms // hôtel plein : le personnel n'y peut rien
+      ? `🏨 L'hôtel est plein : ${link('montez le prix des chambres', 'prices')}${S.svc.partner ? '' : ` ou prenez un ${link('hôtel partenaire', 'upgrades')}`}.`
+      : `🏨 Des clients ont été refusés à l'hôtel : ajoutez du ${link('personnel d\'hôtel', 'staff')}, une ${link('borne de check-in ou un étage', 'upgrades')}.`);
+  }
   if (S.dirt > 40) tips.push(`🧹 Le quai est sale : cela fait baisser l'appréciation. ${link('Renforcer l\'entretien', 'staff')}`);
   for (const k of expect(p).stockShort) {
     tips.push(`${PRODUCTS[k].icon} Les distributeurs de ${PRODUCTS[k].name.toLowerCase()} seront vides avant la fin de journée : ${link('ajoutez-en un ou remplissez-les', 'stocks')} en journée.`);
@@ -1770,6 +1817,7 @@ const VIEWS = {
           ${R.missed ? row('Sans billet', fmt(R.missed), 'bad') : ''}
           ${R.fraud ? row('Fraudeurs', `${fmt(R.fraud)} <small>(${fmt(R.caught)} verbalisés, +${money(R.fines)})</small>`, R.fraud > R.passengers * 0.08 ? 'bad' : '') : ''}
           ${row('Clients à l\'hôtel', R.rooms + (R.refused ? ` <small class="bad">(${R.refused} refusés)</small>` : ''))}
+          ${R.partner ? row('Envoyés à l\'hôtel partenaire', fmt(R.partner)) : ''}
           ${row('Clients satisfaits', `${Math.round(R.sat * 100)} %`, R.sat >= 0.9 ? 'good' : R.sat < 0.75 ? 'bad' : '')}
           ${row('Recettes', money(R.revenue))}
           ${row('Frais', money(R.total))}
@@ -1799,14 +1847,29 @@ const VIEWS = {
     html: () => `
       <label class="field"><span>Prix du billet</span><output id="tarifOut"></output>
         <input type="range" id="tarif" min="1" max="100" value="${S.tarif}"></label>
-      <div class="callout" id="pricePreview"></div>`,
+      <div class="callout" id="pricePreview"></div>
+      <label class="field"><span>Prix des chambres</span><output id="roomOut"></output>
+        <input type="range" id="roomTarif" min="50" max="200" step="5" value="${S.roomTarif}"></label>
+      <div class="callout" id="roomPreview"></div>`,
     bind() {
       $('#tarif').oninput = (e) => { S.tarif = +e.target.value; this.refresh(); };
-      this.best = bestTarif(); // ne dépend pas du curseur : calculé une fois à l'ouverture
+      $('#roomTarif').oninput = (e) => { S.roomTarif = +e.target.value; this.refresh(); };
+      // ne dépendent pas des curseurs : calculés une fois à l'ouverture
+      this.best = bestTarif();
+      this.bestRoom = bestRoomTarif();
       this.refresh();
     },
     refresh() {
-      const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity, e = expect(p);      $('#tarifOut').textContent = `${money(ticketPrice())}`;
+      const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity, e = expect(p);
+      $('#tarifOut').textContent = `${money(ticketPrice())}`;
+      $('#roomOut').textContent = `${money(roomPrice())} en moyenne`;
+      const cap = S.hotel * ROOMS_PER_FLOOR, wanted = expect(p).roomDemand;
+      $('#roomPreview').innerHTML = `
+        ${row('Demandes de chambres prévues demain', `${fmt(wanted)} <small>/ ${cap} chambres</small>`, wanted > cap ? 'bad' : '')}
+        ${row('Prix des chambres le plus rentable', `${this.bestRoom} %`, Math.abs(this.bestRoom - S.roomTarif) < 10 ? 'good' : '')}
+        <p class="hint">${wanted > cap
+          ? '🏨 L\'hôtel sera plein : montez le prix des chambres, vous gagnerez plus sans le vider.'
+          : '🛏️ Il reste des chambres : un prix plus bas attire plus de clients.'} Le prix des chambres agit tout de suite.</p>`;
       $('#pricePreview').innerHTML = `
         ${row('Clientèle attirée demain', fmt(p.potential))}
         ${row('Capacité de la gare', `${fmt(p.capacity)} <small>(${capPerTrain()} par train)</small>`)}
