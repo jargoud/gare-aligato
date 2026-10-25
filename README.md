@@ -74,11 +74,12 @@ Un changement de prix compte pour le lendemain.
 | 🎫 Guichetiers | 45 billets par train. Sans billet, le voyageur reste à quai | Borne de billets (30 billets/train) |
 | 🧹 Agents d'entretien | Nettoient le quai. Un quai sale fait baisser l'appréciation | Autolaveuse conduite (≈ 2 agents) |
 | 🛎️ Personnel d'hôtel | 8 chambres par jour chacun | Borne de check-in (6 chambres/jour) |
+| 🍽️ Serveurs (cafétéria, objectif 3) | 200 repas par jour chacun à la cafétéria, y compris le dîner des clients de l'hôtel | Distributeurs de repas |
 | 🕵️ Contrôleurs (objectif 3) | Contrôlent 600 voyageurs par jour chacun, dissuadent la fraude et verbalisent (50 €) | — |
 | ☕ Baristas (terrasse du café) | 600 cafés par jour chacun au-delà des 600 du comptoir | — |
 
-La fenêtre **Personnel** donne l'effectif conseillé pour aujourd'hui et pour demain. Embaucher coûte 5 000 €,
-licencier coûte 8 000 € d'indemnités.
+La fenêtre **Personnel** donne l'effectif conseillé pour aujourd'hui et pour demain (10 au maximum par métier).
+Embaucher coûte 5 000 €, licencier coûte 8 000 € d'indemnités.
 
 ### L'écran principal
 
