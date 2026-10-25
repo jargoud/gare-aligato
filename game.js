@@ -131,7 +131,7 @@ const S = {
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastDelay: 0, broken: {}, strike: false, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -151,8 +151,10 @@ const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar 
 const shelterCap = () => S.shelters * SHELTER_SEATS + WAITROOM[S.waitroom]; // voyageurs à l'abri : abris + salle d'attente
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
-// en cas de grève, les guichetiers ne vendent presque plus : seules les bornes tournent normalement
-const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (S.strike ? 0.3 : 1) + S.machines.kiosk * KIOSK_TICKETS) * screensMult());
+// en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
+const STRIKE_HOURS = 3;
+const striking = () => S.strike > S.minutes;
+const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + S.machines.kiosk * KIOSK_TICKETS) * screensMult());
 const cleanRate = () => S.staff.entretien * STAFF_CLEAN + S.machines.robot * ROBOT_CLEAN;
 const roomCap = () => Math.min(S.hotel * ROOMS_PER_FLOOR, S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
@@ -226,7 +228,7 @@ const EVENTS = [
     if (S.svc.security) toast('👮 L\'agent de sécurité a fait fuir les vandales', 'good');
     else { S.budget -= VANDAL_COST; S.dirt = Math.min(100, S.dirt + 20); toast(`Vandalisme : ${money(VANDAL_COST)} de dégâts`, 'bad', 'upgrades'); }
   } },
-  { msg: '✊ Grève des guichetiers jusqu\'à ce soir : seules les bornes de billets vendent normalement', kind: 'bad', run: () => { S.strike = true; } },
+  { msg: `✊ Grève des guichetiers pendant ${STRIKE_HOURS} heures : ils vendent deux fois moins de billets, les bornes fonctionnent`, kind: 'bad', run: () => { S.strike = S.minutes + STRIKE_HOURS * 60; } },
   { msg: '🔍 Inspection sanitaire…', run: () => {
     if (S.dirt > 50) { S.budget -= 25000; S.rep -= 0.4; toast(`Quai sale : amende de ${money(25000)}`, 'bad'); }
     else toast('Quai impeccable : félicitations de l\'inspecteur', 'good');
@@ -282,6 +284,19 @@ function makePlan(noise = true, day = S.day) {
   const per = Object.values(trains), classic = sum(per), commuterTotal = sum(Object.values(commuters));
   return { day, weekend, weather: wx, rooms: season.rooms, potential: pot, capacity: sum(Object.values(caps)), trains, types, commuters, classic, commuterTotal,
     total: classic + commuterTotal, peak: Math.max(...per) };
+}
+
+// Tarif qui maximise le résultat prévu du lendemain (par pas de 5 points)
+function bestTarif() {
+  const keep = S.tarif;
+  let best = keep, bestNet = -Infinity;
+  for (let t = 5; t <= 100; t += 5) {
+    S.tarif = t;
+    const e = expect(makePlan(false, S.day + 1));
+    if (e.revenue - e.costs > bestNet) { bestNet = e.revenue - e.costs; best = t; }
+  }
+  S.tarif = keep;
+  return best;
 }
 
 const satisfaction = () => (S.today.demand > 20 ? S.today.served / S.today.demand : S.lastSat);
@@ -503,6 +518,7 @@ function exchange(h) {
   S.lastExposure = exposure;
   S.rep += (quality(S.lastMiss, exposure) - S.rep) * 0.06;
   floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
+  play('chime');
   spawnWalkers(false, S.plan.types[h]);
   checkGoals();
 }
@@ -590,7 +606,7 @@ function closeDay() {
   // les distributeurs encore en panne sont réparés la nuit, plus cher qu'en journée
   const repairs = Object.values(S.broken).filter(Boolean).length * 3000;
   S.broken = {};
-  S.strike = false;
+  S.strike = 0;
   const costs = [...dailyCosts(S.today.rooms, S.today.restock), ...(repairs ? [['Réparations de nuit', repairs]] : [])];
   const total = sum(costs.map(([, v]) => v));
   const revenue = S.today.revenue + S.pub * PUB_INCOME;
@@ -1367,12 +1383,12 @@ function render(now) {
     else if (p.order < vc + vw) drawPerson(p.suit, crowdX(p.u), p.y, simT, false);
   }
   for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
-  // abris voyageurs, devant la foule (vitre translucide)
+  // abris voyageurs, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
   for (let i = 0; i < S.shelters; i++) {
     const x = 1140 - i * 130;
-    ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 372, 70, 50);
-    ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 368, 3, 68); ctx.fillRect(x + 67, 368, 3, 68);
-    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 6, 362, 82, 7, 3); ctx.fill();
+    ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 360, 70, 50);
+    ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 356, 3, 68); ctx.fillRect(x + 67, 356, 3, 68);
+    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 6, 350, 82, 7, 3); ctx.fill();
   }
 
   if (tl !== null) drawTrain(tl, ttype);
@@ -1437,6 +1453,64 @@ function render(now) {
     ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y);
   }
 }
+
+// ---------- Sons (Web Audio, sans fichier) ----------
+// Coupé par défaut ; le contexte audio n'est créé qu'après un geste du joueur (règles d'autoplay des navigateurs)
+const sound = { on: false, ctx: null, amb: null };
+try { sound.on = localStorage.getItem('aligato-sound') === '1'; } catch { /* stockage indisponible */ }
+function audio() {
+  if (sound.ctx) return sound.ctx;
+  const a = (sound.ctx = new AudioContext());
+  // ambiance : bruit blanc filtré très bas, comme le brouhaha lointain d'un hall de gare
+  const buf = a.createBuffer(1, a.sampleRate * 3, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), lp = a.createBiquadFilter();
+  src.buffer = buf;
+  src.loop = true;
+  lp.frequency.value = 380;
+  sound.amb = a.createGain();
+  sound.amb.gain.value = 0;
+  src.connect(lp).connect(sound.amb).connect(a.destination);
+  src.start();
+  return a;
+}
+// l'ambiance se tait quand le jeu est en pause
+function ambience() {
+  if (sound.amb) sound.amb.gain.setTargetAtTime(sound.on && S.speed ? 0.06 : 0, sound.ctx.currentTime, 0.3);
+}
+function tone(freq, start, dur, vol = 0.12, type = 'sine') {
+  const a = sound.ctx, o = a.createOscillator(), g = a.createGain(), t = a.currentTime + start;
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t);
+  o.stop(t + dur);
+}
+// [fréquence, départ, durée, volume, forme d'onde]
+const SFX = {
+  chime: [[784, 0, 1.4], [659, 0.35, 1.4], [523, 0.7, 2]], // carillon d'annonce : sol, mi, do
+  buy: [[1319, 0, 0.15, 0.08, 'triangle'], [1976, 0.07, 0.4, 0.08, 'triangle']],
+};
+const play = (name) => { if (sound.on && sound.ctx?.state === 'running') SFX[name].forEach((n) => tone(...n)); };
+function soundButton() {
+  $('#sound').textContent = sound.on ? '🔊' : '🔇';
+  $('#sound').dataset.tip = sound.on ? 'Couper le son' : 'Activer le son';
+  $('#sound').ariaLabel = $('#sound').dataset.tip;
+}
+function setSound(on) {
+  sound.on = on;
+  soundButton();
+  try { localStorage.setItem('aligato-sound', on ? '1' : '0'); } catch { /* stockage indisponible */ }
+  if (on) audio().resume();
+  ambience();
+}
+soundButton();
+$('#sound').onclick = () => setSound(!sound.on);
+// son mémorisé : il reprend au premier clic ou à la première touche
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (sound.on) setSound(true); }, { once: true });
 
 // ---------- Interface ----------
 // view : fenêtre ouverte au clic sur la notification
@@ -1542,8 +1616,11 @@ function advice() {
   if (S.budget < 0) tips.push(`💸 Budget négatif : faillite si c'est encore le cas dans ${DEBT_DAYS - S.debtDays} soir(s). Réduisez l'effectif ou montez le prix.`);
   const n = UPGRADES.filter((u) => upState(u) === 'ok').length;
   if (n) tips.push(`🏗️ ${link(`${n} amélioration(s) à votre portée`, 'upgrades')}.`);
-  if (p.potential > p.capacity * 1.05) tips.push(`🚦 La gare est saturée : ${link('montez le prix', 'prices')} sans perdre de voyageurs, ou ${link('agrandissez', 'upgrades')} le quai et ajoutez des wagons.`);
-  else if (p.potential < p.capacity * 0.85) tips.push(`📉 La gare n'est pas pleine : ${link('baissez le prix', 'prices')} pour attirer plus de voyageurs.`);
+  const best = bestTarif();
+  if (Math.abs(best - S.tarif) >= 10) {
+    tips.push(`💲 ${link(`${best > S.tarif ? 'Montez' : 'Baissez'} le prix vers ${money(best * PRICE_PER_POINT)}`, 'prices')} : c'est le billet le plus rentable demain.`);
+  }
+  if (p.potential > p.capacity * 1.05) tips.push(`🚦 La gare est saturée : ${link('agrandissez', 'upgrades')} le quai et ajoutez des wagons pour accueillir plus de voyageurs.`);
   for (const [k, r] of Object.entries(STAFF)) {
     const d = need[k] - S.staff[k];
     if (d > 0) tips.push(`${r.icon} Il manquera ${d} ${r.name.toLowerCase()} demain : ${link('embauchez', 'staff')} avant le premier train.`);
@@ -1605,20 +1682,21 @@ const VIEWS = {
       <div class="callout" id="pricePreview"></div>`,
     bind() {
       $('#tarif').oninput = (e) => { S.tarif = +e.target.value; this.refresh(); };
+      this.best = bestTarif(); // ne dépend pas du curseur : calculé une fois à l'ouverture
       this.refresh();
     },
     refresh() {
-      const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity;
-      $('#tarifOut').textContent = `${money(ticketPrice())}`;
+      const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity, e = expect(p);      $('#tarifOut').textContent = `${money(ticketPrice())}`;
       $('#pricePreview').innerHTML = `
         ${row('Clientèle attirée demain', fmt(p.potential))}
         ${row('Capacité de la gare', `${fmt(p.capacity)} <small>(${capPerTrain()} par train)</small>`)}
         ${row('Voyageurs prévus demain', fmt(p.total))}
-        ${row('Recette billets prévue', money(p.total * ticketPrice()))}
+        ${row('Résultat prévu demain', money(e.revenue - e.costs), e.revenue >= e.costs ? 'good' : 'bad')}
+        ${row('Billet le plus rentable', money(this.best * PRICE_PER_POINT), Math.abs(this.best - S.tarif) < 10 ? 'good' : '')}
         ${row('Appréciation visée', `${quality(0).toFixed(1)} ★`)}
         <p class="hint">${saturated
-          ? '🚦 La gare est saturée : vous pouvez monter le prix sans perdre de voyageurs, ou agrandir le quai et ajouter des wagons.'
-          : '📉 La gare n\'est pas pleine : baissez le prix ou améliorez l\'appréciation pour attirer plus de monde.'}
+          ? '🚦 La gare est saturée : monter le prix rapporte plus sans perdre beaucoup de voyageurs. Agrandissez le quai et ajoutez des wagons pour en accueillir davantage.'
+          : '📉 La gare n\'est pas pleine : un billet moins cher attire plus de monde, mais rapporte moins par voyageur.'}
           Le prix agit sur la fréquentation du lendemain.</p>`;
     },
   },
@@ -1746,7 +1824,12 @@ function openModal(name) {
   view = VIEWS[name];
   renderModal();
 }
+// Onglets pour passer d'une fenêtre à l'autre sans la fermer (le bilan du soir n'en a pas)
+const TABS = { prices: '💲 Tarifs', staff: '👥 Personnel', stocks: '🛒 Stocks', upgrades: '🏗️ Améliorations', goals: '🎯 Objectifs', report: '📊 Bilan' };
+$('#modalTabs').innerHTML = Object.entries(TABS).map(([k, label]) => `<button data-tab="${k}">${label}</button>`).join('');
+$('#modalTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) openModal(b.dataset.tab); });
 function renderModal() {
+  for (const b of $('#modalTabs').children) b.classList.toggle('active', VIEWS[b.dataset.tab] === view);
   $('#modalTitle').textContent = view.title;
   $('#modalBody').innerHTML = view.html();
   view.bind?.();
@@ -1762,6 +1845,7 @@ $('#modalBody').addEventListener('click', (e) => {
   const [act, key] = btn.dataset.act.split(':');
   if (act === 'close') return modal.close();
   if (act === 'open') return openModal(key);
+  const before = S.budget;
   if (act === 'refill') refill(key);
   if (act === 'repair' && S.budget >= 1500) {
     S.broken[key] = false;
@@ -1789,6 +1873,7 @@ $('#modalBody').addEventListener('click', (e) => {
     rebuild();
     toast(`${u.icon} ${u.name} : c'est fait !`, 'good');
   }
+  if (S.budget < before || act === 'refill') play('buy'); // le remplissage n'est payé qu'à minuit
   renderModal();
   updateHUD();
   save();
@@ -1797,6 +1882,7 @@ $('#modalBody').addEventListener('click', (e) => {
 function setSpeed(v) {
   S.speed = v;
   document.querySelectorAll('[data-speed]').forEach((b) => b.classList.toggle('active', +b.dataset.speed === v));
+  ambience();
 }
 document.querySelectorAll('[data-speed]').forEach((b) => { b.onclick = () => setSpeed(+b.dataset.speed); });
 addEventListener('keydown', (e) => {

@@ -60,8 +60,10 @@ Le nombre de voyageurs de la journée est fixé à minuit et reste stable. Il d�
   Ligne téléphonique, navette, parking et agrandissements de la gare en attirent davantage ;
 - **la capacité de la gare** : le plus petit entre la taille du quai et les places libres dans le train.
 
-Si la gare est **saturée**, montez le prix (vous gagnez plus sans perdre de voyageurs) ou agrandissez-la.
-Si elle **n'est pas pleine**, baissez le prix. Un changement de prix compte pour le lendemain.
+Si la gare est **saturée**, montez le prix (vous gagnez plus sans perdre beaucoup de voyageurs) ou agrandissez-la.
+Un billet moins cher attire plus de monde mais rapporte moins par voyageur : la fenêtre **Tarifs** indique le résultat
+prévu et le **billet le plus rentable** pour le lendemain, et le bilan du soir conseille de s'en rapprocher.
+Un changement de prix compte pour le lendemain.
 
 ### Le personnel
 
@@ -127,6 +129,16 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 Les commerces (marchand de journaux, boulangerie, librairie, mini-supermarché) apparaissent le long de la route.
 Ils versent un loyer sur leurs ventes et améliorent l'appréciation. Les sanitaires ne rapportent rien
 mais rendent le quai moins sale et les voyageurs plus contents.
+
+### Sons
+
+Le bouton 🔇 / 🔊 en bas à droite active le son : ambiance discrète du hall, carillon à l'arrivée des trains et son
+d'achat. Il est coupé par défaut ; le choix est gardé dans le navigateur.
+
+### Interface
+
+Les fenêtres (tarifs, personnel, stocks, améliorations, objectifs, bilan) ont des onglets pour passer de l'une à
+l'autre sans les fermer.
 
 ### Saisons
 
@@ -203,7 +215,7 @@ La cafétéria et le café du quai servent en premier : les distributeurs ne pre
 
 ### Événements
 
-Une fois par jour au plus, un imprévu peut survenir : car de touristes, congrès en ville, panne de courant, vandalisme, grève des guichetiers (seules les bornes vendent normalement),
+Une fois par jour au plus, un imprévu peut survenir : car de touristes, congrès en ville, panne de courant, vandalisme, grève des guichetiers pendant 3 heures (ils vendent deux fois moins, les bornes fonctionnent normalement),
 article de presse ou inspection sanitaire (amende si le quai est sale).
 
 ## Vérifier l'équilibrage

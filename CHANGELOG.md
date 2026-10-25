@@ -3,6 +3,22 @@
 Toutes les évolutions notables du jeu sont décrites ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Ajouté
+
+- **Sons** générés par Web Audio : ambiance du hall, carillon à l'arrivée des trains, son d'achat ;
+  bouton pour couper le son, coupé par défaut, choix mémorisé.
+- **Onglets** dans les fenêtres pour passer de l'une à l'autre sans les fermer.
+- **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
+
+### Modifié
+
+- La **grève des guichetiers** dure 3 heures au lieu de toute la journée, et les guichetiers vendent encore la moitié
+  des billets (30 % auparavant).
+- Le bilan du soir ne conseille plus de baisser le prix quand la gare n'est pas pleine : il conseille le prix le plus
+  rentable.
+
 ## [1.0.0] - 2026-10-24
 
 Première version jouable de *Gare de train Aligato*, clone hommage du jeu de René Paradis.
