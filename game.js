@@ -132,7 +132,7 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
@@ -141,9 +141,9 @@ const S = {
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
-  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, comfort: 0, barCar: 0, category: 1,
+  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, works: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -171,9 +171,9 @@ const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GO
 const cafeCap = () => (S.cafe ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
-const CANOPY_SEATS = 250; // marquise vitrée sur tout le grand quai
+const CANOPY_SEATS = [0, 120, 250]; // marquise (quai niveau 2), puis grande marquise sur tout le grand quai
 // voyageurs à l'abri : abris, marquise et salle d'attente
-const shelterCap = () => S.shelters * SHELTER_SEATS + CANOPY_SEATS * S.canopy + WAITROOM[S.waitroom];
+const shelterCap = () => S.shelters * SHELTER_SEATS + CANOPY_SEATS[S.canopy] + waitroomSeats();
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
 // en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
@@ -183,9 +183,13 @@ const WELCOME_TICKETS = 20; // billets vendus sur tablette par les agents d'accu
 const welcomeTickets = () => (S.svc.welcome ? WELCOME_TICKETS : 0);
 const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + S.machines.kiosk * KIOSK_TICKETS + welcomeTickets()) * screensMult());
 const cleanRate = () => S.staff.entretien * STAFF_CLEAN + S.machines.robot * ROBOT_CLEAN;
-const roomCap = () => Math.min(S.hotel * ROOMS_PER_FLOOR, S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
+const worksOn = (k) => S.works?.kind === k;
+const hotelRooms = () => (S.hotel - (worksOn('hotel') ? 1 : 0)) * ROOMS_PER_FLOOR; // un étage fermé pendant sa rénovation
+const waitroomSeats = () => (worksOn('waitroom') ? 0 : WAITROOM[S.waitroom]);
+const roomCap = () => Math.min(hotelRooms(), S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
-const platformCap = () => PLATFORM_MAX[S.platform] + WAITROOM[S.waitroom]; // quai + salle d'attente
+// quai (un quart fermé pendant sa réfection) + salle d'attente
+const platformCap = () => Math.round(PLATFORM_MAX[S.platform] * (worksOn('platform') ? 0.75 : 1)) + waitroomSeats();
 const capPerTrain = () => Math.min(platformCap(), seatsPerTrain());
 const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 
@@ -233,9 +237,11 @@ const UPGRADES = [
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
     level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
-  { id: 'canopy', icon: '☂️', name: 'Marquise du quai', desc: () => `Verrière sur tout le grand quai : abrite ${CANOPY_SEATS} voyageurs de plus · ${money(400)} / jour`,
-    level: () => S.canopy, max: 1, req: [4], cost: () => 120000, buy: () => S.canopy++,
-    pre: () => S.platform >= 3, preText: () => 'Grand quai requis' },
+  { id: 'canopy', icon: '☂️', name: 'Marquise du quai',
+    desc: () => (S.canopy ? `Grande marquise sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
+      : `Verrière du début du quai jusqu'à la gare : abrite ${CANOPY_SEATS[1]} voyageurs de plus · ${money(200)} / jour`),
+    level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [60000, 80000][l], buy: () => S.canopy++,
+    pre: () => S.platform >= S.canopy + 2, preText: () => (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') },
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
     level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
@@ -364,8 +370,9 @@ const COUNTERS = {
   goodies: { name: 'la boutique', owned: () => S.station >= 2, cap: () => BOUTIQUE_GOODIES, price: () => PRODUCTS.goodies.price, cost: () => PRODUCTS.goodies.cost },
 };
 const shopMult = () => 1 + 0.4 * (S.station - 1); // la boutique et la tour attirent les flâneurs
-const shopRep = () => sum(Object.entries(SHOPS).map(([k, sh]) => S.shops[k] * sh.rep));
-const dirtFactor = () => (S.shops.wc ? 0.7 : 1);
+const shopOpen = (k) => S.shops[k] && !worksOn(k); // les sanitaires ferment pendant leur rénovation
+const shopRep = () => sum(Object.entries(SHOPS).map(([k, sh]) => (shopOpen(k) ? sh.rep : 0)));
+const dirtFactor = () => (shopOpen('wc') ? 0.7 : 1);
 function refill(k) {
   const n = stockCap(k) - S.stock[k];
   S.stock[k] += n;
@@ -383,7 +390,7 @@ function dailyCosts(rooms, restock) {
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
     ['Redevance réseau', CATEGORIES[S.category].fee],
-    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 400 * S.canopy + BAR.upkeep * S.barCar],
+    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + BAR.upkeep * S.barCar],
     ['Entretien machines', sum(Object.entries(MACHINE_UPKEEP).map(([k, v]) => S.machines[k] * v)) + VENDING_UPKEEP * sum(Object.values(S.vending))],
   ];
 }
@@ -396,7 +403,7 @@ function expect(plan) {
   const roomDemand = dis * roomRate() * prof.rooms * (plan.rooms ?? 1);
   const rooms = Math.min(roomDemand, roomCap());
   // hôtel partenaire : une partie des clients refusés accepte le trajet jusqu'en ville, la gare touche une commission
-  const partner = S.svc.partner ? Math.max(0, roomDemand - S.hotel * ROOMS_PER_FLOOR) * PARTNER.share : 0;
+  const partner = S.svc.partner ? Math.max(0, roomDemand - hotelRooms()) * PARTNER.share : 0;
   const visitors = boarded + dis;
   let products = 0, restock = 0;
   const demandBy = {}, counterBy = {}, stockShort = [];
@@ -446,7 +453,7 @@ function expect(plan) {
     need: {
       guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
       entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / 24 - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
-      hotel: Math.max(0, Math.ceil((Math.min(roomDemand, S.hotel * ROOMS_PER_FLOOR) - S.machines.checkin * CHECKIN_ROOMS) / ROOMS_PER_STAFF)),
+      hotel: Math.max(0, Math.ceil((Math.min(roomDemand, hotelRooms()) - S.machines.checkin * CHECKIN_ROOMS) / ROOMS_PER_STAFF)),
       cafe: S.svc.cafeteria ? Math.ceil(cafeteriaDemand / MEALS_PER_WAITER) : 0,
       controleur: controllers,
       barista: S.cafe >= 2 ? Math.ceil(clamp(coffeeDemand - CAFE_CAPS[1], 0, CAFE_CAPS[S.cafe] - CAFE_CAPS[1]) / BARISTA_CUPS) : 0,
@@ -676,7 +683,7 @@ function sell(prof, regular = false) {
 
   // les clients de l'hôtel rejoignent la file d'attente de la réception, s'il reste des chambres
   const wanted = binom(S.disembark, roomRate() * prof.rooms * (S.plan.rooms ?? 1) * (S.event?.rooms ?? 1));
-  const accepted = clamp(S.hotel * ROOMS_PER_FLOOR - S.today.rooms - S.hotelQueue, 0, wanted);
+  const accepted = clamp(hotelRooms() - S.today.rooms - S.hotelQueue, 0, wanted);
   S.hotelQueue += accepted;
   S.today.demand += wanted;
   if (wanted > accepted) {
@@ -701,7 +708,9 @@ function closeDay() {
   const repairs = Object.values(S.broken).filter(Boolean).length * 3000;
   S.broken = {};
   S.strike = 0;
-  const costs = [...dailyCosts(S.today.rooms, S.today.restock), ...(repairs ? [['Réparations de nuit', repairs]] : [])];
+  const works = S.today.works + (S.works?.cost ?? 0); // chantier du jour et travaux ponctuels acceptés
+  const costs = [...dailyCosts(S.today.rooms, S.today.restock), ...(repairs ? [['Réparations de nuit', repairs]] : []),
+    ...(works ? [['Travaux', Math.round(works)]] : [])];
   const total = sum(costs.map(([, v]) => v));
   const revenue = S.today.revenue + S.pub * PUB_INCOME;
   S.budget += S.pub * PUB_INCOME - total;
@@ -719,7 +728,8 @@ function closeDay() {
   S.today = newDay(S.rep);
   if (S.autoRefill) Object.keys(PRODUCTS).forEach(refill);
   S.event = null;
-  S.plan = makePlan(true, S.day + 1);
+  nightWorks();
+  S.plan = makePlan(true, S.day + 1); // après les travaux : un chantier qui commence réduit déjà la capacité de demain
 
   // Découvert toléré quelques jours, puis faillite
   S.debtDays = S.budget < 0 ? S.debtDays + 1 : 0;
@@ -734,10 +744,83 @@ function closeDay() {
   }
 }
 
+// ---------- Travaux d'entretien ----------
+// À partir de 4,5 ★ (ou des 8 objectifs), un chantier est proposé dans le bilan environ toutes les deux semaines.
+// Le devis et la durée grandissent avec la gare ; tant qu'il est reporté : −0,05 ★ et +10 % sur le devis chaque soir.
+const stationSize = () => sum(UPGRADES.map((u) => u.level()));
+const WORKS = {
+  machines: { icon: '🔧', name: 'Remplacement des machines usées', effect: 'bornes et distributeurs remis à neuf',
+    ok: () => sum(Object.values(S.machines)) > 0,
+    quote: () => 0.3 * (S.machines.kiosk * 40000 + S.machines.checkin * 45000 + S.machines.robot * 50000 + sum(Object.values(S.vending)) * VENDING_PRICE) },
+  tags: { icon: '🧽', name: 'Nettoyage des tags', effect: 'murs et quai nettoyés', ok: () => true, quote: () => 3000 + 400 * stationSize() },
+  platform: { icon: '🛤️', name: 'Réfection du quai', effect: '−25 % de voyageurs par train', days: true, ok: () => true },
+  hotel: { icon: '🏨', name: 'Rénovation d\'un étage d\'hôtel', effect: `−${ROOMS_PER_FLOOR} chambres`, days: true, ok: () => S.hotel >= 2 },
+  wc: { icon: '🚻', name: 'Rénovation des sanitaires', effect: 'sanitaires fermés', days: true, ok: () => S.shops.wc },
+  waitroom: { icon: '🚪', name: 'Rénovation de la salle d\'attente', effect: 'salle d\'attente fermée', days: true, ok: () => S.waitroom },
+};
+const nextWorksDay = () => S.day + 10 + rand(9);
+function nightWorks() {
+  if (S.works && --S.works.days <= 0) {
+    toast(`🚧 ${WORKS[S.works.kind].name} : travaux terminés`, 'good');
+    S.works = null;
+  }
+  const o = S.worksOffer;
+  if (o?.accepted) { // le chantier accepté commence demain
+    S.works = { kind: o.kind, days: o.days, cost: o.cost };
+    S.worksOffer = null;
+  } else if (o) { // reporté : la gare vieillit et le devis augmente
+    S.rep = Math.max(0, S.rep - 0.05);
+    o.cost *= 1.1;
+    o.delay++;
+  } else if (!S.works && (S.rep >= 4.5 || S.goal >= GOALS.length || S.nextWorks)) {
+    S.nextWorks ??= nextWorksDay();
+    if (S.day >= S.nextWorks) {
+      const kind = pick(Object.keys(WORKS).filter((k) => WORKS[k].ok())), w = WORKS[kind], size = stationSize();
+      S.worksOffer = w.days
+        ? { kind, days: 1 + rand(1 + Math.min(3, Math.floor(size / 15))), cost: 2000 + 300 * size, delay: 0 }
+        : { kind, days: 0, cost: w.quote(), delay: 0 };
+      S.nextWorks = nextWorksDay();
+    }
+  }
+}
+// Accepte le chantier proposé : travaux ponctuels payés à minuit, chantier sur plusieurs jours lancé le lendemain
+function acceptWorks() {
+  const o = S.worksOffer, w = o && WORKS[o.kind];
+  if (!o || o.accepted) return;
+  if (o.days) {
+    o.accepted = true;
+    toast(`🚧 ${w.name} : début demain pour ${o.days} jour(s), ${w.effect}`, 'warn');
+  } else {
+    S.today.works += o.cost;
+    S.worksOffer = null;
+    if (o.kind === 'tags') S.dirt = Math.max(0, S.dirt - 20);
+    toast(`${w.icon} ${w.name} : ${money(o.cost)} payés à minuit`, 'warn');
+  }
+}
+// Encart du chantier en cours ou proposé (bilan du soir et fenêtre Bilan)
+function worksBlock() {
+  if (S.works) {
+    const w = WORKS[S.works.kind];
+    return `<div class="callout">🚧 <b>${w.name}</b> en cours : ${w.effect}, encore ${S.works.days} jour(s) · ${money(S.works.cost)} / jour</div>`;
+  }
+  const o = S.worksOffer, w = o && WORKS[o.kind];
+  if (!o) return '';
+  if (o.accepted) return `<div class="callout">🚧 <b>${w.name}</b> : début demain pour ${o.days} jour(s), ${w.effect} · ${money(o.cost)} / jour</div>`;
+  return `<div class="callout works">🚧 <b>Travaux à prévoir : ${w.name}</b>
+    <small>${o.days ? `${o.days} jour(s) à ${money(o.cost)} / jour · ${w.effect}` : `${money(o.cost)} · ${w.effect}`}${o.delay ? ` · reporté ${o.delay} fois` : ''}.
+    Tant qu'ils sont reportés : −0,05 ★ et +10 % sur le devis chaque soir.</small>
+    <button class="primary" data-act="works">${o.days ? 'Lancer les travaux demain' : 'Faire les travaux'}</button></div>`;
+}
+
+// Effectif conseillé du jour : calculé une fois par plan (pas au fil de l'appréciation ou d'une grève),
+// recalculé seulement après un achat qui le change (amélioration, distributeur, prix des chambres)
+const dayNeed = () => (S.plan.need ??= expect(S.plan).need);
+const resetNeed = () => { delete S.plan.need; };
+
 // Prévient quand l'effectif ne correspond plus aux voyageurs prévus du jour (une fois par changement)
 const staffAlert = {};
 function checkStaff() {
-  const need = expect(S.plan).need;
+  const need = dayNeed();
   for (const [k, r] of staffRoles()) {
     const d = need[k] - S.staff[k], state = d > 0 ? 'under' : d < 0 ? 'over' : 'ok';
     if (state !== staffAlert[k] && state !== 'ok') {
@@ -957,7 +1040,7 @@ function drawFront(g) {
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
   // marquise vitrée : devant la gare, puis sur tout le grand quai une fois achetée
-  const cx = S.canopy && S.platform >= 3 ? platX() + 10 : MX - 20;
+  const cx = S.canopy >= 2 ? platX() + 10 : S.canopy ? PLATFORM_X[2] + 10 : MX - 20;
   g.fillStyle = 'rgb(180 210 235 / .6)'; g.fillRect(cx, 362, W - cx, 10);
   g.fillStyle = '#4a4f58'; g.fillRect(cx, 360, W - cx, 2); g.fillRect(cx, 371, W - cx, 1); // armature
   g.fillStyle = '#4a4f58';
@@ -1276,6 +1359,24 @@ function drawStaff(t) {
     }
   });
 
+  // chantier en cours : barrières « TRAVAUX » sur la zone, bâche sur l'étage d'hôtel rénové
+  if (S.works) {
+    const barrier = (bx, by) => {
+      ctx.fillStyle = '#3a404a'; ctx.fillRect(bx - 14, by - 14, 2, 14); ctx.fillRect(bx + 12, by - 14, 2, 14);
+      for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#e8590c'; ctx.fillRect(bx - 15 + i * 7.5, by - 12, 7.5, 4); }
+      ctx.fillStyle = '#f5b82e'; ctx.fillRect(bx - 13, by - 25, 26, 9);
+      ctx.fillStyle = '#1b2540'; ctx.font = '700 5.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 18.5);
+    };
+    const k = S.works.kind, wc = shopFronts().find((f) => f.k === 'wc');
+    if (k === 'platform') { barrier(platX() + 60, 438); barrier((platX() + 1250) / 2, 438); }
+    if (k === 'hotel') {
+      ctx.fillStyle = 'rgb(232 89 12 / .45)'; ctx.fillRect(MX + 6, hotelTop() + 2, MW - 12, FLOOR_H - 8);
+      barrier(DOOR_X + 70, y + 4);
+    }
+    if (k === 'wc' && wc) barrier(wc.x + wc.w / 2, y + 4);
+    if (k === 'waitroom') barrier(MX + 76, y + 4);
+  }
+
   // contrôleurs (casquette rouge), sur la voie devant les bancs
   for (let i = 0; i < Math.min(S.staff.controleur, 4); i++) {
     const d = (t * 16 + i * 611 + 90) % (len * 2);
@@ -1297,7 +1398,7 @@ function crowdSplit() {
   const [ph, p, special] = trainPhase();
   const pend = ph === 'stopped' ? S.pendingBoard * (1 - Math.min(1, p * 2)) : 0;
   // quand aucun train n'est à quai, la salle d'attente garde une partie des voyageurs à l'intérieur
-  const inside = ph === 'stopped' ? 0 : Math.min(WAITROOM[S.waitroom], S.waiting);
+  const inside = ph === 'stopped' ? 0 : Math.min(waitroomSeats(), S.waiting);
   return { classic: S.waiting + (special ? 0 : pend), commuters: S.waitingCommuters + (special ? pend : 0), inside };
 }
 const displayWaiting = () => { const c = crowdSplit(); return c.classic + c.commuters; };
@@ -1713,9 +1814,10 @@ const HUD = {
   score: () => fmt(S.score),
   nextTrain,
   weather: () => `${weather().icon} ${weather().name}`,
-  freeRooms: () => `${Math.max(0, S.hotel * ROOMS_PER_FLOOR - S.today.rooms - S.hotelQueue)} / ${S.hotel * ROOMS_PER_FLOOR}`,
+  freeRooms: () => `${Math.max(0, hotelRooms() - S.today.rooms - S.hotelQueue)} / ${hotelRooms()}`,
   hotelQueue: () => S.hotelQueue,
   sat: () => `${Math.round(satisfaction() * 100)} %`,
+  works: () => (S.works ? `${WORKS[S.works.kind].effect} · ${S.works.days} j` : ''),
 };
 $('#stockBars').innerHTML = Object.entries(PRODUCTS).map(([k, p]) => `<span class="kv"><span>${p.icon}</span><span class="bar" id="bar-${k}"><i></i></span></span>`).join('');
 const bound = [...document.querySelectorAll('[data-k]')];
@@ -1749,6 +1851,8 @@ function updateHUD() {
   $('#scoreStat').dataset.tip = `Points d'hier : ${S.report?.points ?? '—'} / 200\nRecord : ${fmt(Math.max(bestScore(), S.score))} points\n`
     + 'Chaque soir : appréciation (100) + clients satisfaits (50) + bénéfice (50)';
   $('#dayStat').dataset.tip = `${seasonOf().icon} ${seasonOf().name} · jour ${((S.day - 1) % SEASON_DAYS) + 1} / ${SEASON_DAYS}`;
+  $('#worksRow').style.display = S.works ? '' : 'none';
+  if (S.works) $('#worksRow').dataset.tip = `${WORKS[S.works.kind].name} : encore ${S.works.days} jour(s), ${money(S.works.cost)} par jour`;
   $('[data-k="sat"]').className = satisfaction() >= 0.9 ? 'good' : satisfaction() < 0.75 ? 'bad' : '';
 }
 
@@ -1762,7 +1866,7 @@ const adviceCls = (n, need) => (n < need ? 'bad' : n > need ? 'over' : 'good');
 const link = (text, view) => `<button class="link" data-act="open:${view}">${text}</button>`;
 
 function advice() {
-  const p = S.plan, need = expect(p).need, R = S.report, tips = [];
+  const p = S.plan, need = dayNeed(), R = S.report, tips = [];
   const dayName = DAYS[weekday(p.day)].toLowerCase();
   const ns = seasonOf(p.day);
   if (p.day > 1 && ns !== seasonOf(p.day - 1)) {
@@ -1789,7 +1893,7 @@ function advice() {
     else if (d < 0) tips.push(`${r.icon} ${link(`${-d} ${r.name.toLowerCase()} en trop`, 'staff')} : ${money(-d * r.salary)} de salaires inutiles par jour.`);
   }
   if (R?.refused) {
-    tips.push(S.hotel * ROOMS_PER_FLOOR <= R.rooms // hôtel plein : le personnel n'y peut rien
+    tips.push(hotelRooms() <= R.rooms // hôtel plein : le personnel n'y peut rien
       ? `🏨 L'hôtel est plein : ${link('montez le prix des chambres', 'prices')}${S.svc.partner ? '' : ` ou prenez un ${link('hôtel partenaire', 'upgrades')}`}.`
       : `🏨 Des clients ont été refusés à l'hôtel : ajoutez du ${link('personnel d\'hôtel', 'staff')}, une ${link('borne de check-in ou un étage', 'upgrades')}.`);
   }
@@ -1838,6 +1942,7 @@ const VIEWS = {
           ${row('Frais prévus', money(m.costs))}
           <div class="row"><span>Résultat prévu</span>${net(m.revenue - m.costs)}</div></section>
       </div>
+      ${worksBlock()}
       ${tips.length ? `<div class="tips"><h3>Conseils</h3><ul>${tips.map((t) => `<li>${t}</li>`).join('')}</ul></div>` : ''}
       <div class="actions"><button class="primary" data-act="close">Commencer le jour ${S.day + 1} ▶</button></div>`;
     },
@@ -1853,7 +1958,7 @@ const VIEWS = {
       <div class="callout" id="roomPreview"></div>`,
     bind() {
       $('#tarif').oninput = (e) => { S.tarif = +e.target.value; this.refresh(); };
-      $('#roomTarif').oninput = (e) => { S.roomTarif = +e.target.value; this.refresh(); };
+      $('#roomTarif').oninput = (e) => { S.roomTarif = +e.target.value; resetNeed(); this.refresh(); };
       // ne dépendent pas des curseurs : calculés une fois à l'ouverture
       this.best = bestTarif();
       this.bestRoom = bestRoomTarif();
@@ -1863,7 +1968,7 @@ const VIEWS = {
       const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity, e = expect(p);
       $('#tarifOut').textContent = `${money(ticketPrice())}`;
       $('#roomOut').textContent = `${money(roomPrice())} en moyenne`;
-      const cap = S.hotel * ROOMS_PER_FLOOR, wanted = expect(p).roomDemand;
+      const cap = hotelRooms(), wanted = expect(p).roomDemand;
       $('#roomPreview').innerHTML = `
         ${row('Demandes de chambres prévues demain', `${fmt(wanted)} <small>/ ${cap} chambres</small>`, wanted > cap ? 'bad' : '')}
         ${row('Prix des chambres le plus rentable', `${this.bestRoom} %`, Math.abs(this.bestRoom - S.roomTarif) < 10 ? 'good' : '')}
@@ -1908,7 +2013,7 @@ const VIEWS = {
   staff: {
     title: '👥 Personnel',
     html: () => {
-      const today = expect(S.plan).need, tomorrow = expect(makePlan(false, S.day + 1)).need;
+      const today = dayNeed(), tomorrow = expect(makePlan(false, S.day + 1)).need;
       return `<p class="hint">L'effectif conseillé est calculé d'après les voyageurs prévus. Embauche ${money(HIRE_FEE)}, licenciement ${money(SEVERANCE)}.</p>`
         + staffRoles().map(([k, r]) => `
         <div class="staff-row">
@@ -1951,7 +2056,7 @@ const VIEWS = {
     html: () => {
       const t = expect(S.plan), m = expect(makePlan(false, S.day + 1)), R = S.report;
       const net = (v) => `<b class="${v >= 0 ? 'good' : 'bad'}">${money(v)}</b>`;
-      return `<div class="cols">
+      return `${worksBlock()}<div class="cols">
         <section><h3>Aujourd'hui</h3>
           ${row('Voyageurs prévus', fmt(S.plan.total))}
           ${row('Déjà transportés', fmt(S.today.passengers))}
@@ -2029,6 +2134,7 @@ $('#modalBody').addEventListener('click', (e) => {
   const [act, key] = btn.dataset.act.split(':');
   if (act === 'close') return modal.close();
   if (act === 'open') return openModal(key);
+  if (act === 'works') acceptWorks();
   const before = S.budget;
   if (act === 'refill') refill(key);
   if (act === 'repair' && S.budget >= 1500) {
@@ -2038,6 +2144,7 @@ $('#modalBody').addEventListener('click', (e) => {
   }
   if (act === 'vending' && S.vending[key] < VENDING_MAX && S.budget >= VENDING_PRICE) {
     S.vending[key]++;
+    resetNeed();
     S.budget -= VENDING_PRICE;
   }
   if (act === 'hire' && S.staff[key] < 10 && S.budget >= HIRE_FEE) {
@@ -2054,6 +2161,7 @@ $('#modalBody').addEventListener('click', (e) => {
     S.budget -= u.cost(u.level());
     u.buy();
     S.today.bought[u.id] = true;
+    resetNeed();
     rebuild();
     toast(`${u.icon} ${u.name} : c'est fait !`, 'good');
   }
@@ -2102,6 +2210,8 @@ function load() {
       S[k] = v && def && typeof v === 'object' && typeof def === 'object' && !Array.isArray(v) ? { ...def, ...v } : v;
     }
     S.event = EVENTS[d.event] ?? null;
+    if (!d.v && d.canopy) S.canopy = 2; // sauvegarde d'avant la marquise à deux niveaux : c'était la grande marquise
+    S.v = 2;
     S.today.goals = d.today.goals.map((i) => GOALS[i]);
     if (S.report) S.report.goals = d.report.goals.map((i) => GOALS[i]);
     return true;

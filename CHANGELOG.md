@@ -25,8 +25,11 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Le bilan du soir conseille le prix des chambres ou l'hôtel partenaire quand l'hôtel est plein, au lieu d'un étage de plus.
 - Environ 35 % des clients **préfèrent les distributeurs** aux comptoirs pour les cafés et les repas : les distributeurs
   restent utiles avec une cafétéria ou un grand café.
-- **Marquise du quai** (grand quai) : verrière sur tout le quai qui abrite 250 voyageurs de plus.
+- **Marquise du quai** à deux niveaux : marquise (quai niveau 2, +120 voyageurs à l'abri), puis grande marquise sur tout
+  le grand quai (+250 au total).
 - Les voyageurs à l'abri se placent **sous les abris** sur la scène.
+- **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;
+  frais immédiats ou chantier de quelques jours qui réduit la capacité ; les reporter coûte de l'appréciation.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié
@@ -43,6 +46,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - La **boutique** commence après le **café du quai**, qui ne la chevauche plus ; la tour de l'horloge est centrée dessus.
 - Les **commerces voisins** sont reliés par un mur : la navette ne se voit plus entre les façades.
 - Le **parking** montre des voitures garées de profil, dessinées comme celles de la route.
+- L'**effectif conseillé** est fixé pour la journée : plus d'alertes « en trop » ou « il manque » qui changent au fil
+  des heures sans que le joueur ait rien fait. Il est recalculé après un achat qui le modifie.
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)

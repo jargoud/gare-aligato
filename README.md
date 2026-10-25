@@ -176,7 +176,8 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
 Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
-La **marquise du quai** (objectif 4, grand quai, 120 000 €, 400 € / jour) couvre tout le quai et abrite 250 voyageurs de plus.
+La **marquise du quai** a deux niveaux : la marquise (objectif 2, quai niveau 2, 60 000 €) abrite 120 voyageurs de plus,
+la grande marquise (objectif 4, grand quai, 80 000 €) couvre tout le quai et en abrite 250 au total.
 Sur la scène, les voyageurs abrités se placent sous les abris.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
 Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc donne +0,05 ★ de plus.
@@ -236,6 +237,24 @@ La fenêtre Personnel conseille l'effectif le plus rentable, et le bilan du soir
 - ⚠️ **Distributeur en panne** (écran orange clignotant) : il ne vend plus sa part du stock. Réparez-le dans la fenêtre
   Stocks (1 500 €) ; sinon il est réparé la nuit pour 3 000 €.
 - 🔧 L'**atelier de maintenance** (objectif 2) rend retards et pannes 4 fois plus rares et répare les distributeurs dans l'heure.
+
+### Travaux d'entretien
+
+Une fois la gare bien notée (4,5 ★ ou les 8 objectifs), un chantier est proposé dans le bilan du soir environ toutes
+les deux semaines. Son coût et sa durée augmentent avec la taille de la gare.
+
+| Chantier | Effet |
+|---|---|
+| 🔧 Remplacement des machines usées | Payé à minuit (30 % du prix des bornes, robots et distributeurs) |
+| 🧽 Nettoyage des tags | Payé à minuit, le quai est nettoyé |
+| 🛤️ Réfection du quai | 1 à 4 jours : −25 % de voyageurs par train |
+| 🏨 Rénovation d'un étage d'hôtel | 1 à 4 jours : −12 chambres |
+| 🚻 Rénovation des sanitaires | 1 à 4 jours : sanitaires fermés |
+| 🚪 Rénovation de la salle d'attente | 1 à 4 jours : salle d'attente fermée |
+
+Le bouton du bilan (ou de la fenêtre Bilan) lance les travaux le lendemain. Tant qu'ils sont reportés, l'appréciation
+perd 0,05 ★ et le devis augmente de 10 % chaque soir. Pendant un chantier, l'encart d'état l'indique et des barrières
+« TRAVAUX » apparaissent sur la zone ; le coût figure dans les frais du jour.
 
 ### Événements
 

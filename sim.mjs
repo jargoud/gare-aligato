@@ -23,7 +23,7 @@ function newGame() {
   });
   const code = readFileSync(new URL('./game.js', import.meta.url), 'utf8');
   // expose les variables internes du jeu (déclarées en const) à la simulation
-  vm.runInContext(`${code}\nglobalThis.G = { S, stepMinute, UPGRADES, upState, expect, makePlan, PRODUCTS, refill, VENDING_MAX, VENDING_PRICE, GOALS, walkers };`, context);
+  vm.runInContext(`${code}\nglobalThis.G = { S, stepMinute, UPGRADES, upState, expect, makePlan, PRODUCTS, refill, VENDING_MAX, VENDING_PRICE, GOALS, walkers, acceptWorks };`, context);
   return context.G;
 }
 
@@ -33,6 +33,7 @@ function play(G, days) {
   let minBudget = Infinity, goalsDay = null, maxDebtDays = 0;
   for (let d = 0; d < days; d++) {
     S.tarif = S.goal >= 6 ? 25 : S.goal === 4 ? 55 : S.goal >= 3 ? 40 : 50;
+    G.acceptWorks(); // le joueur lance les travaux proposés dès le matin
     for (let i = 0; i < 1440; i++) {
       G.stepMinute();
       minBudget = Math.min(minBudget, S.budget);
