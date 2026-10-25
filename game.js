@@ -1145,12 +1145,6 @@ function drawFront(g) {
   g.fillStyle = '#54474e'; g.fillRect(MX - 16, top, MW + 32, 4);
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
-  // fine verrière devant la gare
-  const cx = MX - 20;
-  g.fillStyle = 'rgb(180 210 235 / .55)'; g.fillRect(cx, 366, W - cx, 6);
-  g.fillStyle = '#4a4f58';
-  for (let px = cx + 10; px <= W; px += 120) g.fillRect(px, 372, 3, Y.platform - 372 + 4);
-
   // lampadaires
   for (const lx of LAMPS) {
     g.fillStyle = '#3a404a';

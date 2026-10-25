@@ -26,7 +26,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Environ 35 % des clients **préfèrent les distributeurs** aux comptoirs pour les cafés et les repas : les distributeurs
   restent utiles avec une cafétéria ou un grand café.
 - **Extension des abris** à deux niveaux : abris sur tout le quai niveau 2 (+120 voyageurs à l'abri), puis sur tout
-  le grand quai (+250 au total).
+  le grand quai (+250 au total). La fine verrière devant la gare, qui faisait doublon, est retirée.
 - Les voyageurs à l'abri se placent **sous les abris** sur la scène.
 - **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;
   frais immédiats ou chantier de quelques jours qui réduit la capacité ; les reporter coûte de l'appréciation.
