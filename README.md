@@ -132,8 +132,9 @@ mais rendent le quai moins sale et les voyageurs plus contents.
 
 ### Sons
 
-Le bouton 🔇 / 🔊 en bas à droite active le son : ambiance discrète du hall, carillon à l'arrivée des trains et son
-d'achat. Il est coupé par défaut ; le choix est gardé dans le navigateur.
+Le bouton 🔇 / 🔊 en bas à droite active le son : ambiance discrète du hall, tintement de pièces à chaque recette
+de billets, et un son pour chaque action : amélioration, embauche,
+licenciement, stocks et distributeurs. Il est coupé par défaut ; le choix est gardé dans le navigateur.
 
 ### Interface
 
@@ -142,7 +143,7 @@ l'autre sans les fermer.
 
 ### Saisons
 
-L'année compte 4 saisons de 14 jours, en commençant par le printemps. La saison s'affiche à côté du jour (survolez-la pour
+L'année compte 4 saisons d'une semaine (du lundi au dimanche), en commençant par le printemps. La saison s'affiche à côté du jour (survolez-la pour
 savoir où vous en êtes), et le bilan du soir prévient la veille d'un changement.
 
 | Saison | Météo dominante | Effets |
@@ -164,8 +165,8 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 ☀️ soleil, ⛅ nuageux, 🌧️ pluie, 🥵 forte chaleur, ❄️ neige. Pluie et neige font aussi venir un peu moins de monde ; par forte chaleur, on boit et on mange davantage.
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
-Sont à l'abri : 40 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1) et ceux de la salle d'attente.
-Les **bancs sur le quai** (3 niveaux, disponibles dès le début) ajoutent +0,05 ★ chacun.
+Sont à l'abri : 40 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
+Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
 
 ### Catégorie de la gare
 
@@ -196,19 +197,20 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 👮 Agent de sécurité | 1 | Fait fuir les vandales (sinon 15 000 € de dégâts) ; on le voit faire sa ronde |
 | 📺 Écrans d'information | 2 | Guichets et bornes 25 % plus efficaces ; écran des départs sur la gare |
 | 🪑 Salle d'attente (2 niveaux) | 2 et 5 | +80 puis +160 voyageurs par train sans agrandir le quai ; on voit les silhouettes derrière les vitres |
-| ☕ Café du quai | 5 | Sert jusqu'à 600 cafés par jour à 3,50 € avant les distributeurs ; appréciation +0,4 |
+| ☕ Café du quai | 5 (quai niveau 2) | Sert jusqu'à 600 cafés par jour à 3,50 € avant les distributeurs ; appréciation +0,4 |
 | 🍽️ Cafétéria | 3 | Repas à 18 € servis par des **serveurs** (nouveau métier), avant les distributeurs ; les clients de l'hôtel y dînent |
 | 🧳 Consigne à bagages | 3 | Recette sur les voyageurs de loisir, surtout le week-end |
 | 📦 Point relais colis | 4 | Recette sur les travailleurs |
-| 🧖 Spa de l'hôtel | 6 | Chambres 30 % plus chères le week-end |
-| 💎 Salon 1re classe | 6 | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
+| 🧖 Spa de l'hôtel | 6 (hôtel de 3 étages) | Chambres 30 % plus chères le week-end |
+| 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
+| 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
 
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
 La cafétéria et le café du quai servent en premier : les distributeurs ne prennent que le reste de la demande.
 
 ### Incidents
 
-- 🕒 **Train en retard** : 15 % des voyageurs qui attendaient abandonnent, et l'appréciation baisse.
+- 🕒 **Train en retard** : 15 % des voyageurs qui attendaient abandonnent (5 % avec l'accueil voyageurs), et l'appréciation baisse.
 - ⚠️ **Distributeur en panne** (écran orange clignotant) : il ne vend plus sa part du stock. Réparez-le dans la fenêtre
   Stocks (1 500 €) ; sinon il est réparé la nuit pour 3 000 €.
 - 🔧 L'**atelier de maintenance** (objectif 2) rend retards et pannes 4 fois plus rares et répare les distributeurs dans l'heure.
@@ -224,7 +226,7 @@ article de presse ou inspection sanitaire (amende si le quai est sale).
 node sim.mjs
 ```
 
-Joue 3 parties d'une année (56 jours) sans navigateur, avec une stratégie simple, et échoue si une journée finit en perte,
+Joue 3 parties de 56 jours (deux années) sans navigateur, avec une stratégie simple, et échoue si une journée finit en perte,
 si le budget reste négatif deux soirs de suite, en cas de faillite ou si les 8 objectifs ne sont pas atteints avant le jour 40.
 Options : `node sim.mjs <parties> <jours>`.
 

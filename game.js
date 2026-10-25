@@ -66,8 +66,8 @@ const WEATHERS = {
   snow: { icon: '❄️', name: 'Neige', p: 0.05, severity: 1.2, demand: 0.85 },
 };
 const SHELTER_SEATS = 40;
-// Saisons de 14 jours : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
-const SEASON_DAYS = 14;
+// Saisons d'une semaine : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
+const SEASON_DAYS = 7; // une saison par semaine, du lundi au dimanche
 const SEASONS = [
   { name: 'Printemps', icon: '🌸', weather: { sun: 0.4, cloud: 0.3, rain: 0.25, heat: 0.03, snow: 0.02 }, demand: 1, rooms: 1, commuters: 1 },
   { name: 'Été', icon: '🌻', weather: { sun: 0.6, cloud: 0.15, rain: 0.07, heat: 0.18, snow: 0 }, demand: 1.2, rooms: 1.5, commuters: 0.7 },
@@ -89,9 +89,12 @@ const SERVICES = {
   cafeteria: { icon: '🍽️', name: 'Cafétéria', desc: `Repas à ${CAFETERIA_PRICE} € servis par des serveurs, dîner des clients de l'hôtel`, req: 3, cost: 90000, upkeep: 1500, rep: 0.2 },
   lockers: { icon: '🧳', name: 'Consigne à bagages', desc: 'Recette sur les voyageurs de loisir', req: 3, cost: 25000, upkeep: 200, rep: 0.05 },
   relay: { icon: '📦', name: 'Point relais colis', desc: 'Recette sur les travailleurs', req: 4, cost: 40000, upkeep: 300, rep: 0.05 },
-  spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1 },
+  spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1,
+    pre: () => S.hotel >= 3, preText: () => 'Hôtel de 3 étages requis' },
   workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 60000, upkeep: 1500, rep: 0.05 },
-  lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1 },
+  welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Agents d\'accueil : moins d\'abandons quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
+  lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1,
+    pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
 };
 const ROOMS = [['Une Chambre Simple', 350], ['Une Chambre Double', 600], ['Une Suite', 1500]];
 // Distributeurs : demande par visiteur, prix de vente, coût d'achat, contenance d'un distributeur
@@ -154,7 +157,9 @@ const screensMult = () => (S.svc.screens ? 1.25 : 1);
 // en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
 const STRIKE_HOURS = 3;
 const striking = () => S.strike > S.minutes;
-const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + S.machines.kiosk * KIOSK_TICKETS) * screensMult());
+const WELCOME_TICKETS = 20; // billets vendus sur tablette par les agents d'accueil, à chaque train
+const welcomeTickets = () => (S.svc.welcome ? WELCOME_TICKETS : 0);
+const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + S.machines.kiosk * KIOSK_TICKETS + welcomeTickets()) * screensMult());
 const cleanRate = () => S.staff.entretien * STAFF_CLEAN + S.machines.robot * ROBOT_CLEAN;
 const roomCap = () => Math.min(S.hotel * ROOMS_PER_FLOOR, S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
@@ -165,7 +170,7 @@ const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 // Objectifs : chacun débloque de nouvelles améliorations (S.goal = nombre d'objectifs atteints)
 const GOALS = [
   { text: 'Transporter 2 000 voyageurs en une journée', value: () => S.today.passengers, target: 2000, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
-  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance' },
+  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
   { text: 'Atteindre une appréciation de 3,5 ★', value: () => S.rep, target: 3.5, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
   { text: 'Transporter 3 000 voyageurs en une journée', value: () => S.today.passengers, target: 3000, unlocks: 'Boutique · Robots nettoyeurs · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis' },
   { text: `Faire ${money(150000)} de bénéfice en une journée`, value: () => S.lastNet, target: 150000, money: true, unlocks: 'Navette · Café du quai · Mini-supermarché · Grande salle d\'attente' },
@@ -196,17 +201,20 @@ const UPGRADES = [
   { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [90000, 200000][l], buy: () => S.station++ },
   { id: 'robot', icon: '🤖', name: 'Robot nettoyeur', desc: () => 'Nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 50000, buy: () => S.machines.robot++ },
   { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 90000, buy: () => S.shuttle++ },
-  { id: 'cafe', icon: '☕', name: 'Café du quai', desc: () => `Sert ${CAFE_CAP} cafés par jour avant les distributeurs, appréciation +0,4`, level: () => S.cafe, max: 1, req: [5], cost: () => 70000, buy: () => S.cafe++ },
+  { id: 'cafe', icon: '☕', name: 'Café du quai', desc: () => `Sert ${CAFE_CAP} cafés par jour avant les distributeurs, appréciation +0,4`, level: () => S.cafe, max: 1, req: [5], cost: () => 70000, buy: () => S.cafe++,
+    pre: () => S.platform >= 2, preText: () => 'Quai niveau 2 requis' },
   { id: 'parking', icon: '🅿️', name: 'Parking', desc: () => '+20 % de clientèle', level: () => S.parking, max: 1, req: [6], cost: () => 120000, buy: () => S.parking++ },
   { id: 'pub', icon: '📢', name: 'Panneau publicitaire', desc: () => `+${money(PUB_INCOME)} par jour`, level: () => S.pub, max: 1, req: [7], cost: () => 60000, buy: () => S.pub++ },
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau',
-    level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++ },
+    level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
+    pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil`,
-    level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++ },
+    level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
+    pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
     level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [70000, 140000][l], buy: () => S.waitroom++ },
   ...Object.entries(SERVICES).map(([k, v]) => ({
-    id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++,
+    id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++, pre: v.pre, preText: v.preText,
     desc: () => `${v.desc} · ${money(v.upkeep)} / jour`,
   })),
   ...Object.entries(SHOPS).map(([k, sh]) => ({
@@ -371,7 +379,7 @@ function expect(plan) {
   return {
     revenue, costs, demandBy, stockShort,
     need: {
-      guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS) / TICKETS_PER_AGENT)),
+      guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
       entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / 24 - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
       hotel: Math.max(0, Math.ceil((Math.min(roomDemand, S.hotel * ROOMS_PER_FLOOR) - S.machines.checkin * CHECKIN_ROOMS) / ROOMS_PER_STAFF)),
       cafe: S.svc.cafeteria ? Math.ceil(cafeteriaDemand / MEALS_PER_WAITER) : 0,
@@ -490,14 +498,17 @@ function exchange(h) {
   S.disembark = Math.round((S.plan.trains[h] ?? 0) * (0.5 + Math.random() * 0.2));
   // incident : train en retard, une partie des voyageurs abandonne
   const delayed = Math.random() < (S.svc.workshop ? 0.01 : 0.04);
-  const giveUp = delayed ? Math.round(S.waiting * 0.15) : 0;
+  const giveUp = delayed ? Math.round(S.waiting * (S.svc.welcome ? 0.05 : 0.15)) : 0; // les agents d'accueil rassurent
   const present = Math.round(S.waiting) - giveUp;
   S.lastDelay = giveUp / Math.max(1, present + giveUp);
   if (delayed) toast(`🕒 Train de ${pad(h)}:00 en retard : ${giveUp} voyageur(s) abandonnent`, 'bad', 'upgrades');
   const type = TRAIN_TYPES[S.plan.types[h]];
   const walkins = Math.min(present, Math.round(seatsPerTrain() * type.seats), ticketCap());
-  const missed = present - walkins;
-  S.waiting = 0;
+  // les agents d'accueil font patienter la moitié des voyageurs sans billet jusqu'au train suivant, s'il reste de la place à quai
+  const next = (h + 1) % 24;
+  const kept = S.svc.welcome && hasTrain(next) ? Math.min(Math.round((present - walkins) / 2), Math.max(0, platformCap() - (S.plan.trains[next] ?? 0))) : 0;
+  const missed = present - walkins - kept;
+  S.waiting = kept;
   S.boarding = walkins;
   S.pendingBoard = walkins;
 
@@ -507,7 +518,7 @@ function exchange(h) {
   S.today.missed += missed;
   S.today.visitors += walkins + S.disembark;
   S.dirt = Math.min(100, S.dirt + ((walkins + S.disembark) / 35) * dirtFactor());
-  if (missed > 0) toast(`${missed} voyageur(s) n'ont pas eu de billet`, 'bad', 'staff');
+  if (missed > 0) toast(`${missed} voyageur(s) n'ont pas eu de billet${kept ? ` · ${kept} attendent le train suivant` : ''}`, 'bad', 'staff');
 
   const extra = sell(S.plan.weekend ? PROFILES.weekend : PROFILES.classic, true);
   S.today.revenue += tickets + extra;
@@ -518,7 +529,7 @@ function exchange(h) {
   S.lastExposure = exposure;
   S.rep += (quality(S.lastMiss, exposure) - S.rep) * 0.06;
   floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
-  play('chime');
+  if (walkins) play('tickets');
   spawnWalkers(false, S.plan.types[h]);
   checkGoals();
 }
@@ -539,6 +550,7 @@ function exchangeSpecial(h) {
   const extra = sell(PROFILES.commuter);
   T.revenue += subs + extra;
   floats.push({ text: '+' + money(subs + extra), x: DOOR_X, y: 372, life: 2 });
+  if (boarded) play('tickets');
   spawnWalkers(true, 'express');
   checkGoals();
 }
@@ -922,18 +934,11 @@ function drawFront(g) {
     g.fillStyle = '#26354f'; g.fillRect(x + 40, top + 28, 16, Y.platform + 2 - top - 28);
   }
 
-  // abris voyageurs et bancs le long de la bordure du quai
-  for (let i = 0; i < S.benches; i++) {
-    const bx = 1080 - i * 130;
+  // bancs alignés sur une même rangée, en retrait de la bordure du quai : ceux achetés, puis ceux du décor
+  for (const bx of [...[1080, 950, 820].slice(0, S.benches), 470, 330]) {
+    if (bx < platX() + 20) continue;
     g.fillStyle = '#7a5537'; g.fillRect(bx, 412, 40, 4); g.fillRect(bx, 404, 40, 3);
     g.fillStyle = '#3a404a'; g.fillRect(bx + 4, 416, 3, 6); g.fillRect(bx + 33, 416, 3, 6);
-  }
-
-  // bancs du décor
-  for (const bx of [330, 470]) {
-    if (bx < platX() + 20) continue;
-    g.fillStyle = '#7a5537'; g.fillRect(bx, 392, 44, 4); g.fillRect(bx, 384, 44, 3);
-    g.fillStyle = '#3a404a'; g.fillRect(bx + 4, 396, 3, 7); g.fillRect(bx + 37, 396, 3, 7);
   }
 }
 
@@ -1080,6 +1085,7 @@ const r2 = rng(9);
 const uniforms = {
   entretien: Array.from({ length: 10 }, () => ({ ...person(r2), shirt: '#9be15d', pants: '#3d4a5c', hat: '#f5b82e', bag: false })),
   security: { ...person(r2), shirt: '#1b2540', pants: '#1b2540', hat: '#111827', bag: false },
+  welcome: { ...person(r2), shirt: '#ff7a1a', pants: '#2d3436', bag: false },
 };
 
 // Déchets sur le quai, proportionnels à la saleté
@@ -1105,6 +1111,7 @@ function drawPerson(p, x, y, t, walking) {
   if (p.hat) ctx.fillRect(x - 5 * s, y - 26 * s + bob, 10 * s, 1.6 * s);
 }
 
+const VENDING_SPOTS = [596, 962, 676, 1016]; // un coin de distributeurs par niveau d'équipement
 function drawStaff(t) {
   const y = Y.platform + 7;
   if (S.svc.security) { // ronde lente devant la gare
@@ -1112,16 +1119,20 @@ function drawStaff(t) {
     drawPerson(uniforms.security, gx, Y.platform + 16, t, true);
   }
 
-  // distributeurs automatiques (écran rouge quand ils sont vides)
-  let vx = 572;
-  for (const [k, p] of Object.entries(PRODUCTS)) {
-    for (let i = 0; i < S.vending[k]; i++, vx += 12) {
+  if (S.svc.welcome) drawPerson(uniforms.welcome, DOOR_X - 6, y + 8, t, false); // agent d'accueil près de la porte
+
+  // distributeurs automatiques (écran rouge quand ils sont vides), répartis en coins café-repas-goodies le long du quai
+  VENDING_SPOTS.forEach((x0, i) => {
+    let vx = x0;
+    for (const [k, p] of Object.entries(PRODUCTS)) {
+      if (i >= S.vending[k]) continue;
       ctx.fillStyle = p.color; ctx.beginPath(); ctx.roundRect(vx - 5, y - 27, 10, 27, [3, 3, 1, 1]); ctx.fill();
       ctx.fillStyle = S.broken[k] && i === 0 ? (Math.floor(t * 3) % 2 ? '#ff9f1a' : '#3a2a10') : S.stock[k] ? '#bfe0f5' : '#ff5b4a';
       ctx.fillRect(vx - 3, y - 24, 6, 5);
       ctx.fillStyle = 'rgb(0 0 0 / .35)'; ctx.fillRect(vx - 3, y - 8, 6, 3);
+      vx += 12;
     }
-  }
+  });
   // clients de l'hôtel en attente, valise à la main
   for (let i = 0; i < Math.min(S.hotelQueue, 10); i++) drawPerson(guests[i], 1248 - i * 11, y + 6, t, false);
 
@@ -1491,8 +1502,12 @@ function tone(freq, start, dur, vol = 0.12, type = 'sine') {
 }
 // [fréquence, départ, durée, volume, forme d'onde]
 const SFX = {
-  chime: [[784, 0, 1.4], [659, 0.35, 1.4], [523, 0.7, 2]], // carillon d'annonce : sol, mi, do
-  buy: [[1319, 0, 0.15, 0.08, 'triangle'], [1976, 0.07, 0.4, 0.08, 'triangle']],
+  tickets: [[2093, 0, 0.12, 0.05], [2637, 0.06, 0.3, 0.05]], // pièces discrètes à chaque recette de billets
+  // actions du joueur
+  upgrade: [[523, 0, 0.3, 0.09, 'triangle'], [659, 0.1, 0.3, 0.09, 'triangle'], [784, 0.2, 0.3, 0.09, 'triangle'], [1047, 0.3, 0.9, 0.09, 'triangle']], // petite fanfare
+  hire: [[587, 0, 0.3, 0.09, 'triangle'], [880, 0.12, 0.6, 0.09, 'triangle']], // deux notes montantes
+  fire: [[440, 0, 0.3, 0.08, 'triangle'], [294, 0.15, 0.7, 0.08, 'triangle']], // deux notes descendantes
+  stock: [[1319, 0, 0.15, 0.08, 'triangle'], [1976, 0.07, 0.4, 0.08, 'triangle']], // tintement de caisse
 };
 const play = (name) => { if (sound.on && sound.ctx?.state === 'running') SFX[name].forEach((n) => tone(...n)); };
 function soundButton() {
@@ -1873,7 +1888,8 @@ $('#modalBody').addEventListener('click', (e) => {
     rebuild();
     toast(`${u.icon} ${u.name} : c'est fait !`, 'good');
   }
-  if (S.budget < before || act === 'refill') play('buy'); // le remplissage n'est payé qu'à minuit
+  // le remplissage n'est payé qu'à minuit : il ne fait pas baisser le budget
+  if (S.budget < before || act === 'refill') play({ buy: 'upgrade', hire: 'hire', fire: 'fire' }[act] ?? 'stock');
   renderModal();
   updateHUD();
   save();

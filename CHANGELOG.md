@@ -7,9 +7,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Ajouté
 
-- **Sons** générés par Web Audio : ambiance du hall, carillon à l'arrivée des trains, son d'achat ;
+- **Sons** générés par Web Audio : ambiance du hall, tintement des recettes de billets,
+  sons d'amélioration, d'embauche, de licenciement et de stocks ;
   bouton pour couper le son, coupé par défaut, choix mémorisé.
 - **Onglets** dans les fenêtres pour passer de l'une à l'autre sans les fermer.
+- **Accueil voyageurs** (objectif 2) : moins d'abandons quand un train est en retard, billets vendus sur tablette
+  même en grève, une partie des voyageurs sans billet attendent le train suivant.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié
@@ -18,6 +21,10 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
   des billets (30 % auparavant).
 - Le bilan du soir ne conseille plus de baisser le prix quand la gare n'est pas pleine : il conseille le prix le plus
   rentable.
+- Certaines améliorations en demandent une autre : bancs supplémentaires, 2ᵉ abri et café du quai (quai niveau 2),
+  3ᵉ abri (grand quai), spa (hôtel de 3 étages), salon 1re classe (gare nationale).
+- Les **saisons** durent une semaine au lieu de deux.
+- Les **bancs** sont alignés sur une même rangée et les **distributeurs** répartis en coins café-repas-goodies le long du quai.
 
 ## [1.0.0] - 2026-10-24
 
