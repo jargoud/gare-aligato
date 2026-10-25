@@ -9,7 +9,9 @@ mécanique. Il propose un style graphique moderne, plus détaillé et animé, à
 
 ## Lancer le jeu
 
-Ouvrez simplement `index.html` dans un navigateur récent (double-clic) : aucun serveur ni installation n'est nécessaire.
+**Jouer en ligne : https://jargoud.github.io/gare-aligato/**
+
+Pour jouer en local, ouvrez simplement `index.html` dans un navigateur récent (double-clic) : aucun serveur ni installation n'est nécessaire.
 
 Un serveur local reste possible, par exemple pour tester sur un autre appareil du réseau :
 
