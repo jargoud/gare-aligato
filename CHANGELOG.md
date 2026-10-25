@@ -13,6 +13,11 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - **Onglets** dans les fenêtres pour passer de l'une à l'autre sans les fermer.
 - **Accueil voyageurs** (objectif 2) : moins d'abandons quand un train est en retard, billets vendus sur tablette
   même en grève, une partie des voyageurs sans billet attendent le train suivant.
+- **Café du quai à 3 niveaux** (café, terrasse, grand café) avec un nouveau métier, les **baristas**.
+- **Fraude et contrôleurs** (objectif 3) : la fraude augmente avec le prix du billet ; les contrôleurs la dissuadent
+  et verbalisent. Fraudeurs et amendes dans le bilan du soir.
+- La **boutique** vend des goodies avant les distributeurs ; la fenêtre Stocks indique ce que servent café,
+  cafétéria et boutique.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié

@@ -82,7 +82,11 @@ function rollWeather(day) {
   for (const [k, p] of Object.entries(seasonOf(day).weather)) if ((r -= p) < 0) return k;
   return 'sun';
 }
-const CAFE_CAP = 600, CAFE_PRICE = 3.5; // le café du quai sert jusqu'à 600 cafés par jour
+// Café du quai : 600 cafés par jour sans personnel ; la terrasse (niveau 2) et le grand café (niveau 3) servent plus,
+// avec des baristas, des cafés et viennoiseries plus chers
+const CAFE_CAPS = [0, 600, 1500, 2700], BARISTA_CUPS = 600, CAFE_NAMES = ['', 'Café du quai', 'Terrasse', 'Grand café'];
+const cafePrice = () => (S.cafe >= 2 ? 6 : 3.5), cafeCost = () => (S.cafe >= 2 ? 1.5 : 1);
+const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des goodies avant les distributeurs
 // Services : bonus d'appréciation et coût d'entretien par jour
 const SERVICES = {
   wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 1, cost: 20000, upkeep: 600, rep: 0.15 },
@@ -125,7 +129,7 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0 }, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
@@ -134,9 +138,9 @@ const S = {
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
-  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
+  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -148,9 +152,20 @@ const STAFF = {
     info: () => `${roomCap()} chambres par jour` },
   cafe: { icon: '🍽️', name: 'Serveurs', one: 'un serveur', min: () => 0, salary: 2000, available: () => S.svc.cafeteria,
     info: () => `${cafeteriaCap()} repas par jour` },
+  controleur: { icon: '🕵️', name: 'Contrôleurs', one: 'un contrôleur', min: () => 0, salary: 2500, available: () => S.goal >= FRAUD_GOAL,
+    info: () => `${fmt(S.staff.controleur * CONTROL_PAX)} voyageurs contrôlés par jour · fraude ${Math.round(fraudRate() * 100)} %` },
+  barista: { icon: '☕', name: 'Baristas', one: 'un barista', min: () => 0, salary: 1200, available: () => S.cafe >= 2,
+    info: () => `${fmt(cafeCap())} cafés par jour au ${CAFE_NAMES[S.cafe].toLowerCase()}` },
 };
 const staffRoles = () => Object.entries(STAFF).filter(([, r]) => r.available?.() ?? true);
 const cafeteriaCap = () => (S.svc.cafeteria ? S.staff.cafe * MEALS_PER_WAITER : 0);
+// Fraude (à partir de l'objectif 3) : plus le billet est cher, plus de voyageurs montent sans payer.
+// Les contrôleurs en dissuadent une partie et verbalisent ceux qu'ils prennent.
+const FRAUD_GOAL = 3, CONTROL_PAX = 600, FINE = 50, DETERRENCE = 0.7, JUMP_SHARE = 0.4;
+const controlCoverage = (n = S.staff.controleur, plan = S.plan) => Math.min(1, (n * CONTROL_PAX) / Math.max(1, plan.classic));
+const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GOAL
+  ? (0.02 + 0.1 * (S.tarif / 100)) * (1 - DETERRENCE * controlCoverage(n, plan)) : 0);
+const cafeCap = () => (S.cafe ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
 const shelterCap = () => S.shelters * SHELTER_SEATS + WAITROOM[S.waitroom]; // voyageurs à l'abri : abris + salle d'attente
@@ -203,8 +218,11 @@ const UPGRADES = [
   { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [90000, 200000][l], buy: () => S.station++ },
   { id: 'robot', icon: '🧽', name: 'Autolaveuse', desc: () => 'Conduite par un agent d\'entretien, elle nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 50000, buy: () => S.machines.robot++ },
   { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 90000, buy: () => S.shuttle++ },
-  { id: 'cafe', icon: '☕', name: 'Café du quai', desc: () => `Sert ${CAFE_CAP} cafés par jour avant les distributeurs, appréciation +0,4`, level: () => S.cafe, max: 1, req: [5], cost: () => 70000, buy: () => S.cafe++,
-    pre: () => S.platform >= 2, preText: () => 'Quai niveau 2 requis' },
+  { id: 'cafe', icon: '☕', name: 'Café du quai', level: () => S.cafe, max: 3, req: [5, 6, 7], cost: (l) => [70000, 50000, 90000][l], buy: () => S.cafe++,
+    desc: () => [`Sert ${CAFE_CAPS[1]} cafés par jour avant les distributeurs, sans personnel, appréciation +0,4`,
+      `Terrasse : jusqu'à ${fmt(CAFE_CAPS[2])} cafés et viennoiseries par jour à ${money(6)}, avec des baristas, appréciation +0,1`,
+      `Grand café : jusqu'à ${fmt(CAFE_CAPS[3])} cafés par jour, avec des baristas, appréciation +0,1`][Math.min(2, S.cafe)],
+    pre: () => (S.cafe < 2 ? S.platform >= 2 : S.station >= 2), preText: () => (S.cafe < 2 ? 'Quai niveau 2 requis' : 'Boutique requise') },
   { id: 'parking', icon: '🅿️', name: 'Parking', desc: () => '+20 % de clientèle', level: () => S.parking, max: 1, req: [6], cost: () => 120000, buy: () => S.parking++ },
   { id: 'pub', icon: '📢', name: 'Panneau publicitaire', desc: () => `+${money(PUB_INCOME)} par jour`, level: () => S.pub, max: 1, req: [7], cost: () => 60000, buy: () => S.pub++ },
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
@@ -313,10 +331,12 @@ const satisfaction = () => (S.today.demand > 20 ? S.today.served / S.today.deman
 const roomRate = () => 0.007 * (0.5 + satisfaction()) * (0.4 + S.rep / 5);
 const stockCap = (k) => S.vending[k] * PRODUCTS[k].cap;
 const productRate = (k) => PRODUCTS[k].rate * (WEATHERS[S.plan?.weather]?.misc ?? 1);
-// Comptoirs servis avant les distributeurs : la cafétéria pour les repas, le café du quai pour les cafés
+// Comptoirs servis avant les distributeurs : la cafétéria pour les repas, le café du quai pour les cafés,
+// la boutique de la gare pour les goodies
 const COUNTERS = {
-  meal: { owned: () => S.svc.cafeteria, cap: () => cafeteriaCap(), price: CAFETERIA_PRICE, cost: CAFETERIA_COST },
-  coffee: { owned: () => S.cafe, cap: () => CAFE_CAP, price: CAFE_PRICE, cost: PRODUCTS.coffee.cost },
+  meal: { name: 'la cafétéria', owned: () => S.svc.cafeteria, cap: () => cafeteriaCap(), price: () => CAFETERIA_PRICE, cost: () => CAFETERIA_COST },
+  coffee: { name: 'le café du quai', owned: () => S.cafe, cap: cafeCap, price: cafePrice, cost: cafeCost },
+  goodies: { name: 'la boutique', owned: () => S.station >= 2, cap: () => BOUTIQUE_GOODIES, price: () => PRODUCTS.goodies.price, cost: () => PRODUCTS.goodies.cost },
 };
 const shopMult = () => 1 + 0.4 * (S.station - 1); // la boutique et la tour attirent les flâneurs
 const shopRep = () => sum(Object.entries(SHOPS).map(([k, sh]) => S.shops[k] * sh.rep));
@@ -333,7 +353,7 @@ const roomPrice = () => { // prix moyen d'une chambre selon la répartition de s
 
 function dailyCosts(rooms, restock) {
   return [
-    ['Électricité', 4000 + 2500 * S.station + 2000 * S.hotel + 1000 * S.platform + 400 * S.wagons + 1500 * S.cafe + SHOP_UPKEEP * sum(Object.values(S.shops))],
+    ['Électricité', 4000 + 2500 * S.station + 2000 * S.hotel + 1000 * S.platform + 400 * S.wagons + (S.cafe ? 1000 + 500 * S.cafe : 0) + SHOP_UPKEEP * sum(Object.values(S.shops))],
     ['Réapprovisionnement', Math.round(restock)],
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
@@ -352,16 +372,17 @@ function expect(plan) {
   const rooms = Math.min(roomDemand, roomCap());
   const visitors = boarded + dis;
   let products = 0, restock = 0;
-  const demandBy = {}, stockShort = [];
-  let cafeteriaDemand = 0;
+  const demandBy = {}, counterBy = {}, stockShort = [];
+  let cafeteriaDemand = 0, coffeeDemand = 0;
   for (const [k, p] of Object.entries(PRODUCTS)) {
     let d = (demandBy[k] = (visitors * prof[k] * barShare(k) + cVis * cp[k]) * productRate(k));
     const c = COUNTERS[k];
     if (c?.owned()) { // le comptoir sert d'abord, les distributeurs prennent le relais
-      const want = d + (k === 'meal' ? rooms * 0.8 : 0), served = Math.min(want, c.cap());
+      const want = d + (k === 'meal' ? rooms * 0.8 : 0), served = (counterBy[k] = Math.min(want, c.cap()));
       if (k === 'meal') cafeteriaDemand = want;
-      products += served * c.price;
-      restock += served * c.cost;
+      if (k === 'coffee') coffeeDemand = want;
+      products += served * c.price();
+      restock += served * c.cost();
       d = Math.max(0, d - served);
     }
     const sold = Math.min(d, stockCap(k));
@@ -374,17 +395,30 @@ function expect(plan) {
     * (visitors * (prof.shops[k] ?? 1) + cVis * (cp.shops[k] ?? 1))));
   const bar = S.barCar ? boarded * BAR.rate * BAR.spend : 0;
   // recette des billets, pondérée par le type de chaque train (Intercités, TGV plus chers)
-  const fares = sum(TRAIN_HOURS.map((h) => Math.min(plan.trains[h], ticketCap()) * TRAIN_TYPES[plan.types[h]].price));
-  const revenue = (fares * (1 + loungeShare()) + commuters * SUB_SHARE) * ticketPrice() + rooms * roomPrice() * spaMult(plan.weekend)
+  // les fraudeurs ne paient pas leur billet ; ceux que les contrôleurs prennent paient l'amende
+  const fareIncome = (n) => {
+    const f = fraudRate(n, plan);
+    const paid = sum(TRAIN_HOURS.map((h) => Math.min(plan.trains[h] * (1 - f), ticketCap()) * TRAIN_TYPES[plan.types[h]].price));
+    return paid * (1 + loungeShare()) * ticketPrice() + f * controlCoverage(n, plan) * plan.classic * FINE;
+  };
+  // effectif de contrôleurs le plus rentable (recettes sauvées et amendes moins les salaires)
+  let controllers = 0;
+  if (S.goal >= FRAUD_GOAL) {
+    const gain = (n) => fareIncome(n) - n * STAFF.controleur.salary;
+    for (let n = 1; n <= 10; n++) if (gain(n) > gain(controllers)) controllers = n;
+  }
+  const revenue = fareIncome(S.staff.controleur) + commuters * SUB_SHARE * ticketPrice() + rooms * roomPrice() * spaMult(plan.weekend)
     + bar + products + shops + extras + S.pub * PUB_INCOME;
   const costs = sum(dailyCosts(rooms, restock).map(([, v]) => v));
   return {
-    revenue, costs, demandBy, stockShort,
+    revenue, costs, demandBy, counterBy, stockShort,
     need: {
       guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
       entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / 24 - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
       hotel: Math.max(0, Math.ceil((Math.min(roomDemand, S.hotel * ROOMS_PER_FLOOR) - S.machines.checkin * CHECKIN_ROOMS) / ROOMS_PER_STAFF)),
       cafe: S.svc.cafeteria ? Math.ceil(cafeteriaDemand / MEALS_PER_WAITER) : 0,
+      controleur: controllers,
+      barista: S.cafe >= 2 ? Math.ceil(clamp(coffeeDemand - CAFE_CAPS[1], 0, CAFE_CAPS[S.cafe] - CAFE_CAPS[1]) / BARISTA_CUPS) : 0,
     },
   };
 }
@@ -398,12 +432,13 @@ function qualityFactors(missRatio = S.lastMiss, exposure = S.lastExposure) {
   return [
     [sat >= 0.8 ? 'Clients bien servis' : 'Clients mal servis (distributeurs ou hôtel)', (sat - 0.8) * 3],
     [clean >= 80 ? 'Quai propre' : 'Quai trop sale', clean >= 80 ? 0.5 : clean < 50 ? -1 : 0],
-    ['Bonne restauration (café, cafétéria)', 0.4 * S.cafe + sv('cafeteria')],
+    ['Bonne restauration (café, cafétéria)', (S.cafe ? 0.3 + 0.1 * S.cafe : 0) + sv('cafeteria')],
     ['Confort (bancs, abris équipés, salle d\'attente, wagons, Wi-Fi)', 0.05 * S.benches + BENCH_UNDER * Math.min(S.benches, S.shelters) + 0.1 * S.waitroom + 0.1 * S.comfort + sv('wifi')],
     ['Commerces', shopRep()],
     ['Services (sécurité, écrans, consigne…)', others],
     ['Gare agrandie', 0.25 * (S.station - 1)],
     ['Voyageurs restés sans billet', -missRatio * 4],
+    ['Fraude visible sur le quai', -Math.max(0, S.lastFraud - 0.08) * 5],
     ['Train en retard', -S.lastDelay * 3],
     [`Attente dehors sans abri (${weather().name.toLowerCase()})`, -exposure],
   ].filter(([, v]) => Math.abs(v) >= 0.01);
@@ -504,22 +539,32 @@ function exchange(h) {
   const present = Math.round(S.waiting) - giveUp;
   S.lastDelay = giveUp / Math.max(1, present + giveUp);
   if (delayed) toast(`🕒 Train de ${pad(h)}:00 en retard : ${giveUp} voyageur(s) abandonnent`, 'bad', 'upgrades');
-  const type = TRAIN_TYPES[S.plan.types[h]];
-  const walkins = Math.min(present, Math.round(seatsPerTrain() * type.seats), ticketCap());
+  const type = TRAIN_TYPES[S.plan.types[h]], seats = Math.round(seatsPerTrain() * type.seats);
+  // fraudeurs : ils montent sans passer au guichet, rejoints par une partie des voyageurs restés sans billet
+  const cheats = binom(present, fraudRate());
+  const walkins = Math.max(0, Math.min(present - cheats, seats - cheats, ticketCap()));
+  const noTicket = present - cheats - walkins;
+  const jumpers = S.goal >= FRAUD_GOAL ? Math.min(Math.round(noTicket * JUMP_SHARE), Math.max(0, seats - walkins - cheats)) : 0;
+  const fraud = cheats + jumpers, caught = binom(fraud, controlCoverage());
   // les agents d'accueil font patienter la moitié des voyageurs sans billet jusqu'au train suivant, s'il reste de la place à quai
   const next = (h + 1) % 24;
-  const kept = S.svc.welcome && hasTrain(next) ? Math.min(Math.round((present - walkins) / 2), Math.max(0, platformCap() - (S.plan.trains[next] ?? 0))) : 0;
-  const missed = present - walkins - kept;
+  const kept = S.svc.welcome && hasTrain(next) ? Math.min(Math.round((noTicket - jumpers) / 2), Math.max(0, platformCap() - (S.plan.trains[next] ?? 0))) : 0;
+  const missed = noTicket - jumpers - kept;
   S.waiting = kept;
-  S.boarding = walkins;
-  S.pendingBoard = walkins;
+  S.boarding = walkins + fraud;
+  S.pendingBoard = walkins + fraud;
 
-  const tickets = (walkins + binom(walkins, loungeShare())) * ticketPrice() * type.price; // les clients du salon paient double
+  // les clients du salon paient double ; les fraudeurs pris paient l'amende
+  const tickets = (walkins + binom(walkins, loungeShare())) * ticketPrice() * type.price + caught * FINE;
   S.budget += tickets;
-  S.today.passengers += walkins;
+  S.today.passengers += walkins + fraud;
   S.today.missed += missed;
-  S.today.visitors += walkins + S.disembark;
-  S.dirt = Math.min(100, S.dirt + ((walkins + S.disembark) / 35) * dirtFactor());
+  S.today.fraud += fraud;
+  S.today.caught += caught;
+  S.today.fines += caught * FINE;
+  S.lastFraud = fraud / Math.max(1, present);
+  S.today.visitors += walkins + fraud + S.disembark;
+  S.dirt = Math.min(100, S.dirt + ((walkins + fraud + S.disembark) / 35) * dirtFactor());
   if (missed > 0) toast(`${missed} voyageur(s) n'ont pas eu de billet${kept ? ` · ${kept} attendent le train suivant` : ''}`, 'bad', 'staff');
 
   const extra = sell(S.plan.weekend ? PROFILES.weekend : PROFILES.classic, true);
@@ -561,9 +606,9 @@ function exchangeSpecial(h) {
 function serveCounter(k, wanted) {
   const c = COUNTERS[k];
   if (!c?.owned()) return 0;
-  const n = Math.min(wanted, Math.max(0, c.cap() - S.today.counter[k]));
-  S.today.counter[k] += n;
-  S.today.restock += n * c.cost;
+  const n = Math.min(wanted, Math.max(0, c.cap() - (S.today.counter[k] ?? 0)));
+  S.today.counter[k] = (S.today.counter[k] ?? 0) + n;
+  S.today.restock += n * c.cost();
   return n;
 }
 
@@ -577,7 +622,7 @@ function sell(prof, regular = false) {
     let d = binom(visitors, productRate(k) * prof[k] * barShare(k, regular));
     if (COUNTERS[k] && d) {
       const c = serveCounter(k, d);
-      total += c * COUNTERS[k].price;
+      total += c * COUNTERS[k].price();
       S.today.demand += c;
       S.today.served += c;
       d -= c;
@@ -629,7 +674,7 @@ function closeDay() {
   checkGoals();
   const T = S.today;
   S.report = { day: S.day, costs, total, revenue, passengers: T.passengers, planned: S.plan.total, rooms: T.rooms,
-    commuters: T.commuters, missed: T.missed, refused: T.refused, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
+    commuters: T.commuters, missed: T.missed, fraud: T.fraud, caught: T.caught, fines: T.fines, refused: T.refused, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
   S.report.points = dayPoints(S.report);
   S.score += S.report.points;
   S.report.record = S.score > bestScore();
@@ -908,12 +953,21 @@ function drawFront(g) {
   g.stroke();
   g.fillStyle = '#20242b'; g.beginPath(); g.roundRect(SIGNAL.x - 15, SIGNAL.y - 6, 30, 12, 6); g.fill();
 
-  // café du quai
+  // café du quai ; terrasse (tables) au niveau 2, grand café (auvent plus haut, enseigne dorée) au niveau 3
   if (S.cafe) {
+    const top = S.cafe >= 3 ? 342 : 352;
     g.fillStyle = '#7a5537'; g.fillRect(726, 368, 64, 20);
-    g.fillStyle = '#f6f1e6'; g.font = '700 9px system-ui, sans-serif'; g.fillText('CAFÉ', 758, 381);
-    for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#f6f1e6' : '#d62f45'; g.fillRect(720 + i * 9.5, 352, 9.5, 10); }
-    g.fillStyle = '#3a404a'; g.fillRect(722, 362, 3, 26); g.fillRect(791, 362, 3, 26);
+    g.fillStyle = S.cafe >= 3 ? '#f5b82e' : '#f6f1e6'; g.font = '700 9px system-ui, sans-serif';
+    g.fillText(S.cafe >= 3 ? 'GRAND CAFÉ' : 'CAFÉ', 758, 381);
+    for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#f6f1e6' : '#d62f45'; g.fillRect(720 + i * 9.5, top, 9.5, 10); }
+    g.fillStyle = '#3a404a'; g.fillRect(722, top + 10, 3, 388 - top - 10); g.fillRect(791, top + 10, 3, 388 - top - 10);
+    if (S.cafe >= 2) { // tables de la terrasse, devant le comptoir
+      for (const tx of S.cafe >= 3 ? [700, 740, 780] : [730, 770]) {
+        g.fillStyle = '#3a404a'; g.fillRect(tx - 1, 392, 2, 8); g.fillRect(tx - 5, 399, 10, 1.5);
+        g.fillStyle = '#f6f1e6'; g.beginPath(); g.ellipse(tx, 392, 7, 2, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#7a5537'; g.fillRect(tx - 12, 393, 4, 7); g.fillRect(tx + 8, 393, 4, 7);
+      }
+    }
   }
 
   // plaques de la gare
@@ -1083,6 +1137,7 @@ const r2 = rng(9);
 const uniforms = {
   entretien: Array.from({ length: 10 }, () => ({ ...person(r2), shirt: '#9be15d', pants: '#3d4a5c', hat: '#f5b82e', bag: false })),
   security: { ...person(r2), shirt: '#1b2540', pants: '#1b2540', hat: '#111827', bag: false },
+  controleur: Array.from({ length: 10 }, () => ({ ...person(r2), shirt: '#2f6fd6', pants: '#1b2540', hat: '#c0392b', bag: false })),
   welcome: { ...person(r2), shirt: '#ff7a1a', pants: '#2d3436', bag: false },
 };
 
@@ -1168,6 +1223,12 @@ function drawStaff(t) {
       x += 12;
     }
   });
+
+  // contrôleurs (casquette rouge), sur la voie devant les bancs
+  for (let i = 0; i < Math.min(S.staff.controleur, 4); i++) {
+    const d = (t * 16 + i * 611 + 90) % (len * 2);
+    drawPerson(uniforms.controleur[i], x0 + (d < len ? d : len * 2 - d), Y.platform + 46, t, true);
+  }
 
   for (let i = 0; i < S.staff.entretien; i++) {
     const d = (t * 22 + i * 397) % (len * 2), dir = d < len ? 1 : -1;
@@ -1677,6 +1738,7 @@ const VIEWS = {
           ${row('Voyageurs', `${fmt(R.passengers)} <small>/ ${fmt(R.planned)} prévus</small>`)}
           ${R.commuters ? row('dont travailleurs', fmt(R.commuters)) : ''}
           ${R.missed ? row('Sans billet', fmt(R.missed), 'bad') : ''}
+          ${R.fraud ? row('Fraudeurs', `${fmt(R.fraud)} <small>(${fmt(R.caught)} verbalisés, +${money(R.fines)})</small>`, R.fraud > R.passengers * 0.08 ? 'bad' : '') : ''}
           ${row('Clients à l\'hôtel', R.rooms + (R.refused ? ` <small class="bad">(${R.refused} refusés)</small>` : ''))}
           ${row('Clients satisfaits', `${Math.round(R.sat * 100)} %`, R.sat >= 0.9 ? 'good' : R.sat < 0.75 ? 'bad' : '')}
           ${row('Recettes', money(R.revenue))}
@@ -1739,6 +1801,7 @@ const VIEWS = {
           return `<div class="stock-row">
             <div><b>${p.icon} ${p.name}</b>
               <small>${S.vending[k]} distributeur(s) · stock ${S.stock[k]} / ${cap} · demande prévue ${fmt(e.demandBy[k])} par jour</small>
+              ${e.counterBy[k] ? `<small>dont ${fmt(e.counterBy[k])} servis par ${COUNTERS[k].name} avant les distributeurs</small>` : ''}
               <span class="bar ${S.stock[k] < cap * 0.2 ? 'low' : ''}"><i style="width:${(S.stock[k] / cap) * 100}%"></i></span></div>
             ${S.broken[k] ? `<button class="primary" data-act="repair:${k}" ${S.budget < 1500 ? 'disabled' : ''}>⚠️ Réparer · ${money(1500)}</button>` : ''}
             <button data-act="refill:${k}" ${S.stock[k] >= cap ? 'disabled' : ''}>Remplir · ${money((cap - S.stock[k]) * p.cost)}</button>

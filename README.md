@@ -72,6 +72,8 @@ Un changement de prix compte pour le lendemain.
 | 🎫 Guichetiers | 45 billets par train. Sans billet, le voyageur reste à quai | Borne de billets (30 billets/train) |
 | 🧹 Agents d'entretien | Nettoient le quai. Un quai sale fait baisser l'appréciation | Autolaveuse conduite (≈ 2 agents) |
 | 🛎️ Personnel d'hôtel | 8 chambres par jour chacun | Borne de check-in (6 chambres/jour) |
+| 🕵️ Contrôleurs (objectif 3) | Contrôlent 600 voyageurs par jour chacun, dissuadent la fraude et verbalisent (50 €) | — |
+| ☕ Baristas (terrasse du café) | 600 cafés par jour chacun au-delà des 600 du comptoir | — |
 
 La fenêtre **Personnel** donne l'effectif conseillé pour aujourd'hui et pour demain. Embaucher coûte 5 000 €,
 licencier coûte 8 000 € d'indemnités.
@@ -96,6 +98,9 @@ Un distributeur vide (écran rouge) fait des clients mécontents. Dans la fenêt
 - **Remplir** un type de distributeur à tout moment (le réapprovisionnement est payé à minuit) ;
 - **ajouter un distributeur** (4 au maximum par produit) pour tenir toute la journée ;
 - activer ou non le **remplissage automatique** chaque nuit.
+
+La fenêtre indique aussi la part servie avant les distributeurs par le café du quai, la cafétéria et la boutique
+(200 goodies par jour dès l'agrandissement de la gare).
 
 ### Clients satisfaits et appréciation (★)
 
@@ -198,7 +203,7 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 👮 Agent de sécurité | 1 | Fait fuir les vandales (sinon 15 000 € de dégâts) ; on le voit faire sa ronde |
 | 📺 Écrans d'information | 2 | Guichets et bornes 25 % plus efficaces ; écran des départs sur la gare |
 | 🪑 Salle d'attente (2 niveaux) | 2 et 5 | +80 puis +160 voyageurs par train sans agrandir le quai ; on voit les silhouettes derrière les vitres |
-| ☕ Café du quai | 5 (quai niveau 2) | Sert jusqu'à 600 cafés par jour à 3,50 € avant les distributeurs ; appréciation +0,4 |
+| ☕ Café du quai (3 niveaux) | 5, 6 et 7 (quai niveau 2, puis boutique) | 600 cafés par jour à 3,50 € sans personnel ; **Terrasse** : jusqu'à 1 500 cafés et viennoiseries à 6 € ; **Grand café** : jusqu'à 2 700. Au-delà de 600, il faut des **baristas** (1 200 €/jour, 600 cafés chacun). Appréciation +0,4, puis +0,1 par niveau |
 | 🍽️ Cafétéria | 3 | Repas à 18 € servis par des **serveurs** (nouveau métier), avant les distributeurs ; les clients de l'hôtel y dînent |
 | 🧳 Consigne à bagages | 3 | Recette sur les voyageurs de loisir, surtout le week-end |
 | 📦 Point relais colis | 4 | Recette sur les travailleurs |
@@ -207,7 +212,14 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
 
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
-La cafétéria et le café du quai servent en premier : les distributeurs ne prennent que le reste de la demande.
+La cafétéria, le café du quai et la boutique servent en premier : les distributeurs ne prennent que le reste de la demande.
+
+### Fraude et contrôleurs
+
+À partir de l'objectif 3, une partie des voyageurs monte sans billet : 2 % plus jusqu'à 10 % selon le prix du billet,
+et une partie de ceux qui n'ont pas pu acheter de billet. Les **contrôleurs** dissuadent la fraude (jusqu'à −70 %)
+et verbalisent les fraudeurs pris (50 €). Au-delà de 8 % de fraude, l'appréciation baisse.
+La fenêtre Personnel conseille l'effectif le plus rentable, et le bilan du soir indique le nombre de fraudeurs.
 
 ### Incidents
 
