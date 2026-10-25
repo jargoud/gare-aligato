@@ -70,7 +70,7 @@ Un changement de prix compte pour le lendemain.
 | Métier | Rôle | Remplaçable par |
 |---|---|---|
 | 🎫 Guichetiers | 45 billets par train. Sans billet, le voyageur reste à quai | Borne de billets (30 billets/train) |
-| 🧹 Agents d'entretien | Nettoient le quai. Un quai sale fait baisser l'appréciation | Robot nettoyeur (≈ 2 agents) |
+| 🧹 Agents d'entretien | Nettoient le quai. Un quai sale fait baisser l'appréciation | Autolaveuse conduite (≈ 2 agents) |
 | 🛎️ Personnel d'hôtel | 8 chambres par jour chacun | Borne de check-in (6 chambres/jour) |
 
 La fenêtre **Personnel** donne l'effectif conseillé pour aujourd'hui et pour demain. Embaucher coûte 5 000 €,
@@ -120,7 +120,7 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 | 1 | Transporter 2 000 voyageurs en une journée | Wagons, quai niveau 2, marchand de journaux |
 | 2 | Accueillir 10 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
 | 3 | Atteindre 3,5 ★ | Bornes de billets, ligne téléphonique, boulangerie |
-| 4 | Transporter 3 000 voyageurs en une journée | Boutique, robots nettoyeurs, grand quai, wagons 7 et 8, librairie |
+| 4 | Transporter 3 000 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie |
 | 5 | Faire 150 000 € de bénéfice en une journée | Navette, café du quai, mini-supermarché |
 | 6 | Accueillir 30 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel |
 | 7 | Transporter 5 000 voyageurs en une journée | Tour de l'horloge, panneau publicitaire |
@@ -165,8 +165,9 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 ☀️ soleil, ⛅ nuageux, 🌧️ pluie, 🥵 forte chaleur, ❄️ neige. Pluie et neige font aussi venir un peu moins de monde ; par forte chaleur, on boit et on mange davantage.
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
-Sont à l'abri : 40 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
+Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
+Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc donne +0,05 ★ de plus.
 
 ### Catégorie de la gare
 

@@ -65,7 +65,9 @@ const WEATHERS = {
   heat: { icon: '🥵', name: 'Forte chaleur', p: 0.07, severity: 0.5, demand: 1, misc: 1.6 }, // on boit et on mange davantage
   snow: { icon: '❄️', name: 'Neige', p: 0.05, severity: 1.2, demand: 0.85 },
 };
-const SHELTER_SEATS = 40;
+const SHELTER_SEATS = 60;
+// emplacements des abris le long du quai (bord gauche) ; le banc de même rang se place dessous
+const SHELTER_X = [1120, 980, 840], SHELTER_W = 110, BENCH_UNDER = 0.05;
 // Saisons d'une semaine : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
 const SEASON_DAYS = 7; // une saison par semaine, du lundi au dimanche
 const SEASONS = [
@@ -172,7 +174,7 @@ const GOALS = [
   { text: 'Transporter 2 000 voyageurs en une journée', value: () => S.today.passengers, target: 2000, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
   { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
   { text: 'Atteindre une appréciation de 3,5 ★', value: () => S.rep, target: 3.5, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
-  { text: 'Transporter 3 000 voyageurs en une journée', value: () => S.today.passengers, target: 3000, unlocks: 'Boutique · Robots nettoyeurs · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis' },
+  { text: 'Transporter 3 000 voyageurs en une journée', value: () => S.today.passengers, target: 3000, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis' },
   { text: `Faire ${money(150000)} de bénéfice en une journée`, value: () => S.lastNet, target: 150000, money: true, unlocks: 'Navette · Café du quai · Mini-supermarché · Grande salle d\'attente' },
   { text: 'Accueillir 30 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 30, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Gare grande vitesse' },
   { text: 'Transporter 5 000 voyageurs en une journée', value: () => S.today.passengers, target: 5000, unlocks: 'Tour de l\'horloge · Panneau publicitaire' },
@@ -199,16 +201,16 @@ const UPGRADES = [
   { id: 'kiosk', icon: '🎫', name: 'Borne de billets', desc: () => `+${KIOSK_TICKETS} billets par train, sans salaire`, level: () => S.machines.kiosk, max: 4, req: [3], cost: () => 40000, buy: () => S.machines.kiosk++ },
   { id: 'phone', icon: '☎️', name: 'Ligne téléphonique', desc: () => 'Réservations : +10 % de clientèle', level: () => S.phone, max: 1, req: [3], cost: () => 40000, buy: () => S.phone++ },
   { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [90000, 200000][l], buy: () => S.station++ },
-  { id: 'robot', icon: '🤖', name: 'Robot nettoyeur', desc: () => 'Nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 50000, buy: () => S.machines.robot++ },
+  { id: 'robot', icon: '🧽', name: 'Autolaveuse', desc: () => 'Conduite par un agent d\'entretien, elle nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 50000, buy: () => S.machines.robot++ },
   { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 90000, buy: () => S.shuttle++ },
   { id: 'cafe', icon: '☕', name: 'Café du quai', desc: () => `Sert ${CAFE_CAP} cafés par jour avant les distributeurs, appréciation +0,4`, level: () => S.cafe, max: 1, req: [5], cost: () => 70000, buy: () => S.cafe++,
     pre: () => S.platform >= 2, preText: () => 'Quai niveau 2 requis' },
   { id: 'parking', icon: '🅿️', name: 'Parking', desc: () => '+20 % de clientèle', level: () => S.parking, max: 1, req: [6], cost: () => 120000, buy: () => S.parking++ },
   { id: 'pub', icon: '📢', name: 'Panneau publicitaire', desc: () => `+${money(PUB_INCOME)} par jour`, level: () => S.pub, max: 1, req: [7], cost: () => 60000, buy: () => S.pub++ },
-  { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau',
+  { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
     level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
-  { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil`,
+  { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
     level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
@@ -397,7 +399,7 @@ function qualityFactors(missRatio = S.lastMiss, exposure = S.lastExposure) {
     [sat >= 0.8 ? 'Clients bien servis' : 'Clients mal servis (distributeurs ou hôtel)', (sat - 0.8) * 3],
     [clean >= 80 ? 'Quai propre' : 'Quai trop sale', clean >= 80 ? 0.5 : clean < 50 ? -1 : 0],
     ['Bonne restauration (café, cafétéria)', 0.4 * S.cafe + sv('cafeteria')],
-    ['Confort (bancs, salle d\'attente, wagons, Wi-Fi)', 0.05 * S.benches + 0.1 * S.waitroom + 0.1 * S.comfort + sv('wifi')],
+    ['Confort (bancs, abris équipés, salle d\'attente, wagons, Wi-Fi)', 0.05 * S.benches + BENCH_UNDER * Math.min(S.benches, S.shelters) + 0.1 * S.waitroom + 0.1 * S.comfort + sv('wifi')],
     ['Commerces', shopRep()],
     ['Services (sécurité, écrans, consigne…)', others],
     ['Gare agrandie', 0.25 * (S.station - 1)],
@@ -934,12 +936,6 @@ function drawFront(g) {
     g.fillStyle = '#26354f'; g.fillRect(x + 40, top + 28, 16, Y.platform + 2 - top - 28);
   }
 
-  // bancs alignés sur une même rangée, en retrait de la bordure du quai : ceux achetés, puis ceux du décor
-  for (const bx of [...[1080, 950, 820].slice(0, S.benches), 470, 330]) {
-    if (bx < platX() + 20) continue;
-    g.fillStyle = '#7a5537'; g.fillRect(bx, 412, 40, 4); g.fillRect(bx, 404, 40, 3);
-    g.fillStyle = '#3a404a'; g.fillRect(bx + 4, 416, 3, 6); g.fillRect(bx + 33, 416, 3, 6);
-  }
 }
 
 let back, front;
@@ -1147,19 +1143,32 @@ function drawStaff(t) {
   for (let i = 0; i < S.machines.kiosk; i++) kiosk(MX - 30 - i * 20, '#2f6fd6');
   for (let i = 0; i < S.machines.checkin; i++) kiosk(DOOR_X + 34 + i * 18, '#12804a');
 
-  // robots nettoyeurs
+  // autolaveuses conduites par un agent d'entretien, sur une voie derrière les bancs
   for (let i = 0; i < S.machines.robot; i++) {
-    const d = (t * 30 + i * 523 + 200) % (len * 2);
-    const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + 24 + (i % 2) * 14;
-    ctx.fillStyle = '#4a4f58'; ctx.beginPath(); ctx.ellipse(x, fy, 11, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#f5b82e'; ctx.beginPath(); ctx.roundRect(x - 10, fy - 11, 20, 10, 5); ctx.fill();
-    ctx.fillStyle = Math.floor(t * 3) % 2 ? '#2ecc71' : '#0e5c2f';
-    ctx.beginPath(); ctx.arc(x, fy - 12, 2, 0, Math.PI * 2); ctx.fill();
+    const d = (t * 30 + i * 523 + 200) % (len * 2), dir = d < len ? 1 : -1;
+    const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + 14 + (i % 2) * 6, p = uniforms.entretien[9 - i];
+    ctx.fillStyle = '#5f6670'; ctx.beginPath(); ctx.ellipse(x + dir * 6, fy, 9, 2.5, 0, 0, Math.PI * 2); ctx.fill(); // brosse
+    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 12, fy - 14, 24, 12, [6, 6, 3, 3]); ctx.fill(); // cuve
+    ctx.fillStyle = '#1b2540'; ctx.beginPath(); ctx.arc(x - dir * 7, fy - 2, 3, 0, Math.PI * 2); ctx.fill(); // roue
+    ctx.fillStyle = '#3a404a'; ctx.fillRect(x + dir * 8 - 1, fy - 22, 2, 9); ctx.fillRect(x + dir * 8 - 3, fy - 23, 6, 2); // volant
+    const cx = x - dir * 3; // conducteur assis à l'arrière
+    ctx.fillStyle = p.shirt; ctx.beginPath(); ctx.roundRect(cx - 4, fy - 24, 8, 11, 3); ctx.fill();
+    ctx.fillStyle = p.skin; ctx.beginPath(); ctx.arc(cx, fy - 27, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.hat; ctx.beginPath(); ctx.arc(cx, fy - 27.6, 3.5, Math.PI, 0); ctx.fill(); ctx.fillRect(cx - 4.7, fy - 28, 9.4, 1.5);
+    ctx.fillStyle = Math.floor(t * 3) % 2 ? '#ff9f1a' : '#7a4a10'; ctx.fillRect(x + dir * 8 - 1.5, fy - 26, 3, 3); // gyrophare
+  }
+
+  // bancs alignés sur une même rangée, en retrait de la bordure du quai : ceux achetés (sous les abris), puis ceux du décor
+  for (const bx of [...SHELTER_X.slice(0, S.benches).map((sx) => sx + SHELTER_W / 2 - 20), 470, 330]) {
+    if (bx < platX() + 20) continue;
+    ctx.fillStyle = '#7a5537'; ctx.fillRect(bx, 412, 40, 4); ctx.fillRect(bx, 404, 40, 3);
+    ctx.fillStyle = '#3a404a'; ctx.fillRect(bx + 4, 416, 3, 6); ctx.fillRect(bx + 33, 416, 3, 6);
   }
 
   for (let i = 0; i < S.staff.entretien; i++) {
     const d = (t * 22 + i * 397) % (len * 2), dir = d < len ? 1 : -1;
-    const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + 20 + (i % 3) * 9;
+    // voies entièrement derrière (pieds au-dessus des bancs) ou entièrement devant les bancs (dessinés avant eux)
+    const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + [12, 48, 18][i % 3];
     drawPerson(uniforms.entretien[i], x, fy, t, true);
     ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x + dir * 4, fy - 16); ctx.lineTo(x + dir * 12, fy); ctx.stroke();
@@ -1395,11 +1404,11 @@ function render(now) {
   }
   for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
   // abris voyageurs, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
-  for (let i = 0; i < S.shelters; i++) {
-    const x = 1140 - i * 130;
-    ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 360, 70, 50);
-    ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 356, 3, 68); ctx.fillRect(x + 67, 356, 3, 68);
-    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 6, 350, 82, 7, 3); ctx.fill();
+  for (const x of SHELTER_X.slice(0, S.shelters)) {
+    const w = SHELTER_W;
+    ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 350, w, 60);
+    ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 344, 3, 80); ctx.fillRect(x + w - 3, 344, 3, 80);
+    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 8, 337, w + 16, 8, 3); ctx.fill();
   }
 
   if (tl !== null) drawTrain(tl, ttype);

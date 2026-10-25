@@ -24,6 +24,9 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - Certaines améliorations en demandent une autre : bancs supplémentaires, 2ᵉ abri et café du quai (quai niveau 2),
   3ᵉ abri (grand quai), spa (hôtel de 3 étages), salon 1re classe (gare nationale).
 - Les **saisons** durent une semaine au lieu de deux.
+- Les **abris** sont plus grands (60 voyageurs au lieu de 40) et accueillent un banc dessous : +0,05 ★ par abri équipé.
+- Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
+- Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** répartis en coins café-repas-goodies le long du quai.
 
 ## [1.0.0] - 2026-10-24
