@@ -94,7 +94,7 @@ const SERVICES = {
   spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1,
     pre: () => S.hotel >= 3, preText: () => 'Hôtel de 3 étages requis' },
   workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 60000, upkeep: 1500, rep: 0.05 },
-  welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Agents d\'accueil : moins d\'abandons quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
+  welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Moins d\'abandons en cas de retard, 20 billets par train même en grève, une partie des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
   lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1,
     pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
 };
@@ -1107,7 +1107,9 @@ function drawPerson(p, x, y, t, walking) {
   if (p.hat) ctx.fillRect(x - 5 * s, y - 26 * s + bob, 10 * s, 1.6 * s);
 }
 
-const VENDING_SPOTS = [596, 962, 676, 1016]; // un coin de distributeurs par niveau d'équipement
+// Coins d'attente sous les abris : banc à gauche, distributeurs café-repas-goodies à droite, au même rang.
+// Le 4e coin de distributeurs se place à côté d'un banc du décor (ou au début du quai s'il n'est pas agrandi).
+const vendingSpots = () => [...SHELTER_X.map((sx) => sx + 66), S.platform >= 2 ? 520 : 580];
 function drawStaff(t) {
   const y = Y.platform + 7;
   if (S.svc.security) { // ronde lente devant la gare
@@ -1117,18 +1119,6 @@ function drawStaff(t) {
 
   if (S.svc.welcome) drawPerson(uniforms.welcome, DOOR_X - 6, y + 8, t, false); // agent d'accueil près de la porte
 
-  // distributeurs automatiques (écran rouge quand ils sont vides), répartis en coins café-repas-goodies le long du quai
-  VENDING_SPOTS.forEach((x0, i) => {
-    let vx = x0;
-    for (const [k, p] of Object.entries(PRODUCTS)) {
-      if (i >= S.vending[k]) continue;
-      ctx.fillStyle = p.color; ctx.beginPath(); ctx.roundRect(vx - 5, y - 27, 10, 27, [3, 3, 1, 1]); ctx.fill();
-      ctx.fillStyle = S.broken[k] && i === 0 ? (Math.floor(t * 3) % 2 ? '#ff9f1a' : '#3a2a10') : S.stock[k] ? '#bfe0f5' : '#ff5b4a';
-      ctx.fillRect(vx - 3, y - 24, 6, 5);
-      ctx.fillStyle = 'rgb(0 0 0 / .35)'; ctx.fillRect(vx - 3, y - 8, 6, 3);
-      vx += 12;
-    }
-  });
   // clients de l'hôtel en attente, valise à la main
   for (let i = 0; i < Math.min(S.hotelQueue, 10); i++) drawPerson(guests[i], 1248 - i * 11, y + 6, t, false);
 
@@ -1159,11 +1149,23 @@ function drawStaff(t) {
   }
 
   // bancs alignés sur une même rangée, en retrait de la bordure du quai : ceux achetés (sous les abris), puis ceux du décor
-  for (const bx of [...SHELTER_X.slice(0, S.benches).map((sx) => sx + SHELTER_W / 2 - 20), 470, 330]) {
+  for (const bx of [...SHELTER_X.slice(0, S.benches).map((sx) => sx + 8), 470, 330]) {
     if (bx < platX() + 20) continue;
     ctx.fillStyle = '#7a5537'; ctx.fillRect(bx, 412, 40, 4); ctx.fillRect(bx, 404, 40, 3);
     ctx.fillStyle = '#3a404a'; ctx.fillRect(bx + 4, 416, 3, 6); ctx.fillRect(bx + 33, 416, 3, 6);
   }
+  // distributeurs automatiques (écran rouge quand ils sont vides), à côté des bancs, pieds sur la même ligne
+  const vy = 422;
+  vendingSpots().forEach((x, i) => {
+    for (const [k, p] of Object.entries(PRODUCTS)) {
+      if (i >= S.vending[k]) continue;
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.roundRect(x - 5, vy - 27, 10, 27, [3, 3, 1, 1]); ctx.fill();
+      ctx.fillStyle = S.broken[k] && i === 0 ? (Math.floor(t * 3) % 2 ? '#ff9f1a' : '#3a2a10') : S.stock[k] ? '#bfe0f5' : '#ff5b4a';
+      ctx.fillRect(x - 3, vy - 24, 6, 5);
+      ctx.fillStyle = 'rgb(0 0 0 / .35)'; ctx.fillRect(x - 3, vy - 8, 6, 3);
+      x += 12;
+    }
+  });
 
   for (let i = 0; i < S.staff.entretien; i++) {
     const d = (t * 22 + i * 397) % (len * 2), dir = d < len ? 1 : -1;

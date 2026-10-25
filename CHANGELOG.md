@@ -25,9 +25,11 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
   3ᵉ abri (grand quai), spa (hôtel de 3 étages), salon 1re classe (gare nationale).
 - Les **saisons** durent une semaine au lieu de deux.
 - Les **abris** sont plus grands (60 voyageurs au lieu de 40) et accueillent un banc dessous : +0,05 ★ par abri équipé.
+- Les cartes de la fenêtre **Améliorations** placent le prix ou l'état sous la description : tailles plus homogènes.
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
-- Les **bancs** sont alignés sur une même rangée et les **distributeurs** répartis en coins café-repas-goodies le long du quai.
+- Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)
+  dans des coins d'attente, à côté du banc de chaque abri.
 
 ## [1.0.0] - 2026-10-24
 
