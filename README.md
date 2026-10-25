@@ -136,7 +136,7 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 | 5 | Faire 150 000 € de bénéfice en une journée | Navette, café du quai, mini-supermarché |
 | 6 | Accueillir 30 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel |
 | 7 | Transporter 5 000 voyageurs en une journée | Tour de l'horloge, panneau publicitaire |
-| 8 | Atteindre 4,5 ★ | Le titre de Légende du rail |
+| 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
 Les commerces (marchand de journaux, boulangerie, librairie, mini-supermarché) apparaissent le long de la route.
 Ils versent un loyer sur leurs ventes et améliorent l'appréciation. Les sanitaires ne rapportent rien
@@ -152,6 +152,24 @@ licenciement, stocks et distributeurs. Il est coupé par défaut ; le choix est 
 
 Les fenêtres (tarifs, personnel, stocks, améliorations, objectifs, bilan) ont des onglets pour passer de l'une à
 l'autre sans les fermer.
+
+### Défis de fréquentation
+
+Après les 8 objectifs, de nouveaux défis s'affichent dans le bandeau et la fenêtre Objectifs :
+
+| Défi | Récompense |
+|---|---|
+| 🥉 Transporter 8 000 voyageurs en une journée | 100 points |
+| 🥈 Transporter 10 000 voyageurs en une journée | 200 points |
+| 🥇 Transporter 12 000 voyageurs en une journée | 300 points |
+| 🏅 Record de la semaine (60 000 voyageurs du lundi au dimanche, puis +5 000 à chaque record) | 500 points par record |
+
+La **🚉 seconde voie** (après l'objectif 8) ajoute des trains de renfort à h:30 :
+- niveau 1 (300 000 €, 6 000 € / jour) : 4 par jour aux heures de pointe, 8 h 30, 9 h 30, 16 h 30 et 19 h 30 en semaine,
+  7 h 30, 8 h 30, 17 h 30 et 18 h 30 le week-end ;
+- niveau 2 (400 000 €, 15 000 € / jour) : un renfort à chaque demi-heure libre de 5 h 30 à 22 h 30 (14 en semaine, 18 le week-end).
+
+Les plus hauts paliers demandent une gare entièrement développée, la seconde voie et un billet bon marché.
 
 ### Saisons
 
@@ -169,7 +187,7 @@ savoir où vous en êtes), et le bilan du soir prévient la veille d'un changeme
 
 Chaque soir, la journée rapporte jusqu'à **200 points** : appréciation (jusqu'à 100), part de clients satisfaits
 (jusqu'à 50) et bénéfice (jusqu'à 50, atteint à 500 000 €). Les points s'additionnent dans le **score** affiché en haut ;
-le meilleur score est gardé dans le navigateur. Une fois les 8 objectifs atteints, le score est le défi qui continue.
+le meilleur score est gardé dans le navigateur. Une fois les 8 objectifs atteints, les défis de fréquentation prennent le relais.
 
 ### Météo et confort
 

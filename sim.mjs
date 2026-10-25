@@ -27,7 +27,7 @@ function newGame() {
   return context.G;
 }
 
-// Stratégie d'un joueur raisonnable : tarif selon l'objectif, achats en gardant une réserve, effectif conseillé
+// Stratégie d'un joueur raisonnable : tarif selon l'objectif, achats en gardant de quoi payer les frais du soir, effectif conseillé
 function play(G, days) {
   const { S } = G, log = [];
   let minBudget = Infinity, goalsDay = null, maxDebtDays = 0;
@@ -38,15 +38,17 @@ function play(G, days) {
       G.stepMinute();
       minBudget = Math.min(minBudget, S.budget);
       if (S.minutes === 22 * 60) {
+        // réserve : les frais payés à minuit, plus une marge
+        const reserve = G.expect(S.plan).costs + 50000;
         for (const u of G.UPGRADES) {
-          if (G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + 100000) {
+          if (G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + reserve) {
             S.budget -= u.cost(u.level());
             u.buy();
             S.today.bought[u.id] = true;
           }
         }
         for (const k of G.expect(S.plan).stockShort) {
-          if (S.vending[k] < G.VENDING_MAX && S.budget > 50000) { S.vending[k]++; S.budget -= G.VENDING_PRICE; }
+          if (S.vending[k] < G.VENDING_MAX && S.budget > G.VENDING_PRICE + reserve) { S.vending[k]++; S.budget -= G.VENDING_PRICE; }
         }
         Object.assign(S.staff, G.expect(G.makePlan(false, S.day + 1)).need);
       }

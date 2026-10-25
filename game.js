@@ -36,7 +36,7 @@ const PRICE_PER_POINT = 1.2;     // tarif 50/100 => billet à 60 €
 const TICKETS_PER_AGENT = 45, KIOSK_TICKETS = 30;
 const ROOMS_PER_FLOOR = 12, ROOMS_PER_STAFF = 8, CHECKIN_ROOMS = 6;
 const STAFF_CLEAN = 1.2, ROBOT_CLEAN = 2.5;    // saleté retirée par heure
-const HIRE_FEE = 5000, SEVERANCE = 8000;
+const HIRE_FEE = 5000, SEVERANCE = 8000, STAFF_MAX = 10; // effectif maximal par métier
 const MACHINE_UPKEEP = { kiosk: 300, robot: 400, checkin: 250 }; // par jour
 const PUB_INCOME = 15000;
 const WAITROOM = [0, 80, 160];            // places supplémentaires par train selon le niveau de la salle d'attente
@@ -49,6 +49,7 @@ const TRAIN_TYPES = {
   tgv: { name: 'TGV', price: 2.5, seats: 1.6, extraCars: 2 },
 };
 const TGV_HOURS = [7, 9, 17, 19];
+const TRACK2_UPKEEP = [0, 6000, 15000]; // seconde voie : entretien et redevance des trains de renfort
 // Catégorie de la gare : clientèle attirée et redevance quotidienne d'accès au réseau
 const CATEGORIES = [null,
   { name: 'Gare régionale', market: 1, fee: 0 },
@@ -132,14 +133,14 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
   tarif: 50, roomTarif: 100, rep: 3, dirt: 10, lastSat: 0.9,
   stock: { coffee: 320, meal: 170, goodies: 80 }, vending: { coffee: 1, meal: 1, goodies: 1 }, autoRefill: true,
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
-  waiting: 0, waitingCommuters: 0, pendingBoard: 0, disembark: 0, boarding: 0,
+  waiting: 0, waitingCommuters: 0, waitingExtra: 0, track2: 0, challenge: 0, weekTarget: 60000, weekPax: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
@@ -244,6 +245,10 @@ const UPGRADES = [
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
     level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
+  { id: 'track2', icon: '🚉', name: 'Seconde voie',
+    desc: () => (S.track2 ? `Renfort à chaque demi-heure libre (14 trains de plus en semaine, 18 le week-end) · ${money(TRACK2_UPKEEP[2])} / jour`
+      : `4 trains de renfort par jour à h:30 aux heures de pointe · ${money(TRACK2_UPKEEP[1])} / jour`),
+    level: () => S.track2, max: 2, req: [8, 8], cost: (l) => [300000, 400000][l], buy: () => S.track2++ },
   { id: 'canopy', icon: '⛱️', name: 'Extension des abris',
     desc: () => (S.canopy ? `Abris sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
       : `Abris sur tout le quai niveau 2 : ${CANOPY_SEATS[1]} voyageurs de plus à l'abri · ${money(200)} / jour`),
@@ -305,6 +310,7 @@ const loungeShare = () => (S.svc.lounge ? (S.rep >= 4 ? 0.1 : 0.03) : 0);
 const spaMult = (weekend) => (weekend && S.svc.spa ? 1.3 : 1);
 const commuterBase = () => 90 * (0.7 + S.rep / 10) * marketBonus();
 const hasSpecial = (h) => (S.plan?.commuters[h] ?? 0) > 0;
+const hasExtra = (h) => (S.plan?.extras?.[h] ?? 0) > 0;
 
 // ---------- Modèle de fréquentation ----------
 const marketBonus = () => 1 + 0.05 * S.comfort + 0.1 * S.phone + 0.15 * S.shuttle + 0.2 * S.parking + 0.1 * (S.station - 1);
@@ -323,15 +329,22 @@ function makePlan(noise = true, day = S.day) {
     types[h] = typeForHour(h);
     caps[h] = Math.min(platformCap(), Math.round(seatsPerTrain() * TRAIN_TYPES[types[h]].seats));
   }
-  const totalWeight = sum(TRAIN_HOURS.map(weight));
+  // seconde voie : trains de renfort à h:30 aux heures de pointe (en semaine, aux heures sans express),
+  // puis à chaque demi-heure libre de 5 h 30 à 22 h 30 au niveau 2
+  const extraHours = S.track2 >= 2 ? TRAIN_HOURS.filter((h) => h < 23 && (weekend || !SPECIAL_HOURS.includes(h)))
+    : S.track2 ? (weekend ? [7, 8, 17, 18] : [8, 9, 16, 19]) : [];
+  const extras = {}, extraCap = Math.min(platformCap(), seatsPerTrain());
+  const totalWeight = sum(TRAIN_HOURS.map(weight)) + sum(extraHours.map((h) => SHAPE[h]));
   for (const h of TRAIN_HOURS) trains[h] = Math.round(Math.min(caps[h], ((pot * weight(h)) / totalWeight) * jitter()));
+  for (const h of extraHours) extras[h] = Math.round(Math.min(extraCap, ((pot * SHAPE[h]) / totalWeight) * jitter()));
   // l'express part à h:30, quand le quai accueille déjà la moitié des voyageurs du train suivant
   if (!weekend) for (const h of SPECIAL_HOURS) {
     const room = Math.max(0, platformCap() - Math.round((trains[h + 1] ?? 0) / 2));
     commuters[h] = Math.round(Math.min(room, EXPRESS_SEATS, commuterBase() * season.commuters * jitter()));
   }
-  const per = Object.values(trains), classic = sum(per), commuterTotal = sum(Object.values(commuters));
-  return { day, weekend, weather: wx, rooms: season.rooms, potential: pot, capacity: sum(Object.values(caps)), trains, types, commuters, classic, commuterTotal,
+  const per = Object.values(trains), classic = sum(per) + sum(Object.values(extras)), commuterTotal = sum(Object.values(commuters));
+  return { day, weekend, weather: wx, rooms: season.rooms, potential: pot, capacity: sum(Object.values(caps)) + extraHours.length * extraCap,
+    trains, types, extras, commuters, classic, commuterTotal,
     total: classic + commuterTotal, peak: Math.max(...per) };
 }
 
@@ -397,7 +410,7 @@ function dailyCosts(rooms, restock) {
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
     ['Redevance réseau', CATEGORIES[S.category].fee],
-    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + BAR.upkeep * S.barCar],
+    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + TRACK2_UPKEEP[S.track2] + BAR.upkeep * S.barCar],
     ['Entretien machines', sum(Object.entries(MACHINE_UPKEEP).map(([k, v]) => S.machines[k] * v)) + VENDING_UPKEEP * sum(Object.values(S.vending))],
   ];
 }
@@ -406,7 +419,8 @@ function dailyCosts(rooms, restock) {
 function expect(plan) {
   const prof = plan.weekend ? PROFILES.weekend : PROFILES.classic, cp = PROFILES.commuter;
   const dis = plan.classic * 0.6, commuters = plan.commuterTotal, cVis = commuters * 2;
-  const boarded = sum(Object.values(plan.trains).map((d) => Math.min(d, ticketCap())));
+  const extraTrains = Object.values(plan.extras ?? {});
+  const boarded = sum([...Object.values(plan.trains), ...extraTrains].map((d) => Math.min(d, ticketCap())));
   const roomDemand = dis * roomRate() * prof.rooms * (plan.rooms ?? 1);
   const rooms = Math.min(roomDemand, roomCap());
   // hôtel partenaire : une partie des clients refusés accepte le trajet jusqu'en ville, la gare touche une commission
@@ -443,7 +457,8 @@ function expect(plan) {
   // les fraudeurs ne paient pas leur billet ; ceux que les contrôleurs prennent paient l'amende
   const fareIncome = (n) => {
     const f = fraudRate(n, plan);
-    const paid = sum(TRAIN_HOURS.map((h) => Math.min(plan.trains[h] * (1 - f), ticketCap()) * TRAIN_TYPES[plan.types[h]].price));
+    const paid = sum(TRAIN_HOURS.map((h) => Math.min(plan.trains[h] * (1 - f), ticketCap()) * TRAIN_TYPES[plan.types[h]].price))
+      + sum(extraTrains.map((d) => Math.min(d * (1 - f), ticketCap()))); // renforts : régionaux
     return paid * (1 + loungeShare()) * ticketPrice() + f * controlCoverage(n, plan) * plan.classic * FINE;
   };
   // effectif de contrôleurs le plus rentable (recettes sauvées et amendes moins les salaires)
@@ -457,7 +472,7 @@ function expect(plan) {
   const costs = sum(dailyCosts(rooms, restock).map(([, v]) => v));
   return {
     revenue, costs, demandBy, counterBy, stockShort, roomDemand,
-    need: {
+    need: capNeed({
       guichet: Math.max(STAFF.guichet.min(), Math.ceil((plan.peak / screensMult() - S.machines.kiosk * KIOSK_TICKETS - welcomeTickets()) / TICKETS_PER_AGENT)),
       // la saleté arrive avec les trains (19 heures sur 24) : il faut la retirer au même rythme, pas sur toute la journée
       entretien: Math.max(0, Math.ceil((((visitors + cVis) * dirtFactor()) / 35 / TRAIN_HOURS.length - S.machines.robot * ROBOT_CLEAN) / STAFF_CLEAN)),
@@ -465,9 +480,11 @@ function expect(plan) {
       cafe: S.svc.cafeteria ? Math.ceil(cafeteriaDemand / MEALS_PER_WAITER) : 0,
       controleur: controllers,
       barista: S.cafe >= 2 ? Math.ceil(clamp(coffeeDemand - CAFE_CAPS[1], 0, CAFE_CAPS[S.cafe] - CAFE_CAPS[1]) / BARISTA_CUPS) : 0,
-    },
+    }),
   };
 }
+// on ne conseille jamais plus que l'effectif maximal d'un métier
+const capNeed = (need) => Object.fromEntries(Object.entries(need).map(([k, v]) => [k, Math.min(v, STAFF_MAX)]));
 
 // Qualité de service : l'appréciation s'en rapproche doucement à chaque train
 // exposure : part des voyageurs qui attendent sans abri, pondérée par la gêne de la météo
@@ -505,10 +522,11 @@ function trainPhase() {
   if (m >= 50 && hasTrain((h + 1) % 24)) return ['arriving', (m - 50) / 10, false, type((h + 1) % 24)];
   if (m < 15 && hasTrain(h)) return ['stopped', m / 15, false, type(h)];
   if (m < 25 && hasTrain(h)) return ['leaving', (m - 15) / 10, false, type(h)];
-  if (hasSpecial(h)) {
-    if (m >= 22 && m < 30) return ['arriving', (m - 22) / 8, true, 'express'];
-    if (m >= 30 && m < 40) return ['stopped', (m - 30) / 10, true, 'express'];
-    if (m >= 40 && m < 48) return ['leaving', (m - 40) / 8, true, 'express'];
+  if (hasSpecial(h) || hasExtra(h)) { // express des travailleurs ou train de renfort de la seconde voie
+    const ex = hasSpecial(h), t = ex ? 'express' : 'regional';
+    if (m >= 22 && m < 30) return ['arriving', (m - 22) / 8, ex, t];
+    if (m >= 30 && m < 40) return ['stopped', (m - 30) / 10, ex, t];
+    if (m >= 40 && m < 48) return ['leaving', (m - 40) / 8, ex, t];
   }
   return ['away', 0, false, 'regional'];
 }
@@ -524,6 +542,7 @@ function stepMinute() {
   S.waiting += (S.plan.trains[m === 0 ? h : (h + 1) % 24] ?? 0) / 60;
   // les travailleurs arrivent dans les 20 minutes qui précèdent leur express
   if (hasSpecial(h) && m > 10 && m <= 30) S.waitingCommuters += S.plan.commuters[h] / 20;
+  if (hasExtra(h) && m > 0 && m <= 30) S.waitingExtra += S.plan.extras[h] / 30;
 
   if (S.shuttle && m % 30 === 0 && h >= 6 && h <= 22) {
     cars.push({ kind: 'bus', len: 92, color: '#f5b82e', lane: 1, dir: 1, x: -100, speed: 110, stopAt: 600, wait: 2.5 });
@@ -573,6 +592,7 @@ function stepMinute() {
     if (hasTrain(h)) exchange(h);
   }
   if (m === 30 && hasSpecial(h)) exchangeSpecial(h);
+  if (m === 30 && hasExtra(h)) exchangeExtra(h);
   if (m === 30 && h >= 5 && h <= 21) checkStaff();
   S.rep = clamp(S.rep, 0, 5);
 }
@@ -624,6 +644,27 @@ function exchange(h) {
   floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
   if (walkins) play('tickets');
   spawnWalkers(false, S.plan.types[h]);
+  checkGoals();
+}
+
+// Train de renfort de la seconde voie : un régional de plus, sans incident ni fraude
+function exchangeExtra(h) {
+  const T = S.today, present = Math.round(S.waitingExtra), boarded = Math.min(present, seatsPerTrain(), ticketCap());
+  S.waitingExtra = 0;
+  S.boarding = boarded;
+  S.pendingBoard = boarded;
+  S.disembark = Math.round(S.plan.extras[h] * (0.5 + Math.random() * 0.2));
+  const tickets = boarded * ticketPrice();
+  S.budget += tickets;
+  T.passengers += boarded;
+  T.missed += present - boarded;
+  T.visitors += boarded + S.disembark;
+  S.dirt = Math.min(100, S.dirt + ((boarded + S.disembark) / 35) * dirtFactor());
+  const extra = sell(S.plan.weekend ? PROFILES.weekend : PROFILES.classic, true);
+  T.revenue += tickets + extra;
+  floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
+  if (boarded) play('tickets');
+  spawnWalkers(false, 'regional');
   checkGoals();
 }
 
@@ -724,9 +765,10 @@ function closeDay() {
   S.budget += S.pub * PUB_INCOME - total;
   S.lastNet = revenue - total;
   checkGoals();
+  closeWeek();
   const T = S.today;
   S.report = { day: S.day, costs, total, revenue, passengers: T.passengers, planned: S.plan.total, rooms: T.rooms,
-    commuters: T.commuters, missed: T.missed, fraud: T.fraud, caught: T.caught, fines: T.fines, refused: T.refused, partner: T.partner, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
+    commuters: T.commuters, missed: T.missed, fraud: T.fraud, caught: T.caught, fines: T.fines, refused: T.refused, partner: T.partner, challenges: T.challenges, goals: T.goals, repStart: T.repStart, repEnd: S.rep, sat: satisfaction() };
   S.report.points = dayPoints(S.report);
   S.score += S.report.points;
   S.report.record = S.score > bestScore();
@@ -822,7 +864,7 @@ function worksBlock() {
 }
 
 // Effectif conseillé du jour : calculé une fois par plan (pas au fil de l'appréciation ou d'une grève),
-// recalculé seulement après un achat qui le change (amélioration, distributeur, prix des chambres)
+// recalculé seulement après un achat ou un prix qui le change (amélioration, distributeur, billet, chambres)
 const dayNeed = () => (S.plan.need ??= expect(S.plan).need);
 const resetNeed = () => { delete S.plan.need; };
 
@@ -847,11 +889,60 @@ const setBest = (v) => { try { localStorage.setItem('aligato-best', v); } catch 
 
 function checkGoals() {
   const g = GOALS[S.goal];
-  if (!g || g.value() < g.target) return;
-  S.goal++;
-  S.today.goals.push(g);
-  toast(`🎯 Objectif atteint ! Débloqué : ${g.unlocks}`, 'goal');
-  if (S.goal === GOALS.length) toast('🏆 Vous êtes une Légende du rail !', 'goal');
+  if (g && g.value() >= g.target) {
+    S.goal++;
+    S.today.goals.push(g);
+    toast(`🎯 Objectif atteint ! Débloqué : ${g.unlocks}`, 'goal');
+    if (S.goal === GOALS.length) toast('🏆 Vous êtes une Légende du rail ! Place aux défis de fréquentation.', 'goal');
+  }
+  const c = S.goal >= GOALS.length && CHALLENGES[S.challenge];
+  if (c && S.today.passengers >= c.target) {
+    S.challenge++;
+    S.score += c.points;
+    S.today.challenges.push(`${c.icon} ${c.text} : +${c.points} points`);
+    toast(`${c.icon} Défi réussi : ${c.text} ! +${c.points} points`, 'goal');
+  }
+}
+
+// ---------- Défis de fréquentation (après les 8 objectifs) ----------
+const CHALLENGES = [
+  { icon: '🥉', text: 'Transporter 8 000 voyageurs en une journée', target: 8000, points: 100 },
+  { icon: '🥈', text: 'Transporter 10 000 voyageurs en une journée', target: 10000, points: 200 },
+  { icon: '🥇', text: 'Transporter 12 000 voyageurs en une journée', target: 12000, points: 300 },
+];
+const WEEK_STEP = 5000, WEEK_POINTS = 500; // record de la semaine : +5 000 voyageurs à chaque palier
+// défi en cours : le prochain défi du jour, puis le record de la semaine (du lundi au dimanche)
+const currentChallenge = () => {
+  const c = CHALLENGES[S.challenge];
+  return c ? { title: `Défi ${S.challenge + 1}/${CHALLENGES.length}`, text: `${c.icon} ${c.text}`, value: S.today.passengers, target: c.target }
+    : { title: 'Record de la semaine', text: `🏅 ${fmt(S.weekTarget)} voyageurs du lundi au dimanche`, value: S.weekPax + S.today.passengers, target: S.weekTarget };
+};
+// Défis dans la fenêtre Objectifs : défis du jour, puis record de la semaine qui recommence plus haut à chaque palier
+function challengesHtml() {
+  const open = S.goal >= GOALS.length, cur = currentChallenge();
+  const bar = (v, t) => `<div class="bar"><i style="width:${clamp(v / t, 0, 1) * 100}%"></i></div><small>${fmt(Math.min(v, t))} / ${fmt(t)}</small>`;
+  return `<h3 class="hist-title">Défis de fréquentation${open ? '' : ' · après les 8 objectifs'}</h3><ol class="goals">`
+    + CHALLENGES.map((c, i) => {
+      const st = !open || i > S.challenge ? 'todo' : i < S.challenge ? 'done' : 'current';
+      return `<li class="${st}"><b>${st === 'done' ? '✅' : st === 'current' ? '▶️' : '🔒'} ${c.icon} ${c.text}</b>
+        ${st === 'current' ? bar(cur.value, c.target) : ''}<small>Récompense : ${c.points} points</small></li>`;
+    }).join('')
+    + `<li class="${open && S.challenge >= CHALLENGES.length ? 'current' : 'todo'}"><b>🏅 Record de la semaine : ${fmt(S.weekTarget)} voyageurs du lundi au dimanche</b>
+      ${open ? bar(S.weekPax + S.today.passengers, S.weekTarget) : ''}<small>${WEEK_POINTS} points à chaque record, puis +${fmt(WEEK_STEP)} voyageurs</small></li></ol>`;
+}
+
+// chaque dimanche soir : record de la semaine, puis nouvelle semaine
+function closeWeek() {
+  if (S.goal < GOALS.length) return;
+  S.weekPax += S.today.passengers;
+  if (weekday() !== 6) return;
+  if (S.weekPax >= S.weekTarget) {
+    S.score += WEEK_POINTS;
+    S.today.challenges.push(`🏅 Record de la semaine : ${fmt(S.weekPax)} voyageurs, +${WEEK_POINTS} points`);
+    toast(`🏅 Record de la semaine battu : ${fmt(S.weekPax)} voyageurs ! +${WEEK_POINTS} points`, 'goal');
+    S.weekTarget += WEEK_STEP;
+  }
+  S.weekPax = 0;
 }
 
 // ---------- Canvas ----------
@@ -991,6 +1082,12 @@ function drawBack(g) {
   g.fillStyle = '#7f8792'; g.fillRect(0, Y.rail - 1, W, 2);
 
   g.fillStyle = '#4c7a3a'; g.fillRect(0, Y.ground, W, H - Y.ground);
+  if (S.track2) { // seconde voie, au premier plan : ballast, traverses et rail
+    g.fillStyle = '#6f6256'; g.fillRect(0, Y.ground + 6, W, H - Y.ground - 6);
+    g.fillStyle = '#4a3a2e';
+    for (let x = 10; x < W; x += 22) g.fillRect(x, Y.ground + 14, 12, 7);
+    g.fillStyle = '#c3c9d1'; g.fillRect(0, Y.ground + 11, W, 3);
+  }
 }
 
 // Décor avant : gare, hôtel, lampadaires, panneaux (devant les voitures)
@@ -1395,7 +1492,7 @@ function drawStaff(t) {
     const d = (t * 22 + i * 397) % (len * 2), dir = d < len ? 1 : -1;
     // voies entièrement derrière (pieds au-dessus des bancs) ou entièrement devant les bancs (dessinés avant eux)
     const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + [12, 48, 18][i % 3];
-    drawPerson(uniforms.entretien[i], x, fy, t, true);
+    drawPerson(uniforms.entretien[i % uniforms.entretien.length], x, fy, t, true);
     ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x + dir * 4, fy - 16); ctx.lineTo(x + dir * 12, fy); ctx.stroke();
   }
@@ -1407,7 +1504,7 @@ function crowdSplit() {
   const pend = ph === 'stopped' ? S.pendingBoard * (1 - Math.min(1, p * 2)) : 0;
   // quand aucun train n'est à quai, la salle d'attente garde une partie des voyageurs à l'intérieur
   const inside = ph === 'stopped' ? 0 : Math.min(waitroomSeats(), S.waiting);
-  return { classic: S.waiting + (special ? 0 : pend), commuters: S.waitingCommuters + (special ? pend : 0), inside };
+  return { classic: S.waiting + S.waitingExtra + (special ? 0 : pend), commuters: S.waitingCommuters + (special ? pend : 0), inside };
 }
 const displayWaiting = () => { const c = crowdSplit(); return c.classic + c.commuters; };
 
@@ -1805,6 +1902,7 @@ function nextTrain() {
   for (let t = S.minutes + 1; t < S.minutes + 1440; t++) {
     const h = Math.floor(t / 60) % 24, m = t % 60;
     if (m === 30 && t < 1440 && hasSpecial(h)) return `${pad(h)}:30 · express`;
+    if (m === 30 && t < 1440 && hasExtra(h)) return `${pad(h)}:30 · renfort`;
     if (m === 0 && hasTrain(h)) return `${pad(h)}:00${t < 1440 ? tag(S.plan.types[h]) : ''}`;
   }
   return '—';
@@ -1815,8 +1913,8 @@ const HUD = {
   day: () => S.day,
   clock: clockStr,
   pax: () => `${fmt(S.today.passengers)} / ${fmt(S.plan.total)}`,
-  goalTitle: () => (S.goal < GOALS.length ? `Objectif ${S.goal + 1}/${GOALS.length}` : 'Objectifs'),
-  goalText: () => GOALS[S.goal]?.text ?? '🏆 Légende du rail',
+  goalTitle: () => (S.goal < GOALS.length ? `Objectif ${S.goal + 1}/${GOALS.length}` : currentChallenge().title),
+  goalText: () => GOALS[S.goal]?.text ?? currentChallenge().text,
   waiting: () => fmt(displayWaiting()),
   weekday: () => `${seasonOf().icon} ${DAYS[weekday()]}`,
   score: () => fmt(S.score),
@@ -1840,7 +1938,8 @@ function updateHUD() {
   $('#repStat').dataset.tip = `Note : ${num(S.rep)} / 5 · tend vers ${num(quality(S.lastMiss, S.lastExposure))}\n• Base : 2,20\n`
     + factors.map(([label, v]) => `${v > 0 ? '👍' : '👎'} ${label} : ${num(v, { signDisplay: 'always' })}`).join('\n');
   const g = GOALS[S.goal];
-  $('#goalBar').style.width = `${g ? clamp(g.value() / g.target, 0, 1) * 100 : 100}%`;
+  const cg = g ?? currentChallenge();
+  $('#goalBar').style.width = `${clamp((g ? g.value() : cg.value) / cg.target, 0, 1) * 100}%`;
   const n = UPGRADES.filter((u) => upState(u) === 'ok').length;
   $('#upBadge').textContent = n || '';
   for (const k of Object.keys(PRODUCTS)) {
@@ -1884,8 +1983,12 @@ function advice() {
   }
   if (p.weekend) tips.push(`🌞 Ce ${dayName}, pas d'express : les voyageurs de loisir restent plus à l'hôtel et mangent davantage. Prévoyez chambres et repas.`);
   else if (weekday(p.day) === 0) tips.push(`💼 Lundi, les travailleurs reviennent (express à 6 h 30, 7 h 30, 17 h 30, 18 h 30) : ils boivent beaucoup de café.`);
-  if (weather().severity && shelterCap() < p.peak) {
-    tips.push(`${weather().icon} ${weather().name} prévue : seulement ${shelterCap()} voyageurs à l'abri sur ${p.peak} au plus fort. ${link('Ajoutez des abris', 'upgrades')} ou une salle d'attente.`);
+  // les conseils ne proposent que des améliorations qu'il reste à acheter
+  const left = (id) => { const u = UPGRADES.find((x) => x.id === id); return u.level() < u.max; };
+  const ideas = (list) => list.filter(([id]) => left(id)).map(([, text]) => text);
+  const shelter = ideas([['shelters', 'des abris'], ['canopy', 'l\'extension des abris'], ['waitroom', 'la salle d\'attente']]);
+  if (weather().severity && shelterCap() < p.peak && shelter.length) {
+    tips.push(`${weather().icon} ${weather().name} prévue : seulement ${shelterCap()} voyageurs à l'abri sur ${p.peak} au plus fort. Pensez à ${link(shelter.join(', '), 'upgrades')}.`);
   }
   if (S.budget < 0) tips.push(`💸 Budget négatif : faillite si c'est encore le cas dans ${DEBT_DAYS - S.debtDays} soir(s). Réduisez l'effectif ou montez le prix.`);
   const n = UPGRADES.filter((u) => upState(u) === 'ok').length;
@@ -1894,7 +1997,8 @@ function advice() {
   if (Math.abs(best - S.tarif) >= 10) {
     tips.push(`💲 ${link(`${best > S.tarif ? 'Montez' : 'Baissez'} le prix vers ${money(best * PRICE_PER_POINT)}`, 'prices')} : c'est le billet le plus rentable demain.`);
   }
-  if (p.potential > p.capacity * 1.05) tips.push(`🚦 La gare est saturée : ${link('agrandissez', 'upgrades')} le quai et ajoutez des wagons pour accueillir plus de voyageurs.`);
+  const bigger = ideas([['quai', 'agrandir le quai'], ['wagon', 'ajouter des wagons'], ['waitroom', 'agrandir la salle d\'attente'], ['track2', 'ouvrir la seconde voie']]);
+  if (p.potential > p.capacity * 1.05 && bigger.length) tips.push(`🚦 La gare est saturée : ${link(bigger.join(', '), 'upgrades')} pour accueillir plus de voyageurs.`);
   for (const [k, r] of Object.entries(STAFF)) {
     const d = need[k] - S.staff[k];
     if (d > 0) tips.push(`${r.icon} Il manquera ${d} ${r.name.toLowerCase()} demain : ${link('embauchez', 'staff')} avant le premier train.`);
@@ -1903,11 +2007,11 @@ function advice() {
   if (R?.refused) {
     tips.push(hotelRooms() <= R.rooms // hôtel plein : le personnel n'y peut rien
       ? `🏨 L'hôtel est plein : ${link('montez le prix des chambres', 'prices')}${S.svc.partner ? '' : ` ou prenez un ${link('hôtel partenaire', 'upgrades')}`}.`
-      : `🏨 Des clients ont été refusés à l'hôtel : ajoutez du ${link('personnel d\'hôtel', 'staff')}, une ${link('borne de check-in ou un étage', 'upgrades')}.`);
+      : `🏨 Des clients ont été refusés à l'hôtel : ajoutez du ${link('personnel d\'hôtel', 'staff')}${(left('checkin') || left('hotel')) ? `, une ${link('borne de check-in ou un étage', 'upgrades')}` : ''}.`);
   }
   if (S.dirt > 40) tips.push(`🧹 Le quai est sale : cela fait baisser l'appréciation. ${link('Renforcer l\'entretien', 'staff')}`);
   for (const k of expect(p).stockShort) {
-    tips.push(`${PRODUCTS[k].icon} Les distributeurs de ${PRODUCTS[k].name.toLowerCase()} seront vides avant la fin de journée : ${link('ajoutez-en un ou remplissez-les', 'stocks')} en journée.`);
+    tips.push(`${PRODUCTS[k].icon} Les distributeurs de ${PRODUCTS[k].name.toLowerCase()} seront vides avant la fin de journée : ${link(S.vending[k] < VENDING_MAX ? 'ajoutez-en un ou remplissez-les' : 'remplissez-les', 'stocks')} en journée.`);
   }
   if (!S.autoRefill) tips.push(`🛒 Le remplissage automatique est désactivé : pensez à ${link('remplir les distributeurs', 'stocks')}.`);
   return tips.slice(0, 6);
@@ -1939,8 +2043,9 @@ const VIEWS = {
           ${row('Score total', fmt(S.score) + (R.record ? ' 🏆 record' : ''), R.record ? 'good' : '')}</section>
         <section><h3>Objectifs</h3>
           ${R.goals.map((x) => `<p class="win">🎯 <b>${x.text}</b><small>Débloqué : ${x.unlocks}</small></p>`).join('')}
+          ${(R.challenges ?? []).map((t) => `<p class="win"><b>${t}</b></p>`).join('')}
           ${g ? `<p><b>▶️ ${g.text}</b></p><span class="bar"><i style="width:${clamp(g.value() / g.target, 0, 1) * 100}%"></i></span>`
-            : '<p><b>🏆 Vous êtes une Légende du rail !</b></p>'}</section>
+            : ((c) => `<p><b>▶️ ${c.text}</b></p><span class="bar"><i style="width:${clamp(c.value / c.target, 0, 1) * 100}%"></i></span>`)(currentChallenge())}</section>
         <section><h3>Demain · ${DAYS[weekday(S.plan.day)]} ${seasonOf(S.plan.day).icon}</h3>
           ${row('Météo', `${weather().icon} ${weather().name}`)}
           ${row('Voyageurs prévus', fmt(S.plan.total))}
@@ -1965,7 +2070,7 @@ const VIEWS = {
         <input type="range" id="roomTarif" min="50" max="200" step="5" value="${S.roomTarif}"></label>
       <div class="callout" id="roomPreview"></div>`,
     bind() {
-      $('#tarif').oninput = (e) => { S.tarif = +e.target.value; this.refresh(); };
+      $('#tarif').oninput = (e) => { S.tarif = +e.target.value; resetNeed(); this.refresh(); }; // la fraude, donc les contrôleurs, dépend du prix
       $('#roomTarif').oninput = (e) => { S.roomTarif = +e.target.value; resetNeed(); this.refresh(); };
       // ne dépendent pas des curseurs : calculés une fois à l'ouverture
       this.best = bestTarif();
@@ -2030,7 +2135,7 @@ const VIEWS = {
             <small>Conseillé : <span class="${adviceCls(S.staff[k], today[k])}">${today[k]} aujourd'hui</span> · ${tomorrow[k]} demain</small></div>
           <button data-act="fire:${k}" ${S.staff[k] <= r.min() ? 'disabled' : ''}>−</button>
           <span class="n">${S.staff[k]}</span>
-          <button data-act="hire:${k}" ${S.staff[k] >= 10 || S.budget < HIRE_FEE ? 'disabled' : ''}>+</button>
+          <button data-act="hire:${k}" ${S.staff[k] >= STAFF_MAX || S.budget < HIRE_FEE ? 'disabled' : ''}>+</button>
         </div>`).join('');
     },
   },
@@ -2057,7 +2162,7 @@ const VIEWS = {
         ? `<div class="bar"><i style="width:${clamp(v / g.target, 0, 1) * 100}%"></i></div><small>${g.money ? money(v) : g.target < 10 ? v.toFixed(1) : fmt(v)} / ${g.money ? money(g.target) : g.target < 10 ? g.target : fmt(g.target)}</small>`
         : '';
       return `<li class="${st}"><b>${st === 'done' ? '✅' : st === 'current' ? '▶️' : '🔒'} ${g.text}</b>${progress}<small>Débloque : ${g.unlocks}</small></li>`;
-    }).join('') + '</ol>',
+    }).join('') + '</ol>' + challengesHtml(),
   },
   report: {
     title: '📊 Bilan & prévisions',
@@ -2155,7 +2260,7 @@ $('#modalBody').addEventListener('click', (e) => {
     resetNeed();
     S.budget -= VENDING_PRICE;
   }
-  if (act === 'hire' && S.staff[key] < 10 && S.budget >= HIRE_FEE) {
+  if (act === 'hire' && S.staff[key] < STAFF_MAX && S.budget >= HIRE_FEE) {
     S.staff[key]++;
     S.budget -= HIRE_FEE;
     toast(`${STAFF[key].icon} Embauche d'${STAFF[key].one} : −${money(HIRE_FEE)}, puis ${money(STAFF[key].salary)} de salaire par jour`, 'warn');

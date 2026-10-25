@@ -31,6 +31,10 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;
   frais immédiats ou chantier de quelques jours qui réduit la capacité ; les reporter coûte de l'appréciation.
   L'agent de sécurité les rend 25 % moins chers.
+- **Défis de fréquentation** après les 8 objectifs : 8 000, 10 000 puis 12 000 voyageurs en une journée, puis records
+  hebdomadaires de plus en plus élevés (dès 60 000), récompensés en points.
+- **Seconde voie** (après l'objectif 8) : 4 trains de renfort aux heures de pointe, puis un renfort à chaque demi-heure
+  libre au niveau 2.
 - **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
 
 ### Modifié
@@ -51,6 +55,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
   des heures sans que le joueur ait rien fait. Il est recalculé après un achat qui le modifie.
 - L'effectif conseillé en **agents d'entretien** tient compte des heures de passage des trains : le quai reste
   propre toute la journée (environ 80 % au lieu de 50 % le soir).
+- Les **conseils du soir** ne proposent plus d'amélioration déjà au maximum, ni plus de 10 employés par métier.
+- L'effectif conseillé en contrôleurs suit le prix du billet dès qu'on le change.
 - Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
 - Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
 - Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)
