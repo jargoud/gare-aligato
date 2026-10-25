@@ -5,62 +5,56 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-25
+
+Une gare plus vivante et plus longue à maîtriser : nouveaux services, nouveaux métiers, travaux d'entretien
+et défis de fréquentation après les 8 objectifs. Le jeu se joue aussi en ligne sur GitHub Pages.
+
 ### Ajouté
 
-- **Sons** générés par Web Audio : ambiance du hall, tintement des recettes de billets,
-  sons d'amélioration, d'embauche, de licenciement et de stocks ;
-  bouton pour couper le son, coupé par défaut, choix mémorisé.
-- **Onglets** dans les fenêtres pour passer de l'une à l'autre sans les fermer.
-- **Accueil voyageurs** (objectif 2) : moins d'abandons quand un train est en retard, billets vendus sur tablette
-  même en grève, une partie des voyageurs sans billet attendent le train suivant.
-- **Café du quai à 3 niveaux** (café, terrasse, grand café) avec un nouveau métier, les **baristas**.
-- **Fraude et contrôleurs** (objectif 3) : la fraude augmente avec le prix du billet ; les contrôleurs la dissuadent
-  et verbalisent. Fraudeurs et amendes dans le bilan du soir.
-- La **boutique** vend des goodies avant les distributeurs ; la fenêtre Stocks indique ce que servent café,
-  cafétéria et boutique.
-- **Chambres occupées** visibles sur l'hôtel : rideaux tirés, lumière allumée en soirée et au réveil, éteinte la nuit ;
-  les chambres vides restent sombres.
-- **Prix des chambres** réglable dans Tarifs, avec le prix le plus rentable et les demandes prévues.
-- **Hôtel partenaire** (objectif 6) : une partie des clients refusés accepte le trajet en ville, contre une commission.
-- Le bilan du soir conseille le prix des chambres ou l'hôtel partenaire quand l'hôtel est plein, au lieu d'un étage de plus.
-- Environ 35 % des clients **préfèrent les distributeurs** aux comptoirs pour les cafés et les repas : les distributeurs
-  restent utiles avec une cafétéria ou un grand café.
-- **Extension des abris** à deux niveaux : abris sur tout le quai niveau 2 (+120 voyageurs à l'abri), puis sur tout
-  le grand quai (+250 au total). La fine verrière devant la gare, qui faisait doublon, est retirée.
-- Les voyageurs à l'abri se placent **sous les abris** sur la scène.
-- **Travaux d'entretien** (à partir de 4,5 ★) : machines, tags, quai, étage d'hôtel, sanitaires, salle d'attente ;
-  frais immédiats ou chantier de quelques jours qui réduit la capacité ; les reporter coûte de l'appréciation.
-  L'agent de sécurité les rend 25 % moins chers.
-- **Défis de fréquentation** après les 8 objectifs : 8 000, 10 000 puis 12 000 voyageurs en une journée, puis records
-  hebdomadaires de plus en plus élevés (dès 60 000), récompensés en points.
-- **Seconde voie** (après l'objectif 8) : 4 trains de renfort aux heures de pointe, puis un renfort à chaque demi-heure
-  libre au niveau 2.
-- **Billet le plus rentable** et résultat prévu du lendemain dans la fenêtre Tarifs.
+- **Jeu en ligne** : https://jargoud.github.io/gare-aligato/
+- **Sons** générés par Web Audio : ambiance du hall, tintement des recettes de billets, sons d'amélioration,
+  d'embauche, de licenciement et de stocks ; coupés par défaut, choix mémorisé.
+- **Onglets** pour passer d'une fenêtre à l'autre sans les fermer ; barre du bas en trois zones (vitesse, actions,
+  son et nouvelle partie) avec infobulles.
+- **Tarifs** : billet le plus rentable et résultat prévu du lendemain ; **prix des chambres** réglable, avec le prix
+  le plus rentable et les demandes prévues.
+- **Nouveaux métiers** : **baristas** du café du quai, **contrôleurs** contre la **fraude** (objectif 3), qui augmente
+  avec le prix du billet.
+- **Nouveaux services** : **accueil voyageurs** (objectif 2), **hôtel partenaire** (objectif 6), **café du quai**
+  à 3 niveaux (café, terrasse, grand café), **extension des abris** sur tout le quai, **seconde voie** à 2 niveaux
+  avec des trains de renfort.
+- **Travaux d'entretien** à partir de 4,5 ★ : machines, tags, quai, étage d'hôtel, sanitaires ou salle d'attente,
+  à lancer depuis le bilan du soir ; les reporter coûte de l'appréciation.
+- **Défis de fréquentation** après les 8 objectifs : 8 000, 10 000 puis 12 000 voyageurs en une journée, puis
+  records de la semaine (dès 60 000 voyageurs), récompensés en points.
+- **Décor** : chambres occupées (rideaux, lumière le soir), autolaveuses conduites par un agent, tables de la terrasse,
+  contrôleurs, barrières de chantier, voitures garées au parking, seconde voie.
 
 ### Modifié
 
-- La **grève des guichetiers** dure 3 heures au lieu de toute la journée, et les guichetiers vendent encore la moitié
-  des billets (30 % auparavant).
-- Le bilan du soir ne conseille plus de baisser le prix quand la gare n'est pas pleine : il conseille le prix le plus
-  rentable.
-- Certaines améliorations en demandent une autre : bancs supplémentaires, 2ᵉ abri et café du quai (quai niveau 2),
-  3ᵉ abri (grand quai), spa (hôtel de 3 étages), salon 1re classe (gare nationale).
-- Les **saisons** durent une semaine au lieu de deux.
-- Les **abris** sont plus grands (60 voyageurs au lieu de 40) et accueillent un banc dessous : +0,05 ★ par abri équipé.
-- Les cartes de la fenêtre **Améliorations** placent le prix ou l'état sous la description : tailles plus homogènes.
-- La **boutique** commence après le **café du quai**, qui ne la chevauche plus ; la tour de l'horloge est centrée dessus.
-- Les **commerces voisins** sont reliés par un mur : la navette ne se voit plus entre les façades.
-- Le **parking** montre des voitures garées de profil, dessinées comme celles de la route.
-- L'**effectif conseillé** est fixé pour la journée : plus d'alertes « en trop » ou « il manque » qui changent au fil
-  des heures sans que le joueur ait rien fait. Il est recalculé après un achat qui le modifie.
-- L'effectif conseillé en **agents d'entretien** tient compte des heures de passage des trains : le quai reste
-  propre toute la journée (environ 80 % au lieu de 50 % le soir).
-- Les **conseils du soir** ne proposent plus d'amélioration déjà au maximum, ni plus de 10 employés par métier.
-- L'effectif conseillé en contrôleurs suit le prix du billet dès qu'on le change.
-- Les **véhicules** de la route roulent au rythme du jeu (2×, 4×).
-- Les robots nettoyeurs deviennent des **autolaveuses** conduites par un agent d'entretien, qui passent derrière les bancs.
-- Les **bancs** sont alignés sur une même rangée et les **distributeurs** regroupés par trois (café, repas, goodies)
-  dans des coins d'attente, à côté du banc de chaque abri.
+- **Équilibrage** :
+  - la grève des guichetiers dure 3 heures et les guichetiers vendent encore la moitié des billets ;
+  - le bilan conseille le billet le plus rentable au lieu de « baissez le prix » ;
+  - environ 35 % des clients préfèrent les distributeurs aux comptoirs pour les cafés et les repas ;
+  - la boutique vend des goodies avant les distributeurs ;
+  - les saisons durent une semaine au lieu de deux.
+- **Améliorations liées** : bancs, abris, café du quai, spa et salon 1re classe demandent un quai, un hôtel ou une
+  gare assez grands. L'agent de sécurité rend les travaux 25 % moins chers.
+- **Abris** plus grands (60 voyageurs) avec un banc dessous (+0,05 ★) ; les voyageurs à l'abri s'y placent sur la scène.
+- **Quai** réorganisé : bancs alignés, coins d'attente avec abri, banc et distributeurs café-repas-goodies.
+- **Conseils et effectifs** : effectif conseillé fixé pour la journée, plafonné à 10 par métier, recalculé après un
+  achat ou un changement de prix ; les conseils ne proposent plus d'amélioration déjà au maximum ; quand l'hôtel est
+  plein, ils proposent le prix des chambres ou l'hôtel partenaire.
+- La fenêtre **Stocks** indique ce que servent café, cafétéria et boutique ; les cartes d'**améliorations** ont des
+  tailles plus homogènes.
+
+### Corrigé
+
+- Alertes de personnel « en trop » ou « il manque » qui changeaient au fil de la journée sans raison.
+- Quai sale le soir malgré l'effectif conseillé en agents d'entretien (environ 80 % de propreté au lieu de 50 %).
+- Véhicules de la route qui ne suivaient pas la vitesse du jeu.
+- Café du quai qui chevauchait la boutique ; navette visible entre les commerces ; verrière qui passait devant la gare.
 
 ## [1.0.0] - 2026-10-24
 
