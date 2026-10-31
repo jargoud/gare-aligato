@@ -338,12 +338,15 @@ function makePlan(noise = true, day = S.day) {
   for (const h of TRAIN_HOURS) trains[h] = Math.round(Math.min(caps[h], ((pot * weight(h)) / totalWeight) * jitter()));
   for (const h of extraHours) extras[h] = Math.round(Math.min(extraCap, ((pot * SHAPE[h]) / totalWeight) * jitter()));
   // l'express part à h:30, quand le quai accueille déjà la moitié des voyageurs du train suivant
+  let commuterCap = 0;
   if (!weekend) for (const h of SPECIAL_HOURS) {
     const room = Math.max(0, platformCap() - Math.round((trains[h + 1] ?? 0) / 2));
     commuters[h] = Math.round(Math.min(room, EXPRESS_SEATS, commuterBase() * season.commuters * jitter()));
+    commuterCap += Math.min(room, EXPRESS_SEATS);
   }
   const per = Object.values(trains), classic = sum(per) + sum(Object.values(extras)), commuterTotal = sum(Object.values(commuters));
-  return { day, weekend, weather: wx, rooms: season.rooms, potential: pot, capacity: sum(Object.values(caps)) + extraHours.length * extraCap,
+  const classicCap = sum(Object.values(caps)) + extraHours.length * extraCap; // sans les express : seuls les trains classiques saturent
+  return { day, weekend, weather: wx, rooms: season.rooms, potential: pot, capacity: classicCap + commuterCap, classicCap,
     trains, types, extras, commuters, classic, commuterTotal,
     total: classic + commuterTotal, peak: Math.max(...per) };
 }
@@ -1992,7 +1995,7 @@ function advice() {
     tips.push(`💲 ${link(`${best > S.tarif ? 'Montez' : 'Baissez'} le prix vers ${money(best * PRICE_PER_POINT)}`, 'prices')} : c'est le billet le plus rentable demain.`);
   }
   const bigger = ideas([['quai', 'agrandir le quai'], ['wagon', 'ajouter des wagons'], ['waitroom', 'agrandir la salle d\'attente'], ['track2', 'ouvrir la seconde voie']]);
-  if (p.potential > p.capacity * 1.05 && bigger.length) tips.push(`🚦 La gare est saturée : ${link(bigger.join(', '), 'upgrades')} pour accueillir plus de voyageurs.`);
+  if (p.potential > p.classicCap * 1.05 && bigger.length) tips.push(`🚦 La gare est saturée : ${link(bigger.join(', '), 'upgrades')} pour accueillir plus de voyageurs.`);
   for (const [k, r] of Object.entries(STAFF)) {
     const d = need[k] - S.staff[k];
     if (d > 0) tips.push(`${r.icon} Il manquera ${d} ${r.name.toLowerCase()} demain : ${link('embauchez', 'staff')} avant le premier train.`);
@@ -2072,7 +2075,7 @@ const VIEWS = {
       this.refresh();
     },
     refresh() {
-      const p = makePlan(false, S.day + 1), saturated = p.potential > p.capacity, e = expect(p);
+      const p = makePlan(false, S.day + 1), saturated = p.potential > p.classicCap, e = expect(p);
       $('#tarifOut').textContent = `${money(ticketPrice())}`;
       $('#roomOut').textContent = `${money(roomPrice())} en moyenne`;
       const cap = hotelRooms(), wanted = expect(p).roomDemand;
