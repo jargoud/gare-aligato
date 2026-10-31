@@ -1569,15 +1569,20 @@ function drawStaff(t) {
     const d = (t * 16 + i * 611 + 90) % (len * 2);
     drawPerson(uniforms.controleur[i], x0 + (d < len ? d : len * 2 - d), Y.platform + 46, t, true);
   }
+}
 
-  for (let i = 0; i < S.staff.entretien; i++) {
+// agents d'entretien : dessinés au milieu de la foule, triés par profondeur (y) pour passer devant ceux qui sont plus haut sur le quai
+function cleaners(t) {
+  const x0 = platX() + 30, len = 1230 - x0;
+  return Array.from({ length: S.staff.entretien }, (_, i) => {
     const d = (t * 22 + i * 397) % (len * 2), dir = d < len ? 1 : -1;
-    // voies entièrement derrière (pieds au-dessus des bancs) ou entièrement devant les bancs (dessinés avant eux)
     const x = x0 + (d < len ? d : len * 2 - d), fy = Y.platform + [12, 48, 18][i % 3];
-    drawPerson(uniforms.entretien[i % uniforms.entretien.length], x, fy, t, true);
-    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x + dir * 4, fy - 16); ctx.lineTo(x + dir * 12, fy); ctx.stroke();
-  }
+    return { y: fy, draw() {
+      drawPerson(uniforms.entretien[i % uniforms.entretien.length], x, fy, t, true);
+      ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x + dir * 4, fy - 16); ctx.lineTo(x + dir * 12, fy); ctx.stroke();
+    } };
+  }).sort((a, b) => a.y - b.y);
 }
 
 // Voyageurs visibles sur le quai, séparés entre voyageurs classiques et travailleurs
@@ -1832,11 +1837,14 @@ function render(now) {
   const split = crowdSplit();
   const vc = Math.min(CROWD_MAX, Math.round(split.classic - split.inside)), vw = Math.min(CROWD_MAX - vc, Math.round(split.commuters));
   const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec l'extension, tout le quai est couvert
+  const cl = cleaners(simT);
   for (const p of crowd) {
+    while (cl.length && cl[0].y <= p.y) cl.shift().draw();
     const x = p.order < underShelters ? shelterX(p.u) : crowdX(p.u);
     if (p.order < vc) drawPerson(p, x, p.y, simT, false);
     else if (p.order < vc + vw) drawPerson(p.suit, x, p.y, simT, false);
   }
+  for (const c of cl) c.draw();
   for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
   // abris voyageurs et leur extension, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
   for (const x of [...SHELTER_X.slice(0, S.shelters), ...extensionX()]) {
