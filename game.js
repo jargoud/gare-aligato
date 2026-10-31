@@ -2420,6 +2420,14 @@ modal.addEventListener('close', () => { if (!S.over) setSpeed(resumeSpeed); });
 modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
 $('#modalClose').onclick = () => modal.close();
 document.querySelectorAll('[data-modal]').forEach((b) => { b.onclick = () => openModal(b.dataset.modal); });
+// toucher : un tap affiche l'infobulle (pas de survol) ; un tap sur l'encart le déplie
+document.addEventListener('click', (e) => {
+  if (!matchMedia('(hover: none)').matches) return; // à la souris, le survol suffit
+  const t = e.target.closest('.stat[data-tip], .overlay [data-tip]');
+  document.querySelectorAll('.tip-open').forEach((x) => x !== t && x.classList.remove('tip-open'));
+  t?.classList.toggle('tip-open');
+});
+$('.overlay').addEventListener('click', (e) => e.currentTarget.classList.toggle('open'));
 
 $('#modalBody').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-act]');

@@ -8,6 +8,7 @@
 </head>
 <body>
 <main class="app">
+  <p class="rotate">📱 Tournez l'écran pour mieux voir la gare.</p>
   <header class="hud">
     <div class="brand">Gare <b>Aligato</b></div>
     <div class="stat"><small>Budget</small><b data-k="budget"></b></div>
@@ -48,12 +49,12 @@
       <button data-speed="4" data-tip="Vitesse ×4">4×</button>
     </div>
     <div class="actions-bar">
-      <button data-modal="prices">💲 Tarifs</button>
-      <button data-modal="staff">👥 Personnel</button>
-      <button data-modal="stocks">🛒 Stocks</button>
-      <button data-modal="upgrades">🏗️ Améliorations <span class="badge" id="upBadge"></span></button>
-      <button data-modal="goals">🎯 Objectifs</button>
-      <button data-modal="report">📊 Bilan</button>
+      <button data-modal="prices" aria-label="Tarifs">💲<span class="lbl"> Tarifs</span></button>
+      <button data-modal="staff" aria-label="Personnel">👥<span class="lbl"> Personnel</span></button>
+      <button data-modal="stocks" aria-label="Stocks">🛒<span class="lbl"> Stocks</span></button>
+      <button data-modal="upgrades" aria-label="Améliorations">🏗️<span class="lbl"> Améliorations</span> <span class="badge" id="upBadge"></span></button>
+      <button data-modal="goals" aria-label="Objectifs">🎯<span class="lbl"> Objectifs</span></button>
+      <button data-modal="report" aria-label="Bilan">📊<span class="lbl"> Bilan</span></button>
     </div>
     <div class="system">
       <button id="sound" popovertarget="soundPanel">🔇</button>
