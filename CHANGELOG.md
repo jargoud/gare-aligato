@@ -5,11 +5,6 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
-### Modifié
-
-- **Départ moins difficile** : Wi-Fi, piano du hall et ligne téléphonique sont disponibles dès le début pour aider à
-  atteindre l'objectif 1.
-
 ### Ajouté
 
 - **Supérette à 3 niveaux** : épicerie (objectif 5), supérette (objectif 6) et supermarché (objectif 7), avec un loyer
@@ -26,6 +21,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Modifié
 
+- **Départ moins difficile** : Wi-Fi, piano du hall et ligne téléphonique sont disponibles dès le début pour aider à
+  atteindre l'objectif 1.
 - **Progression plus lente** : objectifs relevés d'environ 25 %, améliorations 25 % plus chères, budget de départ
   ramené à 30 000 €.
 - **Saisons de 4 jours**, indépendantes de la semaine.
@@ -35,6 +32,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 ### Corrigé
 
 - La **capacité** affichée ne comptait pas les express des travailleurs : les voyageurs prévus pouvaient la dépasser.
+- Les **agents d'entretien** en action étaient cachés par les voyageurs en attente placés plus haut sur le quai.
 
 ## [1.1.1] - 2026-10-25
 
