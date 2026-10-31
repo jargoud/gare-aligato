@@ -133,7 +133,7 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 |---|---|---|
 | 1 | Transporter 2 500 voyageurs en une journée | Wagons, quai niveau 2, marchand de journaux |
 | 2 | Accueillir 12 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
-| 3 | Atteindre 3,6 ★ | Bornes de billets, ligne téléphonique, boulangerie, piano du hall |
+| 3 | Atteindre 3,6 ★ | Bornes de billets, boulangerie, cafétéria, gare nationale |
 | 4 | Transporter 3 750 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie, car de substitution |
 | 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, épicerie, salle d'attente climatisée |
 | 6 | Accueillir 36 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel, supérette |
@@ -254,7 +254,7 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 
 | Service | Débloqué à l'objectif | Effet |
 |---|---|---|
-| 📶 Wi-Fi gratuit | 1 | Appréciation +0,15 |
+| 📶 Wi-Fi gratuit | 0 | Appréciation +0,15 |
 | 👮 Agent de sécurité | 1 | Fait fuir les vandales (sinon 15 000 € de dégâts) et rend les travaux d'entretien 25 % moins chers ; on le voit faire sa ronde |
 | 📺 Écrans d'information | 2 | Guichets et bornes 25 % plus efficaces ; écran des départs sur la gare |
 | 🪑 Salle d'attente (2 niveaux) | 2 et 5 | +80 puis +160 voyageurs par train sans agrandir le quai ; on voit les silhouettes derrière les vitres |
@@ -266,7 +266,7 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 🤝 Hôtel partenaire | 6 (hôtel de 4 étages) | Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre ; ils ne dînent pas à la gare |
 | 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
-| 🎹 Piano du hall | 3 | Piano en libre-service : appréciation +0,1 ; on l'entend parfois au passage d'un train |
+| 🎹 Piano du hall | 0 | Piano en libre-service : appréciation +0,1 ; on l'entend parfois au passage d'un train |
 | 🚌 Car de substitution | 4 | Les voyageurs qui abandonnent après un retard, et ceux restés sans billet pendant une grève, partent en car avec un billet à −30 % ; entretien 1 500 €/jour, triplé les jours de grève |
 | ❄️ Salle d'attente climatisée | 5 (salle d'attente) | Forte chaleur deux fois moins pénible pour tous les voyageurs, appréciation +0,1 |
 

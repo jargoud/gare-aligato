@@ -97,7 +97,7 @@ const cafePrice = () => (S.cafe >= 2 ? 6 : 3.5), cafeCost = () => (S.cafe >= 2 ?
 const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des goodies avant les distributeurs
 // Services : bonus d'appréciation et coût d'entretien par jour
 const SERVICES = {
-  wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 1, cost: 25000, upkeep: 600, rep: 0.15 },
+  wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 0, cost: 25000, upkeep: 600, rep: 0.15 },
   security: { icon: '👮', name: 'Agent de sécurité', desc: 'Protège contre le vandalisme et les tags : travaux d\'entretien 25 % moins chers', req: 1, cost: 31250, upkeep: 2500, rep: 0.1 },
   screens: { icon: '📺', name: 'Écrans d\'information', desc: 'Guichets et bornes 25 % plus efficaces', req: 2, cost: 37500, upkeep: 300, rep: 0.1 },
   cafeteria: { icon: '🍽️', name: 'Cafétéria', desc: `Repas à ${CAFETERIA_PRICE} € servis par des serveurs, dîner des clients de l'hôtel`, req: 3, cost: 112500, upkeep: 1500, rep: 0.2 },
@@ -113,7 +113,7 @@ const SERVICES = {
     pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
   aircon: { icon: '❄️', name: 'Salle d\'attente climatisée', desc: 'Forte chaleur deux fois moins pénible pour tous les voyageurs', req: 5, cost: 60000, upkeep: 600, rep: 0.1,
     pre: () => S.waitroom >= 1, preText: () => 'Salle d\'attente requise' },
-  piano: { icon: '🎹', name: 'Piano du hall', desc: 'Un piano en libre-service : les voyageurs apprécient', req: 3, cost: 15000, upkeep: 50, rep: 0.1 },
+  piano: { icon: '🎹', name: 'Piano du hall', desc: 'Un piano en libre-service : les voyageurs apprécient', req: 0, cost: 15000, upkeep: 50, rep: 0.1 },
   bus: { icon: '🚌', name: 'Car de substitution', desc: `Les voyageurs qui abandonnent après un retard ou restent sans billet pendant une grève prennent le car (billet à −${Math.round((1 - BUS_PRICE) * 100)} %) · coût ×3 les jours de grève`,
     req: 4, cost: 120000, upkeep: 1500, rep: 0 },
 };
@@ -225,9 +225,9 @@ const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 
 // Objectifs : chacun débloque de nouvelles améliorations (S.goal = nombre d'objectifs atteints)
 const GOALS = [
-  { text: 'Transporter 2 500 voyageurs en une journée', value: () => S.today.passengers, target: 2500, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
+  { text: 'Transporter 2 500 voyageurs en une journée', value: () => S.today.passengers, target: 2500, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Agent de sécurité' },
   { text: 'Accueillir 12 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 12, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
-  { text: 'Atteindre une appréciation de 3,6 ★', value: () => S.rep, target: 3.6, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Piano du hall · Gare nationale' },
+  { text: 'Atteindre une appréciation de 3,6 ★', value: () => S.rep, target: 3.6, unlocks: 'Bornes de billets · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
   { text: 'Transporter 3 750 voyageurs en une journée', value: () => S.today.passengers, target: 3750, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis · Car de substitution' },
   { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Épicerie · Grande salle d\'attente · Salle d\'attente climatisée' },
   { text: 'Accueillir 36 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 36, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Supérette · Gare grande vitesse' },
@@ -253,7 +253,7 @@ const UPGRADES = [
   { id: 'hotel', icon: '🏨', name: 'Étage d\'hôtel', desc: () => `+${ROOMS_PER_FLOOR} chambres`, level: () => S.hotel - 1, max: 3, req: [2, 2, 6], cost: (l) => 100000 * (l + 1), buy: () => S.hotel++ },
   { id: 'checkin', icon: '🛎️', name: 'Borne de check-in', desc: () => `+${CHECKIN_ROOMS} chambres par jour, sans salaire`, level: () => S.machines.checkin, max: 3, req: [2], cost: () => 56250, buy: () => S.machines.checkin++ },
   { id: 'kiosk', icon: '🎫', name: 'Borne de billets', desc: () => `+${KIOSK_TICKETS} billets par train, sans salaire`, level: () => S.machines.kiosk, max: 4, req: [3], cost: () => 50000, buy: () => S.machines.kiosk++ },
-  { id: 'phone', icon: '☎️', name: 'Ligne téléphonique', desc: () => 'Réservations : +10 % de clientèle', level: () => S.phone, max: 1, req: [3], cost: () => 50000, buy: () => S.phone++ },
+  { id: 'phone', icon: '☎️', name: 'Ligne téléphonique', desc: () => 'Réservations : +10 % de clientèle', level: () => S.phone, max: 1, req: [0], cost: () => 50000, buy: () => S.phone++ },
   { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [112500, 250000][l], buy: () => S.station++ },
   { id: 'robot', icon: '🧽', name: 'Autolaveuse', desc: () => 'Conduite par un agent d\'entretien, elle nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 62500, buy: () => S.machines.robot++ },
   { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 112500, buy: () => S.shuttle++ },

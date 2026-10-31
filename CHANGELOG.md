@@ -5,13 +5,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+### Modifié
+
+- **Départ moins difficile** : Wi-Fi, piano du hall et ligne téléphonique sont disponibles dès le début pour aider à
+  atteindre l'objectif 1.
+
 ### Ajouté
 
 - **Supérette à 3 niveaux** : épicerie (objectif 5), supérette (objectif 6) et supermarché (objectif 7), avec un loyer
   croissant ; chaque niveau reprend une part de la demande de repas.
 - **Campagnes de publicité** (objectif 7) : journal, radio ou télévision, pour plus de clientèle le lendemain seulement.
 - **Défis de fréquentation** à 15 000 et 20 000 voyageurs en une journée.
-- **Nouveaux services** : piano du hall (objectif 3), car de substitution en cas de retard ou de grève (objectif 4),
+- **Nouveaux services** : piano du hall, car de substitution en cas de retard ou de grève (objectif 4),
   salle d'attente climatisée (objectif 5).
 - **Petits travaux** imprévus de quelques heures qui ferment un équipement, dès l'objectif 2.
 - **Arrêt de la navette** visible (abribus) ; les voyageurs qu'elle dépose rejoignent la gare à pied.
