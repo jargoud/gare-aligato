@@ -97,19 +97,19 @@ const cafePrice = () => (S.cafe >= 2 ? 6 : 3.5), cafeCost = () => (S.cafe >= 2 ?
 const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des goodies avant les distributeurs
 // Services : bonus d'appréciation et coût d'entretien par jour
 const SERVICES = {
-  wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 1, cost: 20000, upkeep: 600, rep: 0.15 },
-  security: { icon: '👮', name: 'Agent de sécurité', desc: 'Protège contre le vandalisme et les tags : travaux d\'entretien 25 % moins chers', req: 1, cost: 25000, upkeep: 2500, rep: 0.1 },
-  screens: { icon: '📺', name: 'Écrans d\'information', desc: 'Guichets et bornes 25 % plus efficaces', req: 2, cost: 30000, upkeep: 300, rep: 0.1 },
-  cafeteria: { icon: '🍽️', name: 'Cafétéria', desc: `Repas à ${CAFETERIA_PRICE} € servis par des serveurs, dîner des clients de l'hôtel`, req: 3, cost: 90000, upkeep: 1500, rep: 0.2 },
-  lockers: { icon: '🧳', name: 'Consigne à bagages', desc: 'Recette sur les voyageurs de loisir', req: 3, cost: 25000, upkeep: 200, rep: 0.05 },
-  relay: { icon: '📦', name: 'Point relais colis', desc: 'Recette sur les travailleurs', req: 4, cost: 40000, upkeep: 300, rep: 0.05 },
-  spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 120000, upkeep: 1500, rep: 0.1,
+  wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 1, cost: 25000, upkeep: 600, rep: 0.15 },
+  security: { icon: '👮', name: 'Agent de sécurité', desc: 'Protège contre le vandalisme et les tags : travaux d\'entretien 25 % moins chers', req: 1, cost: 31250, upkeep: 2500, rep: 0.1 },
+  screens: { icon: '📺', name: 'Écrans d\'information', desc: 'Guichets et bornes 25 % plus efficaces', req: 2, cost: 37500, upkeep: 300, rep: 0.1 },
+  cafeteria: { icon: '🍽️', name: 'Cafétéria', desc: `Repas à ${CAFETERIA_PRICE} € servis par des serveurs, dîner des clients de l'hôtel`, req: 3, cost: 112500, upkeep: 1500, rep: 0.2 },
+  lockers: { icon: '🧳', name: 'Consigne à bagages', desc: 'Recette sur les voyageurs de loisir', req: 3, cost: 31250, upkeep: 200, rep: 0.05 },
+  relay: { icon: '📦', name: 'Point relais colis', desc: 'Recette sur les travailleurs', req: 4, cost: 50000, upkeep: 300, rep: 0.05 },
+  spa: { icon: '🧖', name: 'Spa de l\'hôtel', desc: 'Chambres 30 % plus chères le week-end', req: 6, cost: 150000, upkeep: 1500, rep: 0.1,
     pre: () => S.hotel >= 3, preText: () => 'Hôtel de 3 étages requis' },
-  workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 60000, upkeep: 1500, rep: 0.05 },
-  partner: { icon: '🤝', name: 'Hôtel partenaire', desc: 'Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre', req: 6, cost: 60000, upkeep: 500, rep: 0.05,
+  workshop: { icon: '🔧', name: 'Atelier de maintenance', desc: 'Retards et pannes 4 fois plus rares, distributeurs réparés dans l\'heure', req: 2, cost: 75000, upkeep: 1500, rep: 0.05 },
+  partner: { icon: '🤝', name: 'Hôtel partenaire', desc: 'Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre', req: 6, cost: 75000, upkeep: 500, rep: 0.05,
     pre: () => S.hotel >= 4, preText: () => 'Hôtel de 4 étages requis' },
-  welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Moins d\'abandons en cas de retard, 20 billets par train même en grève, une partie des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
-  lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1,
+  welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Moins d\'abandons en cas de retard, 20 billets par train même en grève, une partie des voyageurs sans billet attendent le train suivant', req: 2, cost: 43750, upkeep: 1500, rep: 0.1 },
+  lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 187500, upkeep: 1000, rep: 0.1,
     pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
   aircon: { icon: '❄️', name: 'Salle d\'attente climatisée', desc: 'Forte chaleur deux fois moins pénible pour tous les voyageurs', req: 5, cost: 60000, upkeep: 600, rep: 0.1,
     pre: () => S.waitroom >= 1, preText: () => 'Salle d\'attente requise' },
@@ -128,15 +128,15 @@ const PRODUCTS = {
 const VENDING_PRICE = 8000, VENDING_MAX = 4, VENDING_UPKEEP = 100;
 // Commerces loués : part des visiteurs qui achètent, recette pour la gare par achat, bonus d'appréciation
 const SHOPS = {
-  news: { icon: '📰', name: 'Marchand de journaux', label: 'PRESSE', rate: 0.1, spend: 4, rep: 0.1, color: '#2f6fd6', req: 1, cost: 35000 },
-  bakery: { icon: '🥐', name: 'Boulangerie', label: 'BOULANGERIE', rate: 0.12, spend: 8, rep: 0.2, color: '#c98b3a', req: 3, cost: 60000 },
-  books: { icon: '📚', name: 'Librairie', label: 'LIBRAIRIE', rate: 0.03, spend: 25, rep: 0.15, color: '#8e44ad', req: 4, cost: 70000 },
+  news: { icon: '📰', name: 'Marchand de journaux', label: 'PRESSE', rate: 0.1, spend: 4, rep: 0.1, color: '#2f6fd6', req: 1, cost: 43750 },
+  bakery: { icon: '🥐', name: 'Boulangerie', label: 'BOULANGERIE', rate: 0.12, spend: 8, rep: 0.2, color: '#c98b3a', req: 3, cost: 75000 },
+  books: { icon: '📚', name: 'Librairie', label: 'LIBRAIRIE', rate: 0.03, spend: 25, rep: 0.15, color: '#8e44ad', req: 4, cost: 87500 },
   market: { icon: '🛒', color: '#27ae60', req: [5, 6, 7], cost: [110000, 180000, 280000], levels: [
     { name: 'Épicerie', label: 'ÉPICERIE', rate: 0.05, spend: 22, rep: 0.1 },
     { name: 'Supérette', label: 'SUPÉRETTE', rate: 0.06, spend: 30, rep: 0.15 },
     { name: 'Supermarché', label: 'SUPERMARCHÉ', rate: 0.07, spend: 40, rep: 0.25 },
   ] },
-  wc: { icon: '🚻', name: 'Sanitaires', label: 'TOILETTES', rate: 0, spend: 0, rep: 0.3, color: '#7f8c8d', req: 2, cost: 30000 },
+  wc: { icon: '🚻', name: 'Sanitaires', label: 'TOILETTES', rate: 0, spend: 0, rep: 0.3, color: '#7f8c8d', req: 2, cost: 37500 },
 };
 const SHOP_UPKEEP = 600;
 const MARKET_MEAL_CUT = 0.05; // par niveau, les repas se prennent à la supérette plutôt qu'aux distributeurs
@@ -155,7 +155,7 @@ const SHAPE = (() => {
 const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, struck: false, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
-  budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
+  budget: 30000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
   tarif: 50, roomTarif: 100, rep: 3, dirt: 10, lastSat: 0.9,
   stock: { coffee: 320, meal: 170, goodies: 80 }, vending: { coffee: 1, meal: 1, goodies: 1 }, autoRefill: true,
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
@@ -225,63 +225,63 @@ const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 
 // Objectifs : chacun débloque de nouvelles améliorations (S.goal = nombre d'objectifs atteints)
 const GOALS = [
-  { text: 'Transporter 2 000 voyageurs en une journée', value: () => S.today.passengers, target: 2000, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
-  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
-  { text: 'Atteindre une appréciation de 3,5 ★', value: () => S.rep, target: 3.5, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
-  { text: 'Transporter 3 000 voyageurs en une journée', value: () => S.today.passengers, target: 3000, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis' },
-  { text: `Faire ${money(150000)} de bénéfice en une journée`, value: () => S.lastNet, target: 150000, money: true, unlocks: 'Navette · Café du quai · Mini-supermarché · Grande salle d\'attente' },
-  { text: 'Accueillir 30 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 30, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Gare grande vitesse' },
-  { text: 'Transporter 5 000 voyageurs en une journée', value: () => S.today.passengers, target: 5000, unlocks: 'Tour de l\'horloge · Panneau publicitaire' },
+  { text: 'Transporter 2 500 voyageurs en une journée', value: () => S.today.passengers, target: 2500, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Wi-Fi · Agent de sécurité' },
+  { text: 'Accueillir 12 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 12, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
+  { text: 'Atteindre une appréciation de 3,6 ★', value: () => S.rep, target: 3.6, unlocks: 'Bornes de billets · Ligne téléphonique · Boulangerie · Cafétéria · Consigne à bagages · Piano du hall · Gare nationale' },
+  { text: 'Transporter 3 750 voyageurs en une journée', value: () => S.today.passengers, target: 3750, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis · Car de substitution' },
+  { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Épicerie · Grande salle d\'attente · Salle d\'attente climatisée' },
+  { text: 'Accueillir 36 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 36, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Supérette · Gare grande vitesse' },
+  { text: 'Transporter 6 250 voyageurs en une journée', value: () => S.today.passengers, target: 6250, unlocks: 'Tour de l\'horloge · Panneau publicitaire · Supermarché · Publicité (journal, radio, télévision)' },
   { text: 'Atteindre une appréciation de 4,5 ★', value: () => S.rep, target: 4.5, unlocks: 'Le titre de Légende du rail' },
 ];
 
 // req[niveau] = nombre d'objectifs à atteindre pour acheter ce niveau
 const UPGRADES = [
   { id: 'category', icon: '🚄', name: 'Catégorie de la gare', level: () => S.category - 1, max: 2, req: [3, 6],
-    cost: (l) => [150000, 400000][l], buy: () => S.category++,
+    cost: (l) => [187500, 500000][l], buy: () => S.category++,
     pre: () => S.platform >= S.category + 1, preText: () => (S.category === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis'),
     desc: () => (S.category === 1
       ? `Gare nationale : un Intercités toutes les deux heures (billet ×1,6, +30 % de places), clientèle +15 % · redevance ${money(8000)} / jour`
       : `Gare grande vitesse : TGV à 7 h, 9 h, 17 h et 19 h (billet ×2,5, +60 % de places, 4 ★ conseillées), clientèle +25 % · redevance ${money(20000)} / jour`) },
   { id: 'comfort', icon: '🛋️', name: 'Rénovation des wagons', desc: () => `${COMFORT[Math.min(2, S.comfort)]} : appréciation +0,1, clientèle +5 %`
       + (S.comfort === 1 ? ', moins de gêne par forte chaleur' : ''),
-    level: () => S.comfort, max: 3, req: [1, 3, 5], cost: (l) => [40000, 80000, 140000][l], buy: () => S.comfort++ },
+    level: () => S.comfort, max: 3, req: [1, 3, 5], cost: (l) => [50000, 100000, 175000][l], buy: () => S.comfort++ },
   { id: 'barCar', icon: '🍷', name: 'Voiture-bar', desc: () => `Ventes à bord, 15 % de demande en moins aux distributeurs · ${money(BAR.upkeep)} / jour`,
-    level: () => S.barCar, max: 1, req: [4], cost: () => 70000, buy: () => S.barCar++ },
-  { id: 'wagon', icon: '🚃', name: 'Wagon', desc: () => `+${Math.round(SEATS_PER_WAGON * SEAT_SHARE)} places par train`, level: () => S.wagons - 4, max: 4, req: [1, 1, 4, 4], cost: (l) => 50000 * (l + 1), buy: () => S.wagons++ },
-  { id: 'quai', icon: '🛤️', name: 'Agrandir le quai', desc: () => `${PLATFORM_MAX[Math.min(3, S.platform + 1)]} voyageurs par train`, level: () => S.platform - 1, max: 2, req: [1, 4], cost: (l) => [60000, 150000][l], buy: () => S.platform++ },
-  { id: 'hotel', icon: '🏨', name: 'Étage d\'hôtel', desc: () => `+${ROOMS_PER_FLOOR} chambres`, level: () => S.hotel - 1, max: 3, req: [2, 2, 6], cost: (l) => 80000 * (l + 1), buy: () => S.hotel++ },
-  { id: 'checkin', icon: '🛎️', name: 'Borne de check-in', desc: () => `+${CHECKIN_ROOMS} chambres par jour, sans salaire`, level: () => S.machines.checkin, max: 3, req: [2], cost: () => 45000, buy: () => S.machines.checkin++ },
-  { id: 'kiosk', icon: '🎫', name: 'Borne de billets', desc: () => `+${KIOSK_TICKETS} billets par train, sans salaire`, level: () => S.machines.kiosk, max: 4, req: [3], cost: () => 40000, buy: () => S.machines.kiosk++ },
-  { id: 'phone', icon: '☎️', name: 'Ligne téléphonique', desc: () => 'Réservations : +10 % de clientèle', level: () => S.phone, max: 1, req: [3], cost: () => 40000, buy: () => S.phone++ },
-  { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [90000, 200000][l], buy: () => S.station++ },
-  { id: 'robot', icon: '🧽', name: 'Autolaveuse', desc: () => 'Conduite par un agent d\'entretien, elle nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 50000, buy: () => S.machines.robot++ },
-  { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 90000, buy: () => S.shuttle++ },
-  { id: 'cafe', icon: '☕', name: 'Café du quai', level: () => S.cafe, max: 3, req: [5, 6, 7], cost: (l) => [70000, 50000, 90000][l], buy: () => S.cafe++,
+    level: () => S.barCar, max: 1, req: [4], cost: () => 87500, buy: () => S.barCar++ },
+  { id: 'wagon', icon: '🚃', name: 'Wagon', desc: () => `+${Math.round(SEATS_PER_WAGON * SEAT_SHARE)} places par train`, level: () => S.wagons - 4, max: 4, req: [1, 1, 4, 4], cost: (l) => 62500 * (l + 1), buy: () => S.wagons++ },
+  { id: 'quai', icon: '🛤️', name: 'Agrandir le quai', desc: () => `${PLATFORM_MAX[Math.min(3, S.platform + 1)]} voyageurs par train`, level: () => S.platform - 1, max: 2, req: [1, 4], cost: (l) => [75000, 187500][l], buy: () => S.platform++ },
+  { id: 'hotel', icon: '🏨', name: 'Étage d\'hôtel', desc: () => `+${ROOMS_PER_FLOOR} chambres`, level: () => S.hotel - 1, max: 3, req: [2, 2, 6], cost: (l) => 100000 * (l + 1), buy: () => S.hotel++ },
+  { id: 'checkin', icon: '🛎️', name: 'Borne de check-in', desc: () => `+${CHECKIN_ROOMS} chambres par jour, sans salaire`, level: () => S.machines.checkin, max: 3, req: [2], cost: () => 56250, buy: () => S.machines.checkin++ },
+  { id: 'kiosk', icon: '🎫', name: 'Borne de billets', desc: () => `+${KIOSK_TICKETS} billets par train, sans salaire`, level: () => S.machines.kiosk, max: 4, req: [3], cost: () => 50000, buy: () => S.machines.kiosk++ },
+  { id: 'phone', icon: '☎️', name: 'Ligne téléphonique', desc: () => 'Réservations : +10 % de clientèle', level: () => S.phone, max: 1, req: [3], cost: () => 50000, buy: () => S.phone++ },
+  { id: 'gare', icon: '🏛️', name: 'Agrandir la gare', desc: () => (S.station === 1 ? 'Boutique' : 'Tour de l\'horloge') + ' : ventes +40 %, clientèle +10 %', level: () => S.station - 1, max: 2, req: [4, 7], cost: (l) => [112500, 250000][l], buy: () => S.station++ },
+  { id: 'robot', icon: '🧽', name: 'Autolaveuse', desc: () => 'Conduite par un agent d\'entretien, elle nettoie comme 2 agents', level: () => S.machines.robot, max: 3, req: [4], cost: () => 62500, buy: () => S.machines.robot++ },
+  { id: 'shuttle', icon: '🚌', name: 'Navette', desc: () => '+15 % de clientèle', level: () => S.shuttle, max: 1, req: [5], cost: () => 112500, buy: () => S.shuttle++ },
+  { id: 'cafe', icon: '☕', name: 'Café du quai', level: () => S.cafe, max: 3, req: [5, 6, 7], cost: (l) => [87500, 62500, 112500][l], buy: () => S.cafe++,
     desc: () => [`Sert ${CAFE_CAPS[1]} cafés par jour avant les distributeurs, sans personnel, appréciation +0,4`,
       `Terrasse : jusqu'à ${fmt(CAFE_CAPS[2])} cafés et viennoiseries par jour à ${money(6)}, avec des baristas, appréciation +0,1`,
       `Grand café : jusqu'à ${fmt(CAFE_CAPS[3])} cafés par jour, avec des baristas, appréciation +0,1`][Math.min(2, S.cafe)],
     pre: () => (S.cafe < 2 ? S.platform >= 2 : S.station >= 2), preText: () => (S.cafe < 2 ? 'Quai niveau 2 requis' : 'Boutique requise') },
-  { id: 'parking', icon: '🅿️', name: 'Parking', desc: () => '+20 % de clientèle', level: () => S.parking, max: 1, req: [6], cost: () => 120000, buy: () => S.parking++ },
-  { id: 'pub', icon: '📢', name: 'Panneau publicitaire', desc: () => `+${money(PUB_INCOME)} par jour`, level: () => S.pub, max: 1, req: [7], cost: () => 60000, buy: () => S.pub++ },
+  { id: 'parking', icon: '🅿️', name: 'Parking', desc: () => '+20 % de clientèle', level: () => S.parking, max: 1, req: [6], cost: () => 150000, buy: () => S.parking++ },
+  { id: 'pub', icon: '📢', name: 'Panneau publicitaire', desc: () => `+${money(PUB_INCOME)} par jour`, level: () => S.pub, max: 1, req: [7], cost: () => 75000, buy: () => S.pub++ },
   { id: 'benches', icon: '🪑', name: 'Bancs sur le quai', desc: () => 'Appréciation +0,05 par niveau, +0,05 de plus sous un abri',
-    level: () => S.benches, max: 3, req: [0], cost: (l) => 8000 * (l + 1), buy: () => S.benches++,
+    level: () => S.benches, max: 3, req: [0], cost: (l) => 10000 * (l + 1), buy: () => S.benches++,
     pre: () => !S.benches || S.platform >= 2, preText: () => 'Quai niveau 2 requis' }, // il faut de la place sur le quai
   { id: 'track2', icon: '🚉', name: 'Seconde voie',
     desc: () => (S.track2 ? `Renfort à chaque demi-heure libre (14 trains de plus en semaine, 18 le week-end) · ${money(TRACK2_UPKEEP[2])} / jour`
       : `4 trains de renfort par jour à h:30 aux heures de pointe · ${money(TRACK2_UPKEEP[1])} / jour`),
-    level: () => S.track2, max: 2, req: [8, 8], cost: (l) => [300000, 400000][l], buy: () => S.track2++ },
+    level: () => S.track2, max: 2, req: [8, 8], cost: (l) => [375000, 500000][l], buy: () => S.track2++ },
   { id: 'canopy', icon: '⛱️', name: 'Extension des abris',
     desc: () => (S.canopy ? `Abris sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
       : `Abris sur tout le quai niveau 2 : ${CANOPY_SEATS[1]} voyageurs de plus à l'abri · ${money(200)} / jour`),
-    level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [60000, 80000][l], buy: () => S.canopy++,
+    level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [75000, 100000][l], buy: () => S.canopy++,
     pre: () => S.platform >= S.canopy + 2 && S.shelters >= S.canopy + 2,
     preText: () => (S.platform < S.canopy + 2 ? (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') : `${S.canopy + 2} abris requis`) },
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
-    level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
+    level: () => S.shelters, max: 3, req: [1], cost: (l) => 31250 * (l + 1), buy: () => S.shelters++,
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
-    level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [70000, 140000][l], buy: () => S.waitroom++ },
+    level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [87500, 175000][l], buy: () => S.waitroom++ },
   ...ADS.map((a, i) => ({
     id: 'ad' + i, ad: true, icon: a.icon, name: `Publicité : ${a.name}`, desc: () => `Clientèle +${Math.round(a.boost * 100)} % demain seulement · un achat par jour`,
     level: () => (S.ad === i + 1 ? 1 : 0), max: 1, req: [7], cost: () => a.cost, buy: () => { S.ad = i + 1; },

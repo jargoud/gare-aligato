@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const GAMES = +process.argv[2] || 3, DAYS = +process.argv[3] || 56;
+const GAMES = +process.argv[2] || 3, DAYS = +process.argv[3] || 70;
 
 // Faux DOM : tout objet du navigateur devient un « bouchon » qui accepte n'importe quel accès ou appel
 const stub = new Proxy(function () {}, {
@@ -32,7 +32,7 @@ function play(G, days) {
   const { S } = G, log = [];
   let minBudget = Infinity, goalsDay = null, maxDebtDays = 0;
   for (let d = 0; d < days; d++) {
-    S.tarif = S.goal >= 6 ? 25 : S.goal === 4 ? 55 : S.goal >= 3 ? 40 : 50;
+    S.tarif = S.goal >= 6 ? 25 : S.goal === 4 ? 55 : S.goal >= 3 || S.goal === 0 ? 40 : 50;
     G.acceptWorks(); // le joueur lance les travaux proposés dès le matin
     for (let i = 0; i < 1440; i++) {
       G.stepMinute();
@@ -75,7 +75,7 @@ for (let g = 1; g <= GAMES; g++) {
   // un découvert d'un soir est toléré par le jeu ; deux soirs de suite signalent un déséquilibre
   if (r.maxDebtDays >= 2) failures.push(`partie ${g} : découvert ${r.maxDebtDays} soirs de suite`);
   if (losses.length) failures.push(`partie ${g} : ${losses.length} jour(s) en perte (jours ${losses.map((d) => d.day).join(', ')})`);
-  if (!r.goalsDay || r.goalsDay > 40) failures.push(`partie ${g} : objectifs ${r.goalsDay ? `trop lents (jour ${r.goalsDay})` : 'non atteints'}`);
+  if (!r.goalsDay || r.goalsDay > 55) failures.push(`partie ${g} : objectifs ${r.goalsDay ? `trop lents (jour ${r.goalsDay})` : 'non atteints'}`);
 }
 if (failures.length) {
   console.error(`\n❌ Équilibrage à revoir :\n- ${failures.join('\n- ')}`);
