@@ -121,6 +121,7 @@ Elle baisse vite si des voyageurs restent sans billet.
 - **Recettes** : billets, chambres d'hôtel, distributeurs, loyers des commerces, panneau publicitaire.
 - **Frais quotidiens** : électricité (bâtiments et commerces), réapprovisionnement des distributeurs, blanchisserie,
   salaires, entretien des machines.
+- **Budget de départ** : 30 000 €, de quoi payer les frais du premier soir.
 - **Découvert** : un budget négatif est toléré. S'il est encore négatif au 3ᵉ minuit de suite, c'est la faillite.
 
 ### Objectifs et améliorations
@@ -130,29 +131,43 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 
 | # | Objectif | Débloque |
 |---|---|---|
-| 1 | Transporter 2 000 voyageurs en une journée | Wagons, quai niveau 2, marchand de journaux |
-| 2 | Accueillir 10 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
-| 3 | Atteindre 3,5 ★ | Bornes de billets, ligne téléphonique, boulangerie |
-| 4 | Transporter 3 000 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie |
-| 5 | Faire 150 000 € de bénéfice en une journée | Navette, café du quai, mini-supermarché |
-| 6 | Accueillir 30 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel |
-| 7 | Transporter 5 000 voyageurs en une journée | Tour de l'horloge, panneau publicitaire |
+| 1 | Transporter 2 500 voyageurs en une journée | Wagons, quai niveau 2, marchand de journaux |
+| 2 | Accueillir 12 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
+| 3 | Atteindre 3,6 ★ | Bornes de billets, ligne téléphonique, boulangerie, piano du hall |
+| 4 | Transporter 3 750 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie, car de substitution |
+| 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, épicerie, salle d'attente climatisée |
+| 6 | Accueillir 36 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel, supérette |
+| 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, campagnes de publicité |
 | 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
-Les commerces (marchand de journaux, boulangerie, librairie, mini-supermarché) apparaissent le long de la route.
-Ils versent un loyer sur leurs ventes et améliorent l'appréciation. Les sanitaires ne rapportent rien
+Les commerces (marchand de journaux, boulangerie, librairie, supérette) apparaissent le long de la route.
+Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La supérette grandit en trois niveaux :
+**épicerie** (objectif 5), **supérette** (objectif 6) puis **supermarché** (objectif 7), avec un loyer et une appréciation
+plus élevés à chaque niveau ; chaque niveau retire aussi 5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien
 mais rendent le quai moins sale et les voyageurs plus contents.
 
 ### Sons
 
-Le bouton 🔇 / 🔊 en bas à droite active le son : ambiance discrète du hall, tintement de pièces à chaque recette
-de billets, et un son pour chaque action : amélioration, embauche,
-licenciement, stocks et distributeurs. Il est coupé par défaut ; le choix est gardé dans le navigateur.
+Le bouton 🔇 / 🔊 en bas à droite ouvre les réglages du son : un interrupteur général et une case par catégorie.
+
+| Catégorie | Sons |
+|---|---|
+| Ambiance | Brouhaha discret du hall, piano du hall |
+| Recettes | Caisse enregistreuse à chaque recette de billets |
+| Actions | Amélioration, embauche, licenciement, stocks et distributeurs |
+| Jour / nuit | Chant du coq à 6 h, hululement du hibou à 21 h |
+| Annonces | Jingle d'arrivée de chaque train |
+| Événements | Imprévus, train en retard, distributeur en panne |
+
+Le son est coupé par défaut ; les réglages sont gardés dans le navigateur.
 
 ### Interface
 
 Les fenêtres (tarifs, personnel, stocks, améliorations, objectifs, bilan) ont des onglets pour passer de l'une à
 l'autre sans les fermer.
+
+Le jeu se joue aussi **sur mobile**, de préférence en paysage : barre d'actions en icônes, fenêtres en plein écran,
+encart d'état replié (touchez-le pour le déplier) et infobulles affichées d'un toucher.
 
 ### Défis de fréquentation
 
@@ -163,18 +178,29 @@ Après les 8 objectifs, de nouveaux défis s'affichent dans le bandeau et la fen
 | 🥉 Transporter 8 000 voyageurs en une journée | 100 points |
 | 🥈 Transporter 10 000 voyageurs en une journée | 200 points |
 | 🥇 Transporter 12 000 voyageurs en une journée | 300 points |
+| 🏆 Transporter 15 000 voyageurs en une journée | 400 points |
+| 💎 Transporter 20 000 voyageurs en une journée | 500 points |
 | 🏅 Record de la semaine (60 000 voyageurs du lundi au dimanche, puis +5 000 à chaque record) | 500 points par record |
 
 La **🚉 seconde voie** (après l'objectif 8) ajoute des trains de renfort à h:30 :
-- niveau 1 (300 000 €, 6 000 € / jour) : 4 par jour aux heures de pointe, 8 h 30, 9 h 30, 16 h 30 et 19 h 30 en semaine,
+- niveau 1 (375 000 €, 6 000 € / jour) : 4 par jour aux heures de pointe, 8 h 30, 9 h 30, 16 h 30 et 19 h 30 en semaine,
   7 h 30, 8 h 30, 17 h 30 et 18 h 30 le week-end ;
-- niveau 2 (400 000 €, 15 000 € / jour) : un renfort à chaque demi-heure libre de 5 h 30 à 22 h 30 (14 en semaine, 18 le week-end).
+- niveau 2 (500 000 €, 15 000 € / jour) : un renfort à chaque demi-heure libre de 5 h 30 à 22 h 30 (14 en semaine, 18 le week-end).
 
 Les plus hauts paliers demandent une gare entièrement développée, la seconde voie et un billet bon marché.
 
+Les **📣 campagnes de publicité** (objectif 7) donnent un coup de pouce d'un jour : achetées dans la fenêtre Améliorations,
+elles attirent plus de clientèle **le lendemain seulement**, dans la limite de la capacité de la gare. Une campagne par jour au plus.
+
+| Média | Prix | Clientèle du lendemain |
+|---|---|---|
+| 📰 Journal | 80 000 € | +15 % |
+| 📻 Radio | 200 000 € | +30 % |
+| 📺 Télévision | 500 000 € | +50 % |
+
 ### Saisons
 
-L'année compte 4 saisons d'une semaine (du lundi au dimanche), en commençant par le printemps. La saison s'affiche à côté du jour (survolez-la pour
+L'année compte 4 saisons de 4 jours, en commençant par le printemps ; elles ne suivent pas la semaine. La saison s'affiche à côté du jour (survolez-la pour
 savoir où vous en êtes), et le bilan du soir prévient la veille d'un changement.
 
 | Saison | Météo dominante | Effets |
@@ -197,7 +223,7 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
 Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
-L'**extension des abris** a deux niveaux : sur tout le quai niveau 2 (objectif 2, 60 000 €), elle abrite 120 voyageurs de plus ;
+L'**extension des abris** a deux niveaux : sur tout le quai niveau 2 (objectif 2, 75 000 €, avec les 2 abris du quai), elle abrite 120 voyageurs de plus ;
 sur tout le grand quai (objectif 4, 80 000 €), 250 au total.
 Sur la scène, les voyageurs abrités se placent sous les abris.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
@@ -211,8 +237,8 @@ et prend effet le lendemain.
 | Catégorie | Conditions | Trains accueillis | Effets | Redevance |
 |---|---|---|---|---|
 | Gare régionale | Départ | 🚃 Régional toutes les heures | — | — |
-| Gare nationale | Objectif 3, quai niveau 2, 150 000 € | 🚆 Intercités (gris et vert) toutes les deux heures | Billet ×1,6, +30 % de places, clientèle +15 % | 8 000 € / jour |
-| Gare grande vitesse | Objectif 6, grand quai, 400 000 € | 🚄 TGV à 7 h, 9 h, 17 h et 19 h | Billet ×2,5, +60 % de places, clientèle +25 % ; le TGV attire moins de monde sous 4 ★ | 20 000 € / jour |
+| Gare nationale | Objectif 3, quai niveau 2, 187 500 € | 🚆 Intercités (gris et vert) toutes les deux heures | Billet ×1,6, +30 % de places, clientèle +15 % | 8 000 € / jour |
+| Gare grande vitesse | Objectif 6, grand quai, 500 000 € | 🚄 TGV à 7 h, 9 h, 17 h et 19 h | Billet ×2,5, +60 % de places, clientèle +25 % ; le TGV attire moins de monde sous 4 ★ | 20 000 € / jour |
 
 Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 
@@ -240,6 +266,9 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 🤝 Hôtel partenaire | 6 (hôtel de 4 étages) | Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre ; ils ne dînent pas à la gare |
 | 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
+| 🎹 Piano du hall | 3 | Piano en libre-service : appréciation +0,1 ; on l'entend parfois au passage d'un train |
+| 🚌 Car de substitution | 4 | Les voyageurs qui abandonnent après un retard, et ceux restés sans billet pendant une grève, partent en car avec un billet à −30 % ; entretien 1 500 €/jour, triplé les jours de grève |
+| ❄️ Salle d'attente climatisée | 5 (salle d'attente) | Forte chaleur deux fois moins pénible pour tous les voyageurs, appréciation +0,1 |
 
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
 Environ 35 % des clients préfèrent les distributeurs pour les cafés et les repas (plus rapides, moins chers) ; les autres vont
@@ -258,6 +287,9 @@ La fenêtre Personnel conseille l'effectif le plus rentable, et le bilan du soir
 - ⚠️ **Distributeur en panne** (écran orange clignotant) : il ne vend plus sa part du stock. Réparez-le dans la fenêtre
   Stocks (1 500 €) ; sinon il est réparé la nuit pour 3 000 €.
 - 🔧 L'**atelier de maintenance** (objectif 2) rend retards et pannes 4 fois plus rares et répare les distributeurs dans l'heure.
+- 🚧 **Petits travaux** (dès l'objectif 2, environ un jour sur quatre) : un équipement possédé (café du quai, cafétéria,
+  bornes de billets ou de check-in, abris, salle d'attente) ferme 2 à 5 heures dans la journée, sans frais. Une notification
+  l'annonce, l'encart d'état indique l'heure de réouverture et des barrières « TRAVAUX » apparaissent devant.
 
 ### Travaux d'entretien
 
@@ -288,8 +320,8 @@ article de presse ou inspection sanitaire (amende si le quai est sale).
 node sim.mjs
 ```
 
-Joue 3 parties de 56 jours (deux années) sans navigateur, avec une stratégie simple, et échoue si une journée finit en perte,
-si le budget reste négatif deux soirs de suite, en cas de faillite ou si les 8 objectifs ne sont pas atteints avant le jour 40.
+Joue 3 parties de 70 jours sans navigateur, avec une stratégie simple, et échoue si une journée finit en perte,
+si le budget reste négatif deux soirs de suite, en cas de faillite ou si les 8 objectifs ne sont pas atteints avant le jour 55.
 Options : `node sim.mjs <parties> <jours>`.
 
 ## Fichiers

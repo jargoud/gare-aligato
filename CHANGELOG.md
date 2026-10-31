@@ -5,6 +5,32 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Supérette à 3 niveaux** : épicerie (objectif 5), supérette (objectif 6) et supermarché (objectif 7), avec un loyer
+  croissant ; chaque niveau reprend une part de la demande de repas.
+- **Campagnes de publicité** (objectif 7) : journal, radio ou télévision, pour plus de clientèle le lendemain seulement.
+- **Défis de fréquentation** à 15 000 et 20 000 voyageurs en une journée.
+- **Nouveaux services** : piano du hall (objectif 3), car de substitution en cas de retard ou de grève (objectif 4),
+  salle d'attente climatisée (objectif 5).
+- **Petits travaux** imprévus de quelques heures qui ferment un équipement, dès l'objectif 2.
+- **Arrêt de la navette** visible (abribus) ; les voyageurs qu'elle dépose rejoignent la gare à pied.
+- **Sons** : chant du coq, hululement du hibou, jingle d'arrivée des trains, piano, sons des événements ;
+  panneau de réglages avec une case par catégorie.
+- **Mobile** : mise en page adaptée aux petits écrans, infobulles au toucher, invite à passer en paysage.
+
+### Modifié
+
+- **Progression plus lente** : objectifs relevés d'environ 25 %, améliorations 25 % plus chères, budget de départ
+  ramené à 30 000 €.
+- **Saisons de 4 jours**, indépendantes de la semaine.
+- L'**extension des abris** demande d'avoir construit les abris du quai (2 pour le niveau 1, 3 pour le niveau 2).
+- Encart d'état plus compact : les jauges tiennent sur une ligne.
+
+### Corrigé
+
+- La **capacité** affichée ne comptait pas les express des travailleurs : les voyageurs prévus pouvaient la dépasser.
+
 ## [1.1.1] - 2026-10-25
 
 ### Corrigé
