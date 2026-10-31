@@ -253,7 +253,8 @@ const UPGRADES = [
     desc: () => (S.canopy ? `Abris sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
       : `Abris sur tout le quai niveau 2 : ${CANOPY_SEATS[1]} voyageurs de plus à l'abri · ${money(200)} / jour`),
     level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [60000, 80000][l], buy: () => S.canopy++,
-    pre: () => S.platform >= S.canopy + 2, preText: () => (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') },
+    pre: () => S.platform >= S.canopy + 2 && S.shelters >= S.canopy + 2,
+    preText: () => (S.platform < S.canopy + 2 ? (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') : `${S.canopy + 2} abris requis`) },
   { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
     level: () => S.shelters, max: 3, req: [1], cost: (l) => 25000 * (l + 1), buy: () => S.shelters++,
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
