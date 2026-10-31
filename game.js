@@ -163,7 +163,7 @@ const S = {
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ad: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, works: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -181,14 +181,14 @@ const STAFF = {
     info: () => `${fmt(cafeCap())} cafés par jour au ${CAFE_NAMES[S.cafe].toLowerCase()}` },
 };
 const staffRoles = () => Object.entries(STAFF).filter(([, r]) => r.available?.() ?? true);
-const cafeteriaCap = () => (S.svc.cafeteria ? S.staff.cafe * MEALS_PER_WAITER : 0);
+const cafeteriaCap = () => (S.svc.cafeteria && !minorOn('cafeteria') ? S.staff.cafe * MEALS_PER_WAITER : 0);
 // Fraude (à partir de l'objectif 3) : plus le billet est cher, plus de voyageurs montent sans payer.
 // Les contrôleurs en dissuadent une partie et verbalisent ceux qu'ils prennent.
 const FRAUD_GOAL = 3, CONTROL_PAX = 600, FINE = 50, DETERRENCE = 0.7, JUMP_SHARE = 0.4;
 const controlCoverage = (n = S.staff.controleur, plan = S.plan) => Math.min(1, (n * CONTROL_PAX) / Math.max(1, plan.classic));
 const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GOAL
   ? (0.02 + 0.1 * (S.tarif / 100)) * (1 - DETERRENCE * controlCoverage(n, plan)) : 0);
-const cafeCap = () => (S.cafe ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
+const cafeCap = () => (S.cafe && !minorOn('cafe') ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
 // extension des abris (id 'canopy') : sur tout le quai niveau 2, puis sur tout le grand quai
@@ -200,7 +200,7 @@ const extensionX = () => {
   return xs;
 };
 // voyageurs à l'abri : abris, extension et salle d'attente
-const shelterCap = () => S.shelters * SHELTER_SEATS + CANOPY_SEATS[S.canopy] + waitroomSeats();
+const shelterCap = () => (minorOn('shelter') ? 0 : S.shelters * SHELTER_SEATS) + CANOPY_SEATS[S.canopy] + waitroomSeats();
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
 // en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
@@ -208,12 +208,15 @@ const STRIKE_HOURS = 3;
 const striking = () => S.strike > S.minutes;
 const WELCOME_TICKETS = 20; // billets vendus sur tablette par les agents d'accueil, à chaque train
 const welcomeTickets = () => (S.svc.welcome ? WELCOME_TICKETS : 0);
-const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + S.machines.kiosk * KIOSK_TICKETS + welcomeTickets()) * screensMult());
+const ticketCap = () => Math.round((S.staff.guichet * TICKETS_PER_AGENT * (striking() ? 0.5 : 1) + (minorOn('kiosk') ? 0 : S.machines.kiosk) * KIOSK_TICKETS + welcomeTickets()) * screensMult());
 const cleanRate = () => S.staff.entretien * STAFF_CLEAN + S.machines.robot * ROBOT_CLEAN;
 const worksOn = (k) => S.works?.kind === k;
+// petit chantier de quelques heures (S.minor, tiré chaque nuit) : l'équipement est fermé entre `from` et `until`
+const minorNow = () => (S.minor && S.minutes >= S.minor.from && S.minutes < S.minor.until ? S.minor : null);
+const minorOn = (k) => minorNow()?.kind === k;
 const hotelRooms = () => (S.hotel - (worksOn('hotel') ? 1 : 0)) * ROOMS_PER_FLOOR; // un étage fermé pendant sa rénovation
-const waitroomSeats = () => (worksOn('waitroom') ? 0 : WAITROOM[S.waitroom]);
-const roomCap = () => Math.min(hotelRooms(), S.staff.hotel * ROOMS_PER_STAFF + S.machines.checkin * CHECKIN_ROOMS);
+const waitroomSeats = () => (worksOn('waitroom') || minorOn('waitroom') ? 0 : WAITROOM[S.waitroom]);
+const roomCap = () => Math.min(hotelRooms(), S.staff.hotel * ROOMS_PER_STAFF + (minorOn('checkin') ? 0 : S.machines.checkin) * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
 // quai (un quart fermé pendant sa réfection) + salle d'attente
 const platformCap = () => Math.round(PLATFORM_MAX[S.platform] * (worksOn('platform') ? 0.75 : 1)) + waitroomSeats();
@@ -568,6 +571,10 @@ const peakFactor = (h) => Math.exp(-((h - 8) ** 2) / 2) + Math.exp(-((h - 18) **
 function stepMinute() {
   S.minutes++;
   if (S.minutes >= 1440) { closeDay(); S.minutes = 0; S.day++; save(); }
+  if (S.minor && (S.minutes === S.minor.from || S.minutes === S.minor.until)) {
+    const w = MINOR[S.minor.kind], on = S.minutes === S.minor.from;
+    toast(`🚧 ${w.name} : ${on ? `fermé pour travaux jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : 'travaux terminés, réouverture'}`, on ? 'warn' : 'good');
+  }
   const h = Math.floor(S.minutes / 60), m = S.minutes % 60;
 
   // les voyageurs du prochain train arrivent régulièrement pendant l'heure qui précède
@@ -813,6 +820,7 @@ function closeDay() {
   if (S.autoRefill) Object.keys(PRODUCTS).forEach(refill);
   S.event = null;
   nightWorks();
+  planMinor();
   S.plan = makePlan(true, S.day + 1);
   S.ad = 0; // la campagne de publicité n'a servi que pour ce plan
   // après les travaux : un chantier qui commence réduit déjà la capacité de demain
@@ -844,6 +852,21 @@ const WORKS = {
   wc: { icon: '🚻', name: 'Rénovation des sanitaires', effect: 'sanitaires fermés', days: true, ok: () => S.shops.wc },
   waitroom: { icon: '🚪', name: 'Rénovation de la salle d\'attente', effect: 'salle d\'attente fermée', days: true, ok: () => S.waitroom },
 };
+// Petits travaux : dès l'objectif 2, un jour sur quatre, un équipement possédé ferme 2 à 5 h entre 7 h et 18 h
+const MINOR = {
+  cafe: { name: 'Café du quai', ok: () => S.cafe },
+  cafeteria: { name: 'Cafétéria', ok: () => S.svc.cafeteria },
+  kiosk: { name: 'Bornes de billets', ok: () => S.machines.kiosk },
+  checkin: { name: 'Bornes de check-in', ok: () => S.machines.checkin },
+  shelter: { name: 'Abris', ok: () => S.shelters },
+  waitroom: { name: 'Salle d\'attente', ok: () => S.waitroom },
+};
+function planMinor() {
+  const kinds = Object.keys(MINOR).filter((k) => MINOR[k].ok());
+  if (S.goal < 2 || !kinds.length || Math.random() >= 0.25) return (S.minor = null);
+  const from = (7 + rand(12)) * 60 + rand(4) * 15;
+  S.minor = { kind: pick(kinds), from, until: from + (2 + rand(4)) * 60 };
+}
 const nextWorksDay = () => S.day + 10 + rand(9);
 function nightWorks() {
   if (S.works && --S.works.days <= 0) {
@@ -1513,13 +1536,13 @@ function drawStaff(t) {
   });
 
   // chantier en cours : barrières « TRAVAUX » sur la zone, bâche sur l'étage d'hôtel rénové
+  const barrier = (bx, by) => {
+    ctx.fillStyle = '#3a404a'; ctx.fillRect(bx - 14, by - 14, 2, 14); ctx.fillRect(bx + 12, by - 14, 2, 14);
+    for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#e8590c'; ctx.fillRect(bx - 15 + i * 7.5, by - 12, 7.5, 4); }
+    ctx.fillStyle = '#f5b82e'; ctx.fillRect(bx - 13, by - 25, 26, 9);
+    ctx.fillStyle = '#1b2540'; ctx.font = '700 5.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 18.5);
+  };
   if (S.works) {
-    const barrier = (bx, by) => {
-      ctx.fillStyle = '#3a404a'; ctx.fillRect(bx - 14, by - 14, 2, 14); ctx.fillRect(bx + 12, by - 14, 2, 14);
-      for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#e8590c'; ctx.fillRect(bx - 15 + i * 7.5, by - 12, 7.5, 4); }
-      ctx.fillStyle = '#f5b82e'; ctx.fillRect(bx - 13, by - 25, 26, 9);
-      ctx.fillStyle = '#1b2540'; ctx.font = '700 5.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 18.5);
-    };
     const k = S.works.kind, wc = shopFronts().find((f) => f.k === 'wc');
     if (k === 'platform') { barrier(platX() + 60, 438); barrier((platX() + 1250) / 2, 438); }
     if (k === 'hotel') {
@@ -1528,6 +1551,12 @@ function drawStaff(t) {
     }
     if (k === 'wc' && wc) barrier(wc.x + wc.w / 2, y + 4);
     if (k === 'waitroom') barrier(MX + 76, y + 4);
+  }
+  const mn = minorNow();
+  if (mn) {
+    const cf = shopFronts().find((f) => f.k === 'cafeteria');
+    const bx = { cafe: 758, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: SHELTER_X[0] + 30, waitroom: MX + 76 }[mn.kind];
+    if (bx) barrier(bx, y + 4);
   }
 
   // contrôleurs (casquette rouge), sur la voie devant les bancs
@@ -1984,7 +2013,7 @@ const HUD = {
   freeRooms: () => `${Math.max(0, hotelRooms() - S.today.rooms - S.hotelQueue)} / ${hotelRooms()}`,
   hotelQueue: () => S.hotelQueue,
   sat: () => `${Math.round(satisfaction() * 100)} %`,
-  works: () => (S.works ? `${WORKS[S.works.kind].effect} · ${S.works.days} j` : ''),
+  works: () => (S.works ? `${WORKS[S.works.kind].effect} · ${S.works.days} j` : minorNow() ? `${MINOR[S.minor.kind].name} · ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : ''),
 };
 $('#stockBars').innerHTML = Object.entries(PRODUCTS).map(([k, p]) => `<span class="kv"><span>${p.icon}</span><span class="bar" id="bar-${k}"><i></i></span></span>`).join('');
 const bound = [...document.querySelectorAll('[data-k]')];
@@ -2019,8 +2048,9 @@ function updateHUD() {
   $('#scoreStat').dataset.tip = `Points d'hier : ${S.report?.points ?? '—'} / 200\nRecord : ${fmt(Math.max(bestScore(), S.score))} points\n`
     + 'Chaque soir : appréciation (100) + clients satisfaits (50) + bénéfice (50)';
   $('#dayStat').dataset.tip = `${seasonOf().icon} ${seasonOf().name} · jour ${((S.day - 1) % SEASON_DAYS) + 1} / ${SEASON_DAYS}`;
-  $('#worksRow').style.display = S.works ? '' : 'none';
+  $('#worksRow').style.display = S.works || minorNow() ? '' : 'none';
   if (S.works) $('#worksRow').dataset.tip = `${WORKS[S.works.kind].name} : encore ${S.works.days} jour(s), ${money(S.works.cost)} par jour`;
+  else if (minorNow()) $('#worksRow').dataset.tip = `${MINOR[S.minor.kind].name} fermé pour de petits travaux jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}, sans frais`;
   $('[data-k="sat"]').className = satisfaction() >= 0.9 ? 'good' : satisfaction() < 0.75 ? 'bad' : '';
 }
 
