@@ -39,6 +39,7 @@ const STAFF_CLEAN = 1.2, ROBOT_CLEAN = 2.5;    // saleté retirée par heure
 const HIRE_FEE = 5000, SEVERANCE = 8000, STAFF_MAX = 10; // effectif maximal par métier
 const MACHINE_UPKEEP = { kiosk: 300, robot: 400, checkin: 250 }; // par jour
 const PUB_INCOME = 15000;
+const BUS_PRICE = 0.7; // part du prix du billet payée par un voyageur du car de substitution
 const WAITROOM = [0, 80, 160];            // places supplémentaires par train selon le niveau de la salle d'attente
 const MEALS_PER_WAITER = 200, CAFETERIA_PRICE = 18, CAFETERIA_COST = 5;
 const VANDAL_COST = 15000;
@@ -104,6 +105,11 @@ const SERVICES = {
   welcome: { icon: '🙋', name: 'Accueil voyageurs', desc: 'Moins d\'abandons en cas de retard, 20 billets par train même en grève, une partie des voyageurs sans billet attendent le train suivant', req: 2, cost: 35000, upkeep: 1500, rep: 0.1 },
   lounge: { icon: '💎', name: 'Salon 1re classe', desc: 'Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon)', req: 6, cost: 150000, upkeep: 1000, rep: 0.1,
     pre: () => S.category >= 2, preText: () => 'Gare nationale requise' },
+  aircon: { icon: '❄️', name: 'Salle d\'attente climatisée', desc: 'Forte chaleur deux fois moins pénible pour tous les voyageurs', req: 5, cost: 60000, upkeep: 600, rep: 0.1,
+    pre: () => S.waitroom >= 1, preText: () => 'Salle d\'attente requise' },
+  piano: { icon: '🎹', name: 'Piano du hall', desc: 'Un piano en libre-service : les voyageurs apprécient', req: 3, cost: 15000, upkeep: 50, rep: 0.1 },
+  bus: { icon: '🚌', name: 'Car de substitution', desc: `Les voyageurs qui abandonnent après un retard ou restent sans billet pendant une grève prennent le car (billet à −${Math.round((1 - BUS_PRICE) * 100)} %) · coût ×3 les jours de grève`,
+    req: 4, cost: 120000, upkeep: 1500, rep: 0 },
 };
 const PARTNER = { share: 0.6, commission: 0.2 }; // part des clients refusés qui acceptent le trajet, commission de la gare
 const ROOMS = [['Une Chambre Simple', 350], ['Une Chambre Double', 600], ['Une Suite', 1500]];
@@ -140,7 +146,7 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, struck: false, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 150000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
@@ -294,7 +300,7 @@ const EVENTS = [
     if (S.svc.security) toast('👮 L\'agent de sécurité a fait fuir les vandales', 'good');
     else { S.budget -= VANDAL_COST; S.dirt = Math.min(100, S.dirt + 20); toast(`Vandalisme : ${money(VANDAL_COST)} de dégâts`, 'bad', 'upgrades'); }
   } },
-  { msg: `✊ Grève des guichetiers pendant ${STRIKE_HOURS} heures : ils vendent deux fois moins de billets, les bornes fonctionnent`, kind: 'bad', run: () => { S.strike = S.minutes + STRIKE_HOURS * 60; } },
+  { msg: `✊ Grève des guichetiers pendant ${STRIKE_HOURS} heures : ils vendent deux fois moins de billets, les bornes fonctionnent`, kind: 'bad', run: () => { S.strike = S.minutes + STRIKE_HOURS * 60; S.today.struck = true; } },
   { msg: '🔍 Inspection sanitaire…', run: () => {
     if (S.dirt > 50) { S.budget -= 25000; S.rep -= 0.4; toast(`Quai sale : amende de ${money(25000)}`, 'bad'); }
     else toast('Quai impeccable : félicitations de l\'inspecteur', 'good');
@@ -425,7 +431,7 @@ function dailyCosts(rooms, restock) {
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
     ['Redevance réseau', CATEGORIES[S.category].fee],
-    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + TRACK2_UPKEEP[S.track2] + BAR.upkeep * S.barCar],
+    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + TRACK2_UPKEEP[S.track2] + BAR.upkeep * S.barCar + (S.svc.bus && S.today.struck ? 2 * SERVICES.bus.upkeep : 0)],
     ['Entretien machines', sum(Object.entries(MACHINE_UPKEEP).map(([k, v]) => S.machines[k] * v)) + VENDING_UPKEEP * sum(Object.values(S.vending))],
   ];
 }
@@ -630,13 +636,15 @@ function exchange(h) {
   // les agents d'accueil font patienter la moitié des voyageurs sans billet jusqu'au train suivant, s'il reste de la place à quai
   const next = (h + 1) % 24;
   const kept = S.svc.welcome && hasTrain(next) ? Math.min(Math.round((noTicket - jumpers) / 2), Math.max(0, platformCap() - (S.plan.trains[next] ?? 0))) : 0;
-  const missed = noTicket - jumpers - kept;
+  // car de substitution : pendant une grève, les voyageurs sans billet partent en car ; ceux qui abandonnent aussi
+  const unserved = noTicket - jumpers - kept, strikeBus = S.svc.bus && striking() ? unserved : 0;
+  const missed = unserved - strikeBus, viaBus = S.svc.bus ? giveUp + strikeBus : 0;
   S.waiting = kept;
   S.boarding = walkins + fraud;
   S.pendingBoard = walkins + fraud;
 
   // les clients du salon paient double ; les fraudeurs pris paient l'amende
-  const tickets = (walkins + binom(walkins, loungeShare())) * ticketPrice() * type.price + caught * FINE;
+  const tickets = (walkins + binom(walkins, loungeShare())) * ticketPrice() * type.price + caught * FINE + viaBus * ticketPrice() * BUS_PRICE;
   S.budget += tickets;
   S.today.passengers += walkins + fraud;
   S.today.missed += missed;
@@ -651,7 +659,7 @@ function exchange(h) {
   const extra = sell(S.plan.weekend ? PROFILES.weekend : PROFILES.classic, true);
   S.today.revenue += tickets + extra;
   // la climatisation des wagons rend la forte chaleur plus supportable
-  const severity = weather().severity * (S.plan.weather === 'heat' && S.comfort >= 2 ? 0.5 : 1);
+  const severity = weather().severity * (S.plan.weather === 'heat' && (S.comfort >= 2 || S.svc.aircon) ? 0.5 : 1);
   const exposure = (severity * Math.max(0, present - shelterCap())) / Math.max(1, present);
   S.lastMiss = missed / Math.max(1, present);
   S.lastExposure = exposure;
@@ -1690,6 +1698,12 @@ function drawInsideDetails(inside) {
       ctx.beginPath(); ctx.arc(hx, 357, 2.4, 0, Math.PI * 2); ctx.fill();
       ctx.fillRect(hx - 2.4, 359, 4.8, 5);
     }
+  }
+  if (S.svc.piano) { // piano droit dans la vitrine du hall
+    const px = DOOR_X - 58;
+    ctx.fillStyle = '#1b1b22'; ctx.fillRect(px, 360, 28, 14); ctx.fillRect(px + 2, 374, 3, 4); ctx.fillRect(px + 23, 374, 3, 4);
+    ctx.fillStyle = '#f6f1e6'; ctx.fillRect(px + 2, 366, 24, 3);
+    ctx.fillStyle = '#1b1b22'; for (let i = 0; i < 6; i++) ctx.fillRect(px + 4 + i * 4, 366, 2, 2);
   }
   if (S.svc.screens) {
     const sx = MX + MW + 4, sy = 326;
