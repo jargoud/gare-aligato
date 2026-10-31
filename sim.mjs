@@ -41,7 +41,7 @@ function play(G, days) {
         // réserve : les frais payés à minuit, plus une marge
         const reserve = G.expect(S.plan).costs + 50000;
         for (const u of G.UPGRADES) {
-          if (G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + reserve) {
+          if (!u.ad && G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + reserve) {
             S.budget -= u.cost(u.level());
             u.buy();
             S.today.bought[u.id] = true;

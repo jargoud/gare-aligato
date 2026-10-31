@@ -40,6 +40,12 @@ const HIRE_FEE = 5000, SEVERANCE = 8000, STAFF_MAX = 10; // effectif maximal par
 const MACHINE_UPKEEP = { kiosk: 300, robot: 400, checkin: 250 }; // par jour
 const PUB_INCOME = 15000;
 const BUS_PRICE = 0.7; // part du prix du billet payée par un voyageur du car de substitution
+// campagnes de publicité : un seul achat par jour, clientèle en plus le lendemain seulement
+const ADS = [
+  { icon: '📰', name: 'Journal', cost: 80000, boost: 0.15 },
+  { icon: '📻', name: 'Radio', cost: 200000, boost: 0.3 },
+  { icon: '📺', name: 'Télévision', cost: 500000, boost: 0.5 },
+];
 const WAITROOM = [0, 80, 160];            // places supplémentaires par train selon le niveau de la salle d'attente
 const MEALS_PER_WAITER = 200, CAFETERIA_PRICE = 18, CAFETERIA_COST = 5;
 const VANDAL_COST = 15000;
@@ -154,7 +160,7 @@ const S = {
   stock: { coffee: 320, meal: 170, goodies: 80 }, vending: { coffee: 1, meal: 1, goodies: 1 }, autoRefill: true,
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, waitingExtra: 0, track2: 0, challenge: 0, weekTarget: 60000, weekPax: 0, pendingBoard: 0, disembark: 0, boarding: 0,
-  wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0,
+  wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ad: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
   plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, works: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
@@ -273,6 +279,11 @@ const UPGRADES = [
     pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
     level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [70000, 140000][l], buy: () => S.waitroom++ },
+  ...ADS.map((a, i) => ({
+    id: 'ad' + i, ad: true, icon: a.icon, name: `Publicité : ${a.name}`, desc: () => `Clientèle +${Math.round(a.boost * 100)} % demain seulement · un achat par jour`,
+    level: () => (S.ad === i + 1 ? 1 : 0), max: 1, req: [7], cost: () => a.cost, buy: () => { S.ad = i + 1; },
+    pre: () => !S.ad, preText: () => 'Une campagne à la fois', tag: '📣 Campagne demain',
+  })),
   ...Object.entries(SERVICES).map(([k, v]) => ({
     id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++, pre: v.pre, preText: v.preText,
     desc: () => `${v.desc} · ${money(v.upkeep)} / jour`,
@@ -339,7 +350,7 @@ const potential = () => MARKET * (1.6 - (S.tarif / 100) * 1.2) * (0.5 + (S.rep /
 // Le week-end attire plus de voyageurs de loisir ; en semaine, des express transportent les travailleurs
 function makePlan(noise = true, day = S.day) {
   const weekend = weekday(day) >= 5, wx = noise ? rollWeather(day) : 'sun', season = seasonOf(day);
-  const pot = potential() * (weekend ? 1.15 : 1) * WEATHERS[wx].demand * season.demand, trains = {}, commuters = {}, types = {}, caps = {};
+  const pot = potential() * (weekend ? 1.15 : 1) * WEATHERS[wx].demand * season.demand * (1 + (ADS[S.ad - 1]?.boost ?? 0)), trains = {}, commuters = {}, types = {}, caps = {};
   const jitter = () => (noise ? 0.95 + Math.random() * 0.1 : 1);
   // les grands trains attirent une plus grande part des voyageurs ; le TGV boude une gare sous 4 ★
   const weight = (h) => SHAPE[h] * TRAIN_TYPES[types[h]].seats * (types[h] === 'tgv' && S.rep < 4 ? 0.6 : 1);
@@ -802,7 +813,9 @@ function closeDay() {
   if (S.autoRefill) Object.keys(PRODUCTS).forEach(refill);
   S.event = null;
   nightWorks();
-  S.plan = makePlan(true, S.day + 1); // après les travaux : un chantier qui commence réduit déjà la capacité de demain
+  S.plan = makePlan(true, S.day + 1);
+  S.ad = 0; // la campagne de publicité n'a servi que pour ce plan
+  // après les travaux : un chantier qui commence réduit déjà la capacité de demain
 
   // Découvert toléré quelques jours, puis faillite
   S.debtDays = S.budget < 0 ? S.debtDays + 1 : 0;
@@ -932,6 +945,8 @@ const CHALLENGES = [
   { icon: '🥉', text: 'Transporter 8 000 voyageurs en une journée', target: 8000, points: 100 },
   { icon: '🥈', text: 'Transporter 10 000 voyageurs en une journée', target: 10000, points: 200 },
   { icon: '🥇', text: 'Transporter 12 000 voyageurs en une journée', target: 12000, points: 300 },
+  { icon: '🏆', text: 'Transporter 15 000 voyageurs en une journée', target: 15000, points: 400 },
+  { icon: '💎', text: 'Transporter 20 000 voyageurs en une journée', target: 20000, points: 500 },
 ];
 const WEEK_STEP = 5000, WEEK_POINTS = 500; // record de la semaine : +5 000 voyageurs à chaque palier
 // défi en cours : le prochain défi du jour, puis le record de la semaine (du lundi au dimanche)
@@ -1986,7 +2001,7 @@ function updateHUD() {
   const g = GOALS[S.goal];
   const cg = g ?? currentChallenge();
   $('#goalBar').style.width = `${clamp((g ? g.value() : cg.value) / cg.target, 0, 1) * 100}%`;
-  const n = UPGRADES.filter((u) => upState(u) === 'ok').length;
+  const n = UPGRADES.filter((u) => !u.ad && upState(u) === 'ok').length;
   $('#upBadge').textContent = n || '';
   for (const k of Object.keys(PRODUCTS)) {
     const r = S.stock[k] / stockCap(k), bar = $('#bar-' + k);
@@ -2036,8 +2051,9 @@ function advice() {
   if (weather().severity && shelterCap() < p.peak && shelter.length) {
     tips.push(`${weather().icon} ${weather().name} prévue : seulement ${shelterCap()} voyageurs à l'abri sur ${p.peak} au plus fort. Pensez à ${link(shelter.join(', '), 'upgrades')}.`);
   }
+  if (S.ad) tips.push(`📣 Campagne ${ADS[S.ad - 1].name.toLowerCase()} demain : clientèle +${Math.round(ADS[S.ad - 1].boost * 100)} %.`);
   if (S.budget < 0) tips.push(`💸 Budget négatif : faillite si c'est encore le cas dans ${DEBT_DAYS - S.debtDays} soir(s). Réduisez l'effectif ou montez le prix.`);
-  const n = UPGRADES.filter((u) => upState(u) === 'ok').length;
+  const n = UPGRADES.filter((u) => !u.ad && upState(u) === 'ok').length;
   if (n) tips.push(`🏗️ ${link(`${n} amélioration(s) à votre portée`, 'upgrades')}.`);
   const best = bestTarif();
   if (Math.abs(best - S.tarif) >= 10) {
@@ -2190,7 +2206,7 @@ const VIEWS = {
     html: () => '<p class="hint">Les agrandissements attirent plus de voyageurs dès le lendemain. Une amélioration de chaque type par jour. Atteignez les objectifs pour en débloquer d\'autres.</p><div class="ups">'
       + UPGRADES.map((u) => {
         const st = upState(u), l = u.level();
-        const action = st === 'max' ? '<span class="tag">✓ Acquis</span>'
+        const action = st === 'max' ? `<span class="tag">${u.tag ?? '✓ Acquis'}</span>`
           : st === 'locked' ? `<span class="tag">🔒 Objectif ${upReq(u)}</span>`
           : st === 'pre' ? `<span class="tag">🔒 ${u.preText()}</span>`
           : st === 'today' ? '<span class="tag" title="Une amélioration de chaque type par jour">⏳ Demain</span>'
