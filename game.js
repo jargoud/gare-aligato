@@ -119,10 +119,17 @@ const SHOPS = {
   news: { icon: '📰', name: 'Marchand de journaux', label: 'PRESSE', rate: 0.1, spend: 4, rep: 0.1, color: '#2f6fd6', req: 1, cost: 35000 },
   bakery: { icon: '🥐', name: 'Boulangerie', label: 'BOULANGERIE', rate: 0.12, spend: 8, rep: 0.2, color: '#c98b3a', req: 3, cost: 60000 },
   books: { icon: '📚', name: 'Librairie', label: 'LIBRAIRIE', rate: 0.03, spend: 25, rep: 0.15, color: '#8e44ad', req: 4, cost: 70000 },
-  market: { icon: '🛒', name: 'Mini-supermarché', label: 'SUPÉRETTE', rate: 0.06, spend: 30, rep: 0.15, color: '#27ae60', req: 5, cost: 110000 },
+  market: { icon: '🛒', color: '#27ae60', req: [5, 6, 7], cost: [110000, 180000, 280000], levels: [
+    { name: 'Épicerie', label: 'ÉPICERIE', rate: 0.05, spend: 22, rep: 0.1 },
+    { name: 'Supérette', label: 'SUPÉRETTE', rate: 0.06, spend: 30, rep: 0.15 },
+    { name: 'Supermarché', label: 'SUPERMARCHÉ', rate: 0.07, spend: 40, rep: 0.25 },
+  ] },
   wc: { icon: '🚻', name: 'Sanitaires', label: 'TOILETTES', rate: 0, spend: 0, rep: 0.3, color: '#7f8c8d', req: 2, cost: 30000 },
 };
 const SHOP_UPKEEP = 600;
+const MARKET_MEAL_CUT = 0.05; // par niveau, les repas se prennent à la supérette plutôt qu'aux distributeurs
+// caractéristiques d'un commerce à son niveau l (1 = premier niveau)
+const shopAt = (k, l = S.shops[k]) => ({ ...SHOPS[k], ...SHOPS[k].levels?.[Math.max(l, 1) - 1] });
 const TRAIN_HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // de 5 h à 23 h
 
 // Répartition douce de la journée : légers pics matin et soir, normalisée sur le nombre de trains
@@ -264,10 +271,14 @@ const UPGRADES = [
     id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++, pre: v.pre, preText: v.preText,
     desc: () => `${v.desc} · ${money(v.upkeep)} / jour`,
   })),
-  ...Object.entries(SHOPS).map(([k, sh]) => ({
-    id: k, icon: sh.icon, name: sh.name, level: () => S.shops[k], max: 1, req: [sh.req], cost: () => sh.cost, buy: () => S.shops[k]++,
-    desc: () => (sh.rate ? `Loyer sur les ventes · appréciation +${String(sh.rep).replace('.', ',')}` : 'Appréciation +0,3 · quai moins sale'),
-  })),
+  ...Object.entries(SHOPS).map(([k, sh]) => {
+    const max = sh.levels?.length ?? 1, next = () => shopAt(k, Math.min(S.shops[k] + 1, max));
+    return {
+      id: k, icon: sh.icon, get name() { return next().name; }, level: () => S.shops[k], max, req: [].concat(sh.req), cost: (l) => [].concat(sh.cost)[l], buy: () => S.shops[k]++,
+      desc: () => (next().rate ? `Loyer sur les ventes · appréciation +${String(next().rep).replace('.', ',')}${k === 'market' ? ' · moins de repas aux distributeurs' : ''}`
+        : 'Appréciation +0,3 · quai moins sale'),
+    };
+  }),
 ];
 const upReq = (u) => u.req[Math.min(u.level(), u.req.length - 1)];
 // une seule amélioration de chaque type par jour (les travaux prennent la journée)
@@ -383,7 +394,7 @@ const satisfaction = () => (S.today.demand > 20 ? S.today.served / S.today.deman
 const roomMult = () => S.roomTarif / 100;
 const roomRate = () => 0.007 * (0.5 + satisfaction()) * (0.4 + S.rep / 5) * Math.max(0, 1.6 - 0.6 * roomMult());
 const stockCap = (k) => S.vending[k] * PRODUCTS[k].cap;
-const productRate = (k) => PRODUCTS[k].rate * (WEATHERS[S.plan?.weather]?.misc ?? 1);
+const productRate = (k) => PRODUCTS[k].rate * (WEATHERS[S.plan?.weather]?.misc ?? 1) * (k === 'meal' ? 1 - MARKET_MEAL_CUT * S.shops.market : 1);
 // Comptoirs servis avant les distributeurs : la cafétéria pour les repas, le café du quai pour les cafés,
 // la boutique de la gare pour les goodies
 // part des clients qui préfèrent les distributeurs (plus rapides, moins chers) ; chacun se rabat sur l'autre s'il est plein ou vide
@@ -395,7 +406,7 @@ const COUNTERS = {
 };
 const shopMult = () => 1 + 0.4 * (S.station - 1); // la boutique et la tour attirent les flâneurs
 const shopOpen = (k) => S.shops[k] && !worksOn(k); // les sanitaires ferment pendant leur rénovation
-const shopRep = () => sum(Object.entries(SHOPS).map(([k, sh]) => (shopOpen(k) ? sh.rep : 0)));
+const shopRep = () => sum(Object.keys(SHOPS).map((k) => (shopOpen(k) ? shopAt(k).rep : 0)));
 const dirtFactor = () => (shopOpen('wc') ? 0.7 : 1);
 function refill(k) {
   const n = stockCap(k) - S.stock[k];
@@ -454,8 +465,8 @@ function expect(plan) {
     restock += sold * p.cost;
   }
   const extras = (S.svc.lockers ? visitors * LOCKER[0] * prof.lockers * LOCKER[1] : 0) + (S.svc.relay ? cVis * RELAY[0] * RELAY[1] : 0);
-  const shops = shopMult() * sum(Object.entries(SHOPS).map(([k, sh]) => S.shops[k] * sh.rate * sh.spend
-    * (visitors * (prof.shops[k] ?? 1) + cVis * (cp.shops[k] ?? 1))));
+  const shops = shopMult() * sum(Object.keys(SHOPS).map((k) => { const sh = shopAt(k); return (S.shops[k] ? 1 : 0) * sh.rate * sh.spend
+    * (visitors * (prof.shops[k] ?? 1) + cVis * (cp.shops[k] ?? 1)); }));
   const bar = S.barCar ? boarded * BAR.rate * BAR.spend : 0;
   // recette des billets, pondérée par le type de chaque train (Intercités, TGV plus chers)
   // les fraudeurs ne paient pas leur billet ; ceux que les contrôleurs prennent paient l'amende
@@ -730,7 +741,7 @@ function sell(prof, regular = false) {
       toast(`${p.icon} Stock de ${p.name.toLowerCase()} bas : ${S.stock[k]} restants`, 'warn', 'stocks');
     }
   }
-  for (const [k, sh] of Object.entries(SHOPS)) if (S.shops[k]) total += binom(visitors, sh.rate * (prof.shops[k] ?? 1)) * sh.spend * shopMult();
+  for (const k of Object.keys(SHOPS)) if (S.shops[k]) total += binom(visitors, shopAt(k).rate * (prof.shops[k] ?? 1)) * shopAt(k).spend * shopMult();
   if (S.svc.lockers) total += binom(visitors, LOCKER[0] * prof.lockers) * LOCKER[1];
   if (S.svc.relay) total += binom(visitors, RELAY[0] * prof.relay) * RELAY[1];
 
@@ -971,7 +982,7 @@ const platX = () => PLATFORM_X[S.platform];
 const hotelTop = () => GF - S.hotel * FLOOR_H;
 const SHOP_TOP = 328;
 const FRONTS = [
-  ...['news', 'bakery', 'books', 'market', 'wc'].map((k) => ({ k, label: SHOPS[k].label, color: SHOPS[k].color, owned: () => S.shops[k] })),
+  ...['news', 'bakery', 'books', 'market', 'wc'].map((k) => ({ k, get label() { return shopAt(k).label; }, color: SHOPS[k].color, owned: () => S.shops[k] })),
   { k: 'cafeteria', label: 'CAFÉTÉRIA', color: '#b5432f', owned: () => S.svc.cafeteria },
   { k: 'relay', label: 'RELAIS COLIS', color: '#e67e22', owned: () => S.svc.relay },
 ];
@@ -2269,12 +2280,13 @@ $('#modalBody').addEventListener('click', (e) => {
   } else if (act === 'buy') {
     const u = UPGRADES.find((x) => x.id === key);
     if (upState(u) !== 'ok') return;
+    const name = u.name; // avant l'achat : nom du niveau acheté (supérette)
     S.budget -= u.cost(u.level());
     u.buy();
     S.today.bought[u.id] = true;
     resetNeed();
     rebuild();
-    toast(`${u.icon} ${u.name} : c'est fait !`, 'good');
+    toast(`${u.icon} ${name} : c'est fait !`, 'good');
   }
   // le remplissage n'est payé qu'à minuit : il ne fait pas baisser le budget
   if (S.budget < before || act === 'refill') play({ buy: 'upgrade', hire: 'hire', fire: 'fire' }[act] ?? 'stock');
