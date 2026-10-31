@@ -560,7 +560,7 @@ function stepMinute() {
   if (hasExtra(h) && m > 0 && m <= 30) S.waitingExtra += S.plan.extras[h] / 30;
 
   if (S.shuttle && m % 30 === 0 && h >= 6 && h <= 22) {
-    cars.push({ kind: 'bus', len: 92, color: '#f5b82e', lane: 1, dir: 1, x: -100, speed: 110, stopAt: 600, wait: 2.5 });
+    cars.push({ kind: 'bus', len: 92, color: '#f5b82e', lane: 1, dir: 1, x: -100, speed: 110, stopAt: BUS_STOP_X, wait: 2.5 });
   }
 
   // la réception de l'hôtel enregistre les clients en file d'attente
@@ -981,6 +981,7 @@ const SIGNAL = { x: 26, y: 372 };
 const platX = () => PLATFORM_X[S.platform];
 const hotelTop = () => GF - S.hotel * FLOOR_H;
 const SHOP_TOP = 328;
+const BUS_STOP_X = 130; // arrêt de la navette, à gauche de la galerie de commerces
 const FRONTS = [
   ...['news', 'bakery', 'books', 'market', 'wc'].map((k) => ({ k, get label() { return shopAt(k).label; }, color: SHOPS[k].color, owned: () => S.shops[k] })),
   { k: 'cafeteria', label: 'CAFÉTÉRIA', color: '#b5432f', owned: () => S.svc.cafeteria },
@@ -1175,6 +1176,17 @@ function drawFront(g) {
   g.fillStyle = '#1b2540'; g.font = '700 12px system-ui, sans-serif';
   g.fillText('Gare  ➜', 182, 297);
 
+  // abribus de la navette, sur le trottoir : vitrage translucide pour voir le bus derrière
+  if (S.shuttle) {
+    const ax = BUS_STOP_X - 38, ay = Y.roadEnd + 14;
+    g.fillStyle = 'rgb(191 224 245 / .35)'; g.fillRect(ax, ay - 30, 76, 30);
+    g.fillStyle = '#3a404a'; g.fillRect(ax - 2, ay - 32, 4, 32); g.fillRect(ax + 74, ay - 32, 4, 32);
+    g.fillStyle = '#f5b82e'; g.beginPath(); g.roundRect(ax - 6, ay - 38, 88, 7, 3); g.fill();
+    g.fillStyle = '#7a5537'; g.fillRect(ax + 8, ay - 9, 28, 3);
+    g.fillStyle = '#fff'; g.beginPath(); g.roundRect(ax + 46, ay - 27, 22, 14, 3); g.fill();
+    g.font = '10px system-ui, sans-serif'; g.fillText('🚌', ax + 57, ay - 16);
+  }
+
   // signal de passage à niveau
   g.fillStyle = '#e9ecf1'; g.fillRect(SIGNAL.x - 2, SIGNAL.y - 26, 4, Y.platformEdge - SIGNAL.y + 26);
   g.strokeStyle = '#e9ecf1'; g.lineWidth = 4;
@@ -1301,7 +1313,11 @@ function updateCars(dt, t) {
     carTimer = (1 + Math.random() * 3) / (0.3 + peakFactor(t));
   }
   for (const c of cars) {
-    if (c.stopAt && c.x >= c.stopAt && c.wait > 0) { c.wait -= dt; continue; } // la navette marque l'arrêt
+    if (c.stopAt && c.x >= c.stopAt && c.wait > 0) { // la navette marque l'arrêt et dépose des voyageurs
+      if (!c.dropped) { c.dropped = true; spawnBusWalkers(); }
+      c.wait -= dt;
+      continue;
+    }
     c.x += c.dir * c.speed * dt;
   }
   for (let i = cars.length - 1; i >= 0; i--) if (cars[i].x < -120 || cars[i].x > W + 120) cars.splice(i, 1);
@@ -1527,6 +1543,13 @@ function spawnWalkers(special, type) {
     if (special) Object.assign(p, { shirt: pick(SUITS), pants: '#1b1f27', bag: true });
     walkers.push({ ...p, x: clamp(left + r() * (trainLen(type) - LOCO_W), platX() + 20, 1240), y: Y.platform + 14 + r() * 36,
       tx: !special && r() < 0.65 ? DOOR_X - 15 + r() * 30 : -30, speed: 40 + r() * 30, delay: r() * 1.5 });
+  }
+}
+// Voyageurs déposés par la navette : ils longent le trottoir jusqu'à la gare
+function spawnBusWalkers() {
+  for (let i = 0; i < 3 + rand(4); i++) {
+    walkers.push({ ...person(Math.random), x: BUS_STOP_X + 10 + rand(30), y: Y.roadEnd + 12 + rand(8),
+      tx: DOOR_X - 15 + rand(30), speed: 40 + rand(30), delay: i * 0.3 });
   }
 }
 function updateWalkers(dt) {

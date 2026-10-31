@@ -233,7 +233,15 @@ button.primary:hover { background: #255bb3; }
 .kv b { font-variant-numeric: tabular-nums; }
 .kv b.good { color: #6be38f; }
 .kv b.bad { color: #ff8a7a; }
-.overlay .stocks { display: grid; gap: 3px; padding: 6px 0 0; margin-top: 2px; border-top: 1px solid rgb(255 255 255 / .15); border-radius: 0; background: none; color: inherit; }
+/* jauges sur une seule ligne : l'encart reste au-dessus de la route et de l'arrêt de la navette */
+.overlay { grid-template-columns: 3fr 1fr; column-gap: 0; min-width: 250px; }
+.overlay > .kv { grid-column: 1 / -1; }
+.overlay .stocks .kv { flex: 1; gap: 4px; }
+.overlay .stocks + .stocks { padding-left: 8px; } /* filet continu sous les deux boutons */
+/* infobulle des jauges sous la ligne, au-dessus du bouton voisin (l'opacité au survol crée un contexte d'empilement) */
+.overlay .stocks:hover { position: relative; z-index: 6; }
+.overlay .stocks [data-tip]:is(:hover, .tip-open)::after { left: 0; top: calc(100% + 8px); translate: none; }
+.overlay .stocks { display: flex; gap: 8px; padding: 6px 0 0; margin-top: 2px; border-top: 1px solid rgb(255 255 255 / .15); border-radius: 0; background: none; color: inherit; }
 .overlay .stocks:hover { background: none; opacity: .85; }
 .overlay .stocks .bar { flex: 1; margin: 0; height: 7px; }
 .bar.low i { background: #ff6b5b; }
