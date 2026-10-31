@@ -69,8 +69,8 @@ const WEATHERS = {
 const SHELTER_SEATS = 60;
 // emplacements des abris le long du quai (bord gauche) ; le banc de même rang se place dessous
 const SHELTER_X = [1120, 980, 840], SHELTER_W = 110, BENCH_UNDER = 0.05;
-// Saisons d'une semaine : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
-const SEASON_DAYS = 7; // une saison par semaine, du lundi au dimanche
+// Saisons de 4 jours : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
+const SEASON_DAYS = 4; // une saison tous les 4 jours, indépendamment de la semaine
 const SEASONS = [
   { name: 'Printemps', icon: '🌸', weather: { sun: 0.4, cloud: 0.3, rain: 0.25, heat: 0.03, snow: 0.02 }, demand: 1, rooms: 1, commuters: 1 },
   { name: 'Été', icon: '🌻', weather: { sun: 0.6, cloud: 0.15, rain: 0.07, heat: 0.18, snow: 0 }, demand: 1.2, rooms: 1.5, commuters: 0.7 },
