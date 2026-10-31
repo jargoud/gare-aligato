@@ -311,13 +311,13 @@ const EVENTS = [
   { msg: `⚡ Panne de courant : réparation ${money(8000)}`, kind: 'bad', run: () => { S.budget -= 8000; } },
   { msg: '📰 Un journal vante la gare Aligato !', kind: 'good', run: () => { S.rep = Math.min(5, S.rep + 0.3); } },
   { msg: '🔨 Des vandales rôdent autour de la gare…', run: () => {
-    if (S.svc.security) toast('👮 L\'agent de sécurité a fait fuir les vandales', 'good');
-    else { S.budget -= VANDAL_COST; S.dirt = Math.min(100, S.dirt + 20); toast(`Vandalisme : ${money(VANDAL_COST)} de dégâts`, 'bad', 'upgrades'); }
+    if (S.svc.security) toast('👮 L\'agent de sécurité a fait fuir les vandales', 'good', null, 'good');
+    else { S.budget -= VANDAL_COST; S.dirt = Math.min(100, S.dirt + 20); toast(`Vandalisme : ${money(VANDAL_COST)} de dégâts`, 'bad', 'upgrades', 'bad'); }
   } },
   { msg: `✊ Grève des guichetiers pendant ${STRIKE_HOURS} heures : ils vendent deux fois moins de billets, les bornes fonctionnent`, kind: 'bad', run: () => { S.strike = S.minutes + STRIKE_HOURS * 60; S.today.struck = true; } },
   { msg: '🔍 Inspection sanitaire…', run: () => {
-    if (S.dirt > 50) { S.budget -= 25000; S.rep -= 0.4; toast(`Quai sale : amende de ${money(25000)}`, 'bad'); }
-    else toast('Quai impeccable : félicitations de l\'inspecteur', 'good');
+    if (S.dirt > 50) { S.budget -= 25000; S.rep -= 0.4; toast(`Quai sale : amende de ${money(25000)}`, 'bad', null, 'bad'); }
+    else toast('Quai impeccable : félicitations de l\'inspecteur', 'good', null, 'good');
   } },
 ];
 
@@ -620,15 +620,17 @@ function stepMinute() {
       const k = pick(Object.keys(PRODUCTS));
       if (!S.broken[k] && Math.random() < (S.svc.workshop ? 0.004 : 0.015)) {
         S.broken[k] = true;
-        toast(`⚠️ Un distributeur de ${PRODUCTS[k].name.toLowerCase()} est en panne : réparez-le`, 'bad', 'stocks');
+        toast(`⚠️ Un distributeur de ${PRODUCTS[k].name.toLowerCase()} est en panne : réparez-le`, 'bad', 'stocks', 'fault');
       }
     }
     if (!S.event && h >= 7 && h <= 20 && Math.random() < 0.05) {
       S.event = pick(EVENTS);
-      toast(S.event.msg, S.event.kind);
+      toast(S.event.msg, S.event.kind, null, S.event.kind);
       S.event.run?.();
     }
-    if (hasTrain(h)) exchange(h);
+    if (h === 6) play('rooster');
+    if (h === 21) play('owl');
+    if (hasTrain(h)) { play('jingle'); exchange(h); }
   }
   if (m === 30 && hasSpecial(h)) exchangeSpecial(h);
   if (m === 30 && hasExtra(h)) exchangeExtra(h);
@@ -643,7 +645,7 @@ function exchange(h) {
   const giveUp = delayed ? Math.round(S.waiting * (S.svc.welcome ? 0.05 : 0.15)) : 0; // les agents d'accueil rassurent
   const present = Math.round(S.waiting) - giveUp;
   S.lastDelay = giveUp / Math.max(1, present + giveUp);
-  if (delayed) toast(`🕒 Train de ${pad(h)}:00 en retard : ${giveUp} voyageur(s) abandonnent`, 'bad', 'upgrades');
+  if (delayed) toast(`🕒 Train de ${pad(h)}:00 en retard : ${giveUp} voyageur(s) ${S.svc.bus ? 'prennent le car de substitution' : 'abandonnent'}`, 'bad', 'upgrades', 'delay');
   const type = TRAIN_TYPES[S.plan.types[h]], seats = Math.round(seatsPerTrain() * type.seats);
   // fraudeurs : ils montent sans passer au guichet, rejoints par une partie des voyageurs restés sans billet
   const cheats = binom(present, fraudRate());
@@ -684,12 +686,14 @@ function exchange(h) {
   S.rep += (quality(S.lastMiss, exposure) - S.rep) * 0.06;
   floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
   if (walkins) play('tickets');
+  if (S.svc.piano && Math.random() < 0.25) play('piano');
   spawnWalkers(false, S.plan.types[h]);
   checkGoals();
 }
 
 // Train de renfort de la seconde voie : un régional de plus, sans incident ni fraude
 function exchangeExtra(h) {
+  play('jingle');
   const T = S.today, present = Math.round(S.waitingExtra), boarded = Math.min(present, seatsPerTrain(), ticketCap());
   S.waitingExtra = 0;
   S.boarding = boarded;
@@ -711,6 +715,7 @@ function exchangeExtra(h) {
 
 // Express des travailleurs : abonnés (pas de guichet), ils achètent mais ne dorment pas à l'hôtel
 function exchangeSpecial(h) {
+  play('jingle');
   const T = S.today, boarded = Math.min(Math.round(S.waitingCommuters), EXPRESS_SEATS);
   S.waitingCommuters = 0;
   S.boarding = boarded;
@@ -1910,14 +1915,20 @@ function render(now) {
 
 // ---------- Sons (Web Audio, sans fichier) ----------
 // Coupé par défaut ; le contexte audio n'est créé qu'après un geste du joueur (règles d'autoplay des navigateurs)
-const sound = { on: false, ctx: null, amb: null };
-try { sound.on = localStorage.getItem('aligato-sound') === '1'; } catch { /* stockage indisponible */ }
+const SOUND_CATS = { ambiance: 'Ambiance', tickets: 'Recettes', actions: 'Actions', night: 'Jour / nuit', announce: 'Annonces', events: 'Événements' };
+const sound = { on: false, cats: Object.fromEntries(Object.keys(SOUND_CATS).map((k) => [k, true])), ctx: null, amb: null };
+try {
+  // anciennes sauvegardes : '1' / '0' ; sinon objet { on, cats }
+  const saved = JSON.parse(localStorage.getItem('aligato-sound'));
+  if (saved?.cats) { sound.on = !!saved.on; Object.assign(sound.cats, saved.cats); } else sound.on = saved === 1;
+} catch { /* stockage indisponible ou absent */ }
 function audio() {
   if (sound.ctx) return sound.ctx;
   const a = (sound.ctx = new AudioContext());
   // ambiance : bruit blanc filtré très bas, comme le brouhaha lointain d'un hall de gare
   const buf = a.createBuffer(1, a.sampleRate * 3, a.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  sound.noise = buf;
   const src = a.createBufferSource(), lp = a.createBiquadFilter();
   src.buffer = buf;
   src.loop = true;
@@ -1930,49 +1941,126 @@ function audio() {
 }
 // l'ambiance se tait quand le jeu est en pause
 function ambience() {
-  if (sound.amb) sound.amb.gain.setTargetAtTime(sound.on && S.speed ? 0.06 : 0, sound.ctx.currentTime, 0.3);
+  if (sound.amb) sound.amb.gain.setTargetAtTime(sound.on && sound.cats.ambiance && S.speed ? 0.06 : 0, sound.ctx.currentTime, 0.3);
 }
-function tone(freq, start, dur, vol = 0.12, type = 'sine') {
-  const a = sound.ctx, o = a.createOscillator(), g = a.createGain(), t = a.currentTime + start;
-  o.type = type;
-  o.frequency.value = freq;
+function tone(freq, start, dur, vol = 0.12, type = 'sine', to = 0) {
+  const a = sound.ctx, g = a.createGain(), t = a.currentTime + start;
+  let o;
+  if (type === 'noise') { // bruit filtré autour de freq (chocs mécaniques)
+    const bp = a.createBiquadFilter();
+    o = a.createBufferSource();
+    o.buffer = sound.noise;
+    bp.type = 'bandpass';
+    bp.frequency.value = freq;
+    bp.Q.value = 0.8;
+    o.connect(bp).connect(g);
+  } else {
+    o = a.createOscillator();
+    o.type = type === 'curve' ? 'sine' : type;
+    o.frequency.setValueAtTime(freq, t);
+    if (to && type !== 'curve') o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    o.connect(g);
+  }
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g).connect(a.destination);
+  if (type === 'curve') {
+    for (const [dt, f, v] of to) { o.frequency.linearRampToValueAtTime(f, t + dt); g.gain.linearRampToValueAtTime(vol * v, t + dt); }
+  } else {
+    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  }
+  g.connect(a.destination);
   o.start(t);
   o.stop(t + dur);
 }
-// [fréquence, départ, durée, volume, forme d'onde]
+// une voix : la note, une copie désaccordée (chorus / battement) et son octave plus faible
+const voice = (f, t, d, v, to, type = 'sine') => [[f, t, d, v, type, to], [f * 1.015, t, d, v * 0.8, type, to * 1.015], [f * 2, t, d, v * 0.15, type, to * 2]];
+// hululements d'une hulotte relevés sur un enregistrement : [départ, [[temps, hauteur Hz, volume 0-1], …]], un point tous les 20 ms
+const OWL_HOOTS = [
+[0.02,[[0.0,306,0],[0.02,347,0.29],[0.04,368,0.41],[0.06,383,0.44],[0.08,360,0.44],[0.1,346,0.37],[0.12,363,0.23],[0.14,363,0.05],[0.16,363,0.03],[0.18,363,0]]],
+[0.36,[[0.0,345,0],[0.02,369,0.61],[0.04,401,0.87],[0.06,405,0.94],[0.08,371,0.85],[0.1,342,0.53],[0.12,357,0.25],[0.14,325,0.31],[0.16,356,0.68],[0.18,396,0.91],[0.2,412,0.98],[0.22,409,1],[0.24,399,0.94],[0.26,397,0.81],[0.28,404,0.71],[0.3,405,0.7],[0.32,404,0.71],[0.34,402,0.75],[0.36,392,0.71],[0.38,373,0.62],[0.4,351,0.51],[0.42,358,0.31],[0.44,358,0.05],[0.46,358,0.04],[0.48,358,0]]],
+[1.12,[[0.0,341,0],[0.02,369,0.64],[0.04,407,0.82],[0.06,419,0.85],[0.08,412,0.89],[0.1,398,0.82],[0.12,376,0.66],[0.14,378,0.5],[0.16,393,0.55],[0.18,399,0.63],[0.2,399,0.64],[0.22,397,0.57],[0.24,384,0.49],[0.26,382,0.42],[0.28,374,0.36],[0.3,368,0.45],[0.32,365,0.54],[0.34,350,0.49],[0.36,368,0.27],[0.38,377,0.12],[0.4,377,0.1],[0.42,377,0.07],[0.44,377,0.06],[0.46,377,0.05],[0.48,377,0.04],[0.5,377,0]]],
+[1.70,[[0.0,348,0],[0.02,378,0.71],[0.04,411,0.86],[0.06,419,0.87],[0.08,413,0.9],[0.1,404,0.94],[0.12,386,0.82],[0.14,372,0.65],[0.16,367,0.63],[0.18,368,0.59],[0.2,364,0.59],[0.22,358,0.64],[0.24,354,0.57],[0.26,331,0.39],[0.28,358,0.11],[0.3,358,0.09],[0.32,350,0.11],[0.34,350,0.09],[0.36,350,0.07],[0.38,350,0]]],
+];
+// chant de coq relevé sur un enregistrement : trois partiels (≈ 700-900 Hz, ≈ 1100 Hz, ≈ 1400-1600 Hz), une mesure [Hz, volume 0-99] toutes les 20 ms
+const ROOSTER = [
+[[780,0],[593,7],[720,7],[708,8],[715,10],[737,10],[752,11],[838,12],[616,17],[629,15],[615,6],[615,0],[615,0],[615,0],[615,0],[615,0],[710,6],[724,39],[795,57],[845,53],[910,19],[887,31],[785,99],[727,82],[730,27],[730,5],[614,9],[733,45],[772,76],[786,88],[782,96],[774,91],[767,89],[767,96],[759,87],[746,81],[734,77],[732,55],[716,66],[759,46],[736,49],[743,28],[781,9],[754,8],[706,6],[731,14],[728,13],[566,7],[562,8],[686,14],[717,48],[725,58],[718,50],[721,55],[712,55],[710,43],[710,44],[716,41],[714,40],[713,39],[707,37],[706,36],[708,35],[713,35],[717,35],[716,34],[714,32],[714,31],[711,30],[708,30],[707,30],[707,30],[708,29],[708,29],[710,30],[709,28],[705,27],[704,26],[702,27],[702,25],[705,25],[703,25],[703,25],[701,23],[703,26],[700,24],[698,25],[703,24],[717,32],[703,24],[703,23],[696,24],[693,23],[686,22],[685,25],[686,21],[711,41],[713,36],[710,34],[706,36],[704,35],[689,34],[638,17],[725,4],[725,0]],
+[[1150,0],[1203,5],[1203,0],[1203,0],[1203,0],[1147,8],[1119,18],[1132,20],[1209,24],[1249,21],[1154,18],[1105,12],[1105,0],[1105,0],[1105,0],[1105,0],[1105,0],[1283,5],[1283,0],[1283,0],[1283,0],[1283,0],[1283,0],[1214,6],[1091,4],[1091,0],[1224,11],[1243,13],[1243,0],[1243,0],[1243,0],[1243,0],[1115,3],[1115,0],[1115,0],[1164,10],[1157,8],[1084,6],[1086,8],[1223,11],[1078,27],[1099,39],[1076,41],[1122,35],[1101,16],[1097,28],[1096,31],[1123,38],[1120,31],[1175,23],[1226,11],[1249,4],[1222,5],[1212,5],[1205,3],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1205,0],[1296,3],[1296,0],[1296,4],[1296,3],[1296,0],[1296,0],[1296,0],[1296,0],[1294,9],[1294,0],[1294,0]],
+[[1521,6],[1521,0],[1423,13],[1413,16],[1422,15],[1468,16],[1502,12],[1483,21],[1424,17],[1447,11],[1450,12],[1495,5],[1502,3],[1502,0],[1502,0],[1502,0],[1506,7],[1448,27],[1599,31],[1790,33],[1813,71],[1829,91],[1531,47],[1499,17],[1473,7],[1473,0],[1465,12],[1482,42],[1547,57],[1570,60],[1564,61],[1545,72],[1523,80],[1533,81],[1517,82],[1490,77],[1459,69],[1472,66],[1476,74],[1472,97],[1450,61],[1471,30],[1444,21],[1490,28],[1489,44],[1415,34],[1451,28],[1687,8],[1683,11],[1447,37],[1419,40],[1450,40],[1436,49],[1438,48],[1424,51],[1417,60],[1422,61],[1433,61],[1429,61],[1425,61],[1414,63],[1412,64],[1415,67],[1427,68],[1433,64],[1433,61],[1427,60],[1428,60],[1422,60],[1417,60],[1414,61],[1415,61],[1415,61],[1416,60],[1419,57],[1417,58],[1410,58],[1408,56],[1404,53],[1405,53],[1411,52],[1407,51],[1407,50],[1402,50],[1406,50],[1398,51],[1397,55],[1402,51],[1435,40],[1406,53],[1405,60],[1393,61],[1385,60],[1372,58],[1371,58],[1369,55],[1417,29],[1424,27],[1420,30],[1412,30],[1408,26],[1394,11],[1359,12],[1603,10],[1603,0]],
+];
+// [fréquence, départ, durée, volume, forme d'onde, fréquence finale (glissando)] ; forme 'curve' : le dernier champ est une liste [temps, Hz, volume]
 const SFX = {
-  tickets: [[2093, 0, 0.12, 0.05], [2637, 0.06, 0.3, 0.05]], // pièces discrètes à chaque recette de billets
+  // caisse enregistreuse, calée sur la mesure d'un enregistrement : cliquetis du mécanisme, frappe de clochette (2100 Hz + partiels
+  // inharmoniques à ×2,3 et ×3,5), puis claquement du tiroir qui refait sonner la clochette
+  tickets: [
+    [5000, 0.05, 0.03, 0.1, 'noise'], [4500, 0.08, 0.03, 0.12, 'noise'], [5000, 0.11, 0.03, 0.12, 'noise'], // cliquetis
+    [2100, 0.13, 0.15, 0.04, 'sine'], [2100, 0.13, 1.3, 0.03, 'sine'], [4800, 0.13, 0.3, 0.025, 'sine'], [7450, 0.13, 0.15, 0.009, 'sine'], // clochette
+    [5500, 0.44, 0.1, 0.28, 'noise'], [2100, 0.45, 0.5, 0.02, 'sine'], [4800, 0.45, 0.15, 0.01, 'sine'], // claquement du tiroir
+  ],
   // actions du joueur
   upgrade: [[523, 0, 0.3, 0.09, 'triangle'], [659, 0.1, 0.3, 0.09, 'triangle'], [784, 0.2, 0.3, 0.09, 'triangle'], [1047, 0.3, 0.9, 0.09, 'triangle']], // petite fanfare
   hire: [[587, 0, 0.3, 0.09, 'triangle'], [880, 0.12, 0.6, 0.09, 'triangle']], // deux notes montantes
   fire: [[440, 0, 0.3, 0.08, 'triangle'], [294, 0.15, 0.7, 0.08, 'triangle']], // deux notes descendantes
+  piano: [[523, 0, 0.6, 0.05, 'triangle'], [659, 0.25, 0.6, 0.05, 'triangle'], [784, 0.5, 0.9, 0.05, 'triangle']], // arpège de piano
   stock: [[1319, 0, 0.15, 0.08, 'triangle'], [1976, 0.07, 0.4, 0.08, 'triangle']], // tintement de caisse
+  // jour / nuit
+  rooster: ROOSTER.map((frames) => [0, 0, frames.length * 0.02, 0.07, 'curve', frames.map(([f, a], i) => [i * 0.02, f, a / 99])]), // trois sinus qui suivent la mesure
+  owl: OWL_HOOTS.map(([start, pts]) => [0, start, pts.at(-1)[0], 0.09, 'curve', pts]), // sinus pur, hauteur et volume suivent la mesure
+  // annonces
+  jingle: [[659, 0, 0.3, 0.07, 'triangle'], [523, 0.22, 0.3, 0.07, 'triangle'], [784, 0.44, 0.3, 0.07, 'triangle'], [659, 0.66, 0.7, 0.07, 'triangle']], // arrivée d'un train
+  // événements
+  good: [[784, 0, 0.15, 0.07, 'triangle'], [1047, 0.1, 0.45, 0.07, 'triangle']],
+  bad: [[262, 0, 0.25, 0.07, 'triangle'], [196, 0.15, 0.5, 0.07, 'triangle']],
+  delay: [[440, 0, 0.25, 0.08, 'triangle'], [440, 0.3, 0.25, 0.08, 'triangle'], [330, 0.6, 0.7, 0.08, 'triangle']],
+  fault: [[180, 0, 0.15, 0.05, 'square'], [180, 0.2, 0.15, 0.05, 'square'], [140, 0.4, 0.4, 0.05, 'square']],
 };
-const play = (name) => { if (sound.on && sound.ctx?.state === 'running') SFX[name].forEach((n) => tone(...n)); };
+const SFX_CAT = { tickets: 'tickets', piano: 'ambiance', upgrade: 'actions', hire: 'actions', fire: 'actions', stock: 'actions', rooster: 'night', owl: 'night', jingle: 'announce', good: 'events', bad: 'events', delay: 'events', fault: 'events' };
+const play = (name) => { if (sound.on && sound.cats[SFX_CAT[name]] && sound.ctx?.state === 'running') SFX[name].forEach((n) => tone(...n)); };
 function soundButton() {
   $('#sound').textContent = sound.on ? '🔊' : '🔇';
-  $('#sound').dataset.tip = sound.on ? 'Couper le son' : 'Activer le son';
+  $('#sound').dataset.tip = 'Réglages du son';
   $('#sound').ariaLabel = $('#sound').dataset.tip;
 }
-function setSound(on) {
-  sound.on = on;
+function setSound() {
   soundButton();
-  try { localStorage.setItem('aligato-sound', on ? '1' : '0'); } catch { /* stockage indisponible */ }
-  if (on) audio().resume();
+  try { localStorage.setItem('aligato-sound', JSON.stringify({ on: sound.on, cats: sound.cats })); } catch { /* stockage indisponible */ }
+  if (sound.on) audio().resume();
   ambience();
 }
+// panneau : interrupteur général + une case par catégorie
+const SOUND_PREVIEW = { ambiance: 'piano', tickets: 'tickets', actions: 'upgrade', night: ['rooster', 'owl'], announce: 'jingle', events: 'good' };
+const soundPanel = $('#soundPanel');
+// preview : son joué quand on coche la case (pas quand on la décoche) ; une liste est jouée en alternance
+const soundBox = (label, checked, onchange, preview) => {
+  let n = 0;
+  const l = document.createElement('label'), c = document.createElement('input');
+  c.type = 'checkbox';
+  c.checked = checked;
+  c.onchange = () => {
+    onchange(c.checked);
+    setSound();
+    soundPanel.classList.toggle('off', !sound.on);
+    if (c.checked && sound.on && preview) audio().resume().then(() => play(Array.isArray(preview) ? preview[n++ % preview.length] : preview));
+  };
+  l.append(c, ` ${label}`);
+  return l;
+};
+soundPanel.append(soundBox('Son', sound.on, (v) => (sound.on = v)), ...Object.entries(SOUND_CATS).map(([k, label]) => soundBox(label, sound.cats[k], (v) => (sound.cats[k] = v), SOUND_PREVIEW[k])));
+soundPanel.classList.toggle('off', !sound.on);
+soundPanel.firstChild.classList.add('master');
+soundPanel.addEventListener('beforetoggle', (e) => {
+  if (e.newState !== 'open') return;
+  const r = $('#sound').getBoundingClientRect();
+  soundPanel.style.cssText = `right:${innerWidth - r.right}px;bottom:${innerHeight - r.top + 8}px`;
+});
 soundButton();
-$('#sound').onclick = () => setSound(!sound.on);
 // son mémorisé : il reprend au premier clic ou à la première touche
-for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (sound.on) setSound(true); }, { once: true });
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (sound.on) setSound(); }, { once: true });
 
 // ---------- Interface ----------
 // view : fenêtre ouverte au clic sur la notification
-function toast(msg, kind = '', view = null) {
+// sfx : son joué avec la notification, réservé aux événements (les alertes répétées restent silencieuses)
+function toast(msg, kind = '', view = null, sfx = null) {
+  if (SFX[sfx]) play(sfx);
   const box = $('#toasts'), el = document.createElement('div');
   el.className = `toast ${kind}`;
   el.textContent = msg;

@@ -324,3 +324,8 @@ button.link:hover:not(:disabled) { background: none; color: #1d4ea8; }
 .coach div { display: flex; align-items: center; gap: 10px; }
 .coach small { flex: 1; color: var(--muted); }
 .coach-target { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 12px; }
+
+#soundPanel { position: fixed; inset: auto; margin: 0; padding: 10px 14px; border: 0; border-radius: 12px; background: var(--card); color: var(--ink); box-shadow: 0 4px 16px rgb(0 0 0 / .4); font-size: 14px; }
+#soundPanel label { display: block; padding: 3px 0; cursor: pointer; }
+#soundPanel .master { font-weight: 700; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 255 255 / .15); }
+#soundPanel.off label:not(.master) { opacity: .45; }
