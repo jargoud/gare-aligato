@@ -7,22 +7,49 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Ajouté
 
+- **Extension des commerces** : commerces, cafétéria et relais colis sont regroupés dans un seul bâtiment en briques collé à la gare,
+  plus large à chaque enseigne et plus haut à 3 puis 5 (une porte, une enseigne et une icône par commerce) ; les toilettes sont
+  une porte annexe sur son côté ; des passants entrent et sortent des commerces.
+- **Chômage technique** : serveurs, baristas, personnel d'hôtel ou guichetiers inactifs quand leur équipement est fermé
+  ou en grève, signalés dans la fenêtre Personnel (salaire toujours payé).
 - **Supérette à 3 niveaux** : épicerie (objectif 5), supérette (objectif 6) et supermarché (objectif 7), avec un loyer
   croissant ; chaque niveau reprend une part de la demande de repas.
-- **Campagnes de publicité** (objectif 7) : journal, radio ou télévision, pour plus de clientèle le lendemain seulement.
+- **Campagnes de publicité** (objectif 7) : journal, radio ou télévision, achetées le soir pour plus de clientèle
+  pendant la journée qui commence seulement.
 - **Défis de fréquentation** à 15 000 et 20 000 voyageurs en une journée.
 - **Nouveaux services** : piano du hall, car de substitution en cas de retard ou de grève (objectif 4),
   salle d'attente climatisée (objectif 5).
 - **Petits travaux** imprévus de quelques heures qui ferment un équipement, dès l'objectif 2.
 - **Arrêt de la navette** visible (abribus) ; les voyageurs qu'elle dépose rejoignent la gare à pied.
-- **Sons** : chant du coq, hululement du hibou, jingle d'arrivée des trains, piano, sons des événements ;
+- **Sons** : chant du coq, hululement du hibou, jingle d'arrivée des trains, sons des événements ;
   panneau de réglages avec une case par catégorie.
 - **Mobile** : mise en page adaptée aux petits écrans, infobulles au toucher, invite à passer en paysage.
+- **Chantiers d'amélioration** : un achat est livré après un temps de construction proportionnel à son prix (2 h minimum),
+  avec des barrières « TRAVAUX » à l'emplacement de l'ouvrage et un état « 🚧 Fin jour N à H h » dans la liste.
+  Seules les vraies constructions en ont ; matériel et services (wifi, piano, bornes, wagons…) s'installent en 1 h.
+- **Onglet « 🌙 Fin de journée »** : le bilan du soir reste consultable en premier onglet tant que la journée suivante
+  n'a pas commencé ; le jeu reste en pause jusqu'au bouton « Commencer le jour N ».
+- **Voyageurs animés** : les nouveaux voyageurs sortent de la gare ou des commerces et marchent jusqu'à leur place sur le
+  quai ; les portes coulissantes s'ouvrent à leur passage.
 
 ### Modifié
 
+- **Onglets réordonnés** : Bilan, Objectifs, Améliorations, Tarifs, Personnel, Stocks (dans les fenêtres et la barre du bas).
+- **Liste des améliorations** triée par objectif requis, puis par prix.
+- **Prix du soir** : changer le prix du billet en fin de journée recalcule les voyageurs prévus de la journée qui commence.
+- **Alertes de personnel en journée supprimées** : l'effectif ne change plus qu'en fin de journée, où le bilan conseille.
+- **Piano du hall** : en ombre chinoise derrière une fenêtre de la gare, avec des notes de musique qui s'élèvent quand
+  quelqu'un en joue, au lieu d'un son.
+- **Goodies renommés « Souvenirs »** (les sauvegardes restent compatibles).
+- **Objectif atteint** : fanfare plus longue (catégorie sonore « Événements ») et cotillons sur la notification.
+- **Achats et personnel en fin de journée** : améliorations, embauches et licenciements ne se font qu'en fin de journée
+  (« 🌙 Ce soir » en journée) ; les tarifs (billets et chambres) sont aussi figés en journée. Les stocks restent modifiables
+  à tout moment.
+- **Panneau « Début de journée »** : à chaque nouvelle partie, les tarifs (billets et chambres) se règlent avant l'ouverture
+  du jour 1, avec accès aux autres onglets.
 - **Départ moins difficile** : Wi-Fi, piano du hall et ligne téléphonique sont disponibles dès le début pour aider à
   atteindre l'objectif 1.
+- **Objectif 2 abaissé à 10 clients à l'hôtel** : 12 imposait un hôtel plein, souvent atteint seulement le premier samedi.
 - **Progression plus lente** : objectifs relevés d'environ 25 %, améliorations 25 % plus chères, budget de départ
   ramené à 30 000 €.
 - **Saisons de 4 jours**, indépendantes de la semaine.

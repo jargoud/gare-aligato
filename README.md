@@ -31,15 +31,18 @@ pour devenir une **Légende du rail**.
 
 ### Première partie
 
-Une visite guidée de 7 étapes présente l'écran (objectif, état de la gare, tarifs, personnel, stocks, améliorations, note).
+Une visite guidée de 7 étapes présente l'écran (objectif, état de la gare, améliorations, tarifs, personnel, stocks, note).
 Elle ne s'affiche qu'une fois ; « Passer » la ferme.
+Ensuite, le panneau **Début de journée** permet de régler les tarifs avant l'ouverture du premier jour.
 
 ### Une journée
 
 - Un train s'arrête toutes les heures, de 5 h à 23 h. Les voyageurs s'accumulent sur le quai pendant l'heure qui précède.
 - À vitesse 1×, une journée dure environ 10 minutes. Boutons ⏸ 1× 2× 4× en bas, ou la barre **Espace** pour mettre en pause.
-- **À minuit**, les frais du jour sont payés et un panneau de fin de journée s'ouvre : résumé, objectifs, prévisions du
-  lendemain et conseils.
+- **À minuit**, les frais du jour sont payés et le jeu s'arrête sur le panneau **🌙 Fin de journée** : résumé, objectifs,
+  prévisions du lendemain et conseils. C'est le moment de régler les prix, d'embaucher et d'acheter des améliorations.
+  Le bilan reste accessible en premier onglet pendant qu'on passe d'une fenêtre à l'autre ; le bouton
+  « Commencer le jour N ▶ » lance la journée suivante.
 - La fenêtre **Bilan** montre aussi l'historique des 14 derniers jours : budget, résultat, voyageurs et appréciation
   (survolez un point ou une barre pour la valeur).
 
@@ -56,7 +59,8 @@ La partie commence un lundi.
 
 ### Les voyageurs
 
-Le nombre de voyageurs de la journée est fixé à minuit et reste stable. Il dépend de deux choses :
+Le nombre de voyageurs de la journée est fixé à minuit (et recalculé si le prix du billet change en fin de journée),
+puis reste stable. Il dépend de deux choses :
 
 - **la clientèle attirée** : plus le billet est bon marché et la gare appréciée, plus il y a de monde.
   Ligne téléphonique, navette, parking et agrandissements de la gare en attirent davantage ;
@@ -64,8 +68,8 @@ Le nombre de voyageurs de la journée est fixé à minuit et reste stable. Il d�
 
 Si la gare est **saturée**, montez le prix (vous gagnez plus sans perdre beaucoup de voyageurs) ou agrandissez-la.
 Un billet moins cher attire plus de monde mais rapporte moins par voyageur : la fenêtre **Tarifs** indique le résultat
-prévu et le **billet le plus rentable** pour le lendemain, et le bilan du soir conseille de s'en rapprocher.
-Un changement de prix compte pour le lendemain.
+prévu et le **billet le plus rentable** pour la journée à venir, et le bilan du soir conseille de s'en rapprocher.
+Les prix ne se règlent qu'**en fin de journée** et restent fixes toute la journée.
 
 ### Le personnel
 
@@ -79,13 +83,14 @@ Un changement de prix compte pour le lendemain.
 | ☕ Baristas (terrasse du café) | 600 cafés par jour chacun au-delà des 600 du comptoir | — |
 
 La fenêtre **Personnel** donne l'effectif conseillé pour aujourd'hui et pour demain (10 au maximum par métier).
-Embaucher coûte 5 000 €, licencier coûte 8 000 € d'indemnités.
+Embaucher coûte 5 000 €, licencier coûte 8 000 € d'indemnités. Embauches et licenciements ne se font qu'**en fin de journée** ; l'effectif reste ensuite le même toute la journée.
+Quand leur équipement est fermé (petits travaux, étage d'hôtel en rénovation) ou en cas de grève, les employés concernés sont en **chômage technique** : ils ne produisent rien mais leur salaire est payé.
 
 ### L'écran principal
 
 En haut : budget, jour et heure, appréciation, voyageurs du jour, objectif en cours.
 Sur la scène, en haut à gauche : voyageurs **à quai**, clients **en attente d'une chambre**, part de **clients satisfaits**
-et niveau des trois stocks (un clic ouvre la fenêtre Stocks). Toutes les actions passent par les boutons du bas.
+et niveau des trois stocks (un clic ouvre la fenêtre Stocks). La ligne **🚧 Travaux** apparaît pendant un chantier ou de petits travaux. Toutes les actions passent par les boutons du bas.
 
 ### L'hôtel
 
@@ -94,13 +99,13 @@ et sont enregistrés au rythme du personnel d'hôtel et des bornes de check-in. 
 allumées en soirée et éteintes la nuit. Si l'hôtel est plein, ils repartent ;
 ceux qui attendent encore à minuit aussi.
 
-Le **prix des chambres** se règle dans la fenêtre **Tarifs** (de 50 % à 200 % du tarif de base) et agit tout de suite :
+Le **prix des chambres** se règle dans la fenêtre **Tarifs** (de 50 % à 200 % du tarif de base), en fin de journée :
 plus cher, moins de clients mais plus de recette par chambre. La fenêtre indique les demandes prévues et le prix le plus
 rentable ; quand l'hôtel est plein, montez-le.
 
 ### Stocks et distributeurs
 
-Chaque visiteur peut acheter un ☕ café, un 🥪 repas ou un 🎁 goodies dans les distributeurs automatiques.
+Chaque visiteur peut acheter un ☕ café, un 🥪 repas ou un 🎁 souvenir dans les distributeurs automatiques.
 Un distributeur vide (écran rouge) fait des clients mécontents. Dans la fenêtre **Stocks** :
 
 - **Remplir** un type de distributeur à tout moment (le réapprovisionnement est payé à minuit) ;
@@ -108,7 +113,7 @@ Un distributeur vide (écran rouge) fait des clients mécontents. Dans la fenêt
 - activer ou non le **remplissage automatique** chaque nuit.
 
 La fenêtre indique aussi la part servie avant les distributeurs par le café du quai, la cafétéria et la boutique
-(200 goodies par jour dès l'agrandissement de la gare).
+(200 souvenirs par jour dès l'agrandissement de la gare).
 
 ### Clients satisfaits et appréciation (★)
 
@@ -127,12 +132,13 @@ Elle baisse vite si des voyageurs restent sans billet.
 ### Objectifs et améliorations
 
 Chaque objectif atteint débloque de nouvelles améliorations, toutes visibles dans le décor.
-On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exemple un seul niveau de bancs) :
+Les achats ne se font qu'**en fin de journée**, dans la fenêtre Améliorations, et on ne peut acheter qu'**un niveau de chaque amélioration par soir** (par exemple un seul niveau de bancs).
+L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (quais, abris, hôtel, commerces, parking, gare…) demande un **chantier** : environ 1 heure par 8 000 € (2 heures minimum, 10 000 € → 2 h, 100 000 € → 13 h, 500 000 € → 2,6 jours), à partir de minuit. Des barrières « TRAVAUX » signalent le chantier, qui s'ajoute à l'encart « 🚧 Travaux » ; le matériel et les services (wifi, piano, bornes, wagons, bancs…) ne demandent qu'**1 h d'installation**, sans barrières ; les publicités sont instantanées :
 
 | # | Objectif | Débloque |
 |---|---|---|
 | 1 | Transporter 2 500 voyageurs en une journée | Wagons, quai niveau 2, marchand de journaux |
-| 2 | Accueillir 12 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
+| 2 | Accueillir 10 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
 | 3 | Atteindre 3,6 ★ | Bornes de billets, boulangerie, cafétéria, gare nationale |
 | 4 | Transporter 3 750 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie, car de substitution |
 | 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, épicerie, salle d'attente climatisée |
@@ -140,7 +146,7 @@ On ne peut acheter qu'**un niveau de chaque amélioration par jour** (par exempl
 | 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, campagnes de publicité |
 | 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
-Les commerces (marchand de journaux, boulangerie, librairie, supérette) apparaissent le long de la route.
+Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria et le relais colis s'installent dans un bâtiment en briques collé à la gare, qui s'élargit à chaque enseigne et gagne un étage à 3 puis 5 ; les toilettes sont une porte annexe sur son côté. Des passants y entrent et en sortent.
 Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La supérette grandit en trois niveaux :
 **épicerie** (objectif 5), **supérette** (objectif 6) puis **supermarché** (objectif 7), avec un loyer et une appréciation
 plus élevés à chaque niveau ; chaque niveau retire aussi 5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien
@@ -152,19 +158,19 @@ Le bouton 🔇 / 🔊 en bas à droite ouvre les réglages du son : un interrupt
 
 | Catégorie | Sons |
 |---|---|
-| Ambiance | Brouhaha discret du hall, piano du hall |
+| Ambiance | Brouhaha discret du hall |
 | Recettes | Caisse enregistreuse à chaque recette de billets |
 | Actions | Amélioration, embauche, licenciement, stocks et distributeurs |
 | Jour / nuit | Chant du coq à 6 h, hululement du hibou à 21 h |
 | Annonces | Jingle d'arrivée de chaque train |
-| Événements | Imprévus, train en retard, distributeur en panne |
+| Événements | Objectif atteint (fanfare), imprévus, train en retard, distributeur en panne |
 
 Le son est coupé par défaut ; les réglages sont gardés dans le navigateur.
 
 ### Interface
 
-Les fenêtres (tarifs, personnel, stocks, améliorations, objectifs, bilan) ont des onglets pour passer de l'une à
-l'autre sans les fermer.
+Les fenêtres (bilan, objectifs, améliorations, tarifs, personnel, stocks) ont des onglets pour passer de l'une à
+l'autre sans les fermer ; en fin de journée, l'onglet **🌙 Fin de journée** s'ajoute en premier.
 
 Le jeu se joue aussi **sur mobile**, de préférence en paysage : barre d'actions en icônes, fenêtres en plein écran,
 encart d'état replié (touchez-le pour le déplier) et infobulles affichées d'un toucher.
@@ -189,10 +195,11 @@ La **🚉 seconde voie** (après l'objectif 8) ajoute des trains de renfort à h
 
 Les plus hauts paliers demandent une gare entièrement développée, la seconde voie et un billet bon marché.
 
-Les **📣 campagnes de publicité** (objectif 7) donnent un coup de pouce d'un jour : achetées dans la fenêtre Améliorations,
-elles attirent plus de clientèle **le lendemain seulement**, dans la limite de la capacité de la gare. Une campagne par jour au plus.
+Les **📣 campagnes de publicité** (objectif 7) donnent un coup de pouce d'un jour : achetées en fin de journée dans la
+fenêtre Améliorations, elles attirent plus de clientèle **pendant la journée qui commence seulement**, dans la limite de la
+capacité de la gare. Une campagne par soir au plus.
 
-| Média | Prix | Clientèle du lendemain |
+| Média | Prix | Clientèle de la journée |
 |---|---|---|
 | 📰 Journal | 80 000 € | +15 % |
 | 📻 Radio | 200 000 € | +30 % |
@@ -232,7 +239,7 @@ Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc do
 ### Catégorie de la gare
 
 L'amélioration **🚄 Catégorie de la gare** fait passer la gare à un réseau plus large. Elle est achetée une fois par niveau
-et prend effet le lendemain.
+et prend effet à la fin de son chantier (environ 23 h pour la gare nationale, 2,6 jours pour la grande vitesse).
 
 | Catégorie | Conditions | Trains accueillis | Effets | Redevance |
 |---|---|---|---|---|
@@ -266,13 +273,13 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 🤝 Hôtel partenaire | 6 (hôtel de 4 étages) | Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre ; ils ne dînent pas à la gare |
 | 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
-| 🎹 Piano du hall | 0 | Piano en libre-service : appréciation +0,1 ; on l'entend parfois au passage d'un train |
+| 🎹 Piano du hall | 0 | Piano en libre-service, en ombre chinoise dans la salle d'attente : appréciation +0,1 ; des notes s'en élèvent quand quelqu'un en joue |
 | 🚌 Car de substitution | 4 | Les voyageurs qui abandonnent après un retard, et ceux restés sans billet pendant une grève, partent en car avec un billet à −30 % ; entretien 1 500 €/jour, triplé les jours de grève |
 | ❄️ Salle d'attente climatisée | 5 (salle d'attente) | Forte chaleur deux fois moins pénible pour tous les voyageurs, appréciation +0,1 |
 
 Chaque service coûte un entretien quotidien, visible dans la fenêtre Améliorations.
 Environ 35 % des clients préfèrent les distributeurs pour les cafés et les repas (plus rapides, moins chers) ; les autres vont
-d'abord à la cafétéria ou au café du quai. Chacun se rabat sur l'autre s'il est plein ou vide. La boutique sert les goodies en premier.
+d'abord à la cafétéria ou au café du quai. Chacun se rabat sur l'autre s'il est plein ou vide. La boutique sert les souvenirs en premier.
 
 ### Fraude et contrôleurs
 
