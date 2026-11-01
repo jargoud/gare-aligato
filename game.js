@@ -226,7 +226,7 @@ const ticketPrice = () => S.tarif * PRICE_PER_POINT;
 // Objectifs : chacun débloque de nouvelles améliorations (S.goal = nombre d'objectifs atteints)
 const GOALS = [
   { text: 'Transporter 2 500 voyageurs en une journée', value: () => S.today.passengers, target: 2500, unlocks: 'Wagons · Agrandir le quai · Marchand de journaux · Agent de sécurité' },
-  { text: 'Accueillir 12 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 12, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
+  { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
   { text: 'Atteindre une appréciation de 3,6 ★', value: () => S.rep, target: 3.6, unlocks: 'Bornes de billets · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
   { text: 'Transporter 3 750 voyageurs en une journée', value: () => S.today.passengers, target: 3750, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis · Car de substitution' },
   { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Épicerie · Grande salle d\'attente · Salle d\'attente climatisée' },
