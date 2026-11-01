@@ -146,7 +146,7 @@ L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (
 | 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, campagnes de publicité |
 | 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
-Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria et le relais colis s'installent dans un bâtiment en briques collé à la gare, qui s'élargit à chaque enseigne et gagne un étage à 3 puis 5 ; les toilettes sont une porte annexe sur son côté. Des passants y entrent et en sortent.
+Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria et le relais colis s'installent dans un bâtiment en briques collé à la gare, qui s'élargit à chaque enseigne et gagne un étage à 3 puis 5 ; les toilettes sont une porte annexe sur son côté, sous le même toit tant que les commerces sont de plain-pied, avec leur propre toit ensuite. Des passants y entrent et en sortent.
 Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La supérette grandit en trois niveaux :
 **épicerie** (objectif 5), **supérette** (objectif 6) puis **supermarché** (objectif 7), avec un loyer et une appréciation
 plus élevés à chaque niveau ; chaque niveau retire aussi 5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien

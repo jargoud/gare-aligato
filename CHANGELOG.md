@@ -9,7 +9,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 - **Extension des commerces** : commerces, cafétéria et relais colis sont regroupés dans un seul bâtiment en briques collé à la gare,
   plus large à chaque enseigne et plus haut à 3 puis 5 (une porte, une enseigne et une icône par commerce) ; les toilettes sont
-  une porte annexe sur son côté ; des passants entrent et sortent des commerces.
+  une porte annexe sur son côté, sous le même toit tant que les commerces sont de plain-pied, avec leur propre toit
+  ensuite ; des passants entrent et sortent des commerces.
 - **Chômage technique** : serveurs, baristas, personnel d'hôtel ou guichetiers inactifs quand leur équipement est fermé
   ou en grève, signalés dans la fenêtre Personnel (salaire toujours payé).
 - **Supérette à 3 niveaux** : épicerie (objectif 5), supérette (objectif 6) et supermarché (objectif 7), avec un loyer

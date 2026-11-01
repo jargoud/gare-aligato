@@ -1342,19 +1342,34 @@ function drawFront(g) {
   const fronts = shopFronts();
   const exts = fronts.filter((f) => f.ext), annex = fronts.find((f) => f.annex), gTop = SHOP_TOP;
   const cornice = (x, w, y) => { g.fillStyle = '#e9dccb'; g.fillRect(x, y, w, 6); }; // même corniche que les étages de l'hôtel
+  // commerces de plain-pied : les toilettes partagent leur toit ; dès l'étage, l'annexe garde son propre toit
+  const joined = annex && exts.length && shopFloors(exts.length) === 1;
+  if (annex) { // toilettes (dessinées avant le toit commun qui les recouvre) : annexe de la hauteur du rez-de-chaussée, une porte et son icône
+    const { x, w, icon } = annex;
+    bricks(g, x, gTop - 6, w, bottom - gTop + 6, '#9c3d2a');
+    if (!joined) { // petit toit à un pan contre le mur des commerces plus hauts, comme eux contre la gare
+      g.fillStyle = '#3b3036'; g.beginPath(); g.moveTo(x - 4, gTop - 6); g.lineTo(x + w, gTop - 6); g.lineTo(x + w, gTop - 18); g.lineTo(x + 6, gTop - 18); g.fill();
+      g.fillStyle = '#54474e'; g.fillRect(x - 4, gTop - 8, w + 4, 3);
+    }
+    cornice(x, w, gTop - 6);
+    g.font = '14px system-ui, sans-serif';
+    g.fillText(icon, x + w / 2 + 3, gTop + 15); // décalé pour paraître centré sur la porte
+    g.fillStyle = '#26354f'; g.fillRect(x + 9, gTop + 20, 16, bottom - gTop - 20);
+  }
   if (exts.length) { // un seul bâtiment, une seule porte centrale, fenêtres espacées comme celles de la gare ; étages à 3 puis 5 commerces
     const n = exts.length, x0 = exts[0].x, wTot = n * EXT_SLOT, fl = shopFloors(n), top = gTop - (fl - 1) * FLOOR_H, dcx = x0 + wTot / 2;
+    const left = joined ? annex.x : x0, eave = fl === 1 ? top - 6 : top + 2; // bord gauche et bas du toit
     const m = Math.floor(wTot / 45), wx = Array.from({ length: m }, (_, k) => x0 + (wTot - m * 45) / 2 + 12 + k * 45);
     bricks(g, x0, top, wTot, bottom - top, '#b5432f');
     g.fillStyle = '#3b3036'; g.beginPath();
     if (top === hotelTop()) { // même hauteur que la gare : un seul toit continu
       g.moveTo(x0 - 16, top + 2); g.lineTo(MX + MW + 16, top + 2); g.lineTo(MX + MW - 24, top - 24); g.lineTo(x0 + 24, top - 24);
-    } else { // sinon toit à un pan qui s'appuie contre le mur de la gare
-      g.moveTo(x0 - 6, top + 2); g.lineTo(x0 + wTot, top + 2); g.lineTo(x0 + wTot, top - 14); g.lineTo(x0 + 10, top - 14);
+    } else { // sinon toit à un pan qui s'appuie contre le mur de la gare, au-dessus de la corniche quand il n'y a pas d'étage
+      g.moveTo(left - 6, eave); g.lineTo(x0 + wTot, eave); g.lineTo(x0 + wTot, eave - 16); g.lineTo(left + 10, eave - 16);
     }
     g.fill();
     g.fillStyle = '#54474e'; // gouttière comme celle de la gare
-    if (top === hotelTop()) g.fillRect(x0 - 16, top, MX - x0, 4); else g.fillRect(x0 - 6, top, wTot + 6, 4);
+    if (top === hotelTop()) g.fillRect(x0 - 16, top, MX - x0, 4); else g.fillRect(left - 6, eave - 2, x0 + wTot - left + 6, 4);
     for (let f = 1; f < fl; f++) {
       const fy = gTop - f * FLOOR_H;
       cornice(x0, wTot, fy + FLOOR_H - 6);
@@ -1373,16 +1388,6 @@ function drawFront(g) {
       while (g.measureText(txt).width > EXT_SLOT - 14 && fs > 4) g.font = `700 ${(fs -= 0.25)}px system-ui, sans-serif`; // marge de 3 px autour du texte
       g.fillText(txt, x + EXT_SLOT / 2, gTop + 2);
     }
-  }
-  if (annex) { // toilettes : annexe de la hauteur du rez-de-chaussée, une porte et son icône
-    const { x, w, icon } = annex;
-    bricks(g, x, gTop - 6, w, bottom - gTop + 6, '#9c3d2a');
-    g.fillStyle = '#3b3036'; g.beginPath(); g.moveTo(x - 4, gTop - 6); g.lineTo(x + w, gTop - 6); g.lineTo(x + w, gTop - 18); g.lineTo(x + 6, gTop - 18); g.fill(); // petit toit à un pan
-    g.fillStyle = '#54474e'; g.fillRect(x - 4, gTop - 8, w + 4, 3);
-    cornice(x, w, gTop - 6);
-    g.font = '14px system-ui, sans-serif';
-    g.fillText(icon, x + w / 2 + 3, gTop + 15); // décalé pour paraître centré sur la porte
-    g.fillStyle = '#26354f'; g.fillRect(x + 9, gTop + 20, 16, bottom - gTop - 20);
   }
 }
 
