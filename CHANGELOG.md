@@ -41,6 +41,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - **Alertes de personnel en journée supprimées** : l'effectif ne change plus qu'en fin de journée, où le bilan conseille.
 - **Piano du hall** : en ombre chinoise derrière une fenêtre de la gare, avec des notes de musique qui s'élèvent quand
   quelqu'un en joue, au lieu d'un son.
+- **Salle d'attente** : ses silhouettes occupent toutes les fenêtres du rez-de-chaussée de la gare, sauf celle du piano.
 - **Goodies renommés « Souvenirs »** (les sauvegardes restent compatibles).
 - **Objectif atteint** : fanfare plus longue (catégorie sonore « Événements ») et cotillons sur la notification.
 - **Achats et personnel en fin de journée** : améliorations, embauches et licenciements ne se font qu'en fin de journée

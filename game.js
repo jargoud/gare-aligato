@@ -1928,10 +1928,12 @@ function drawInsideDetails(inside) {
     ctx.fillStyle = '#fff'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✊ GRÈVE', DOOR_X, 335);
   }
   if (S.waitroom) {
-    const heads = Math.round((inside / WAITROOM[S.waitroom]) * 8);
+    // fenêtres du rez-de-chaussée (sauf la porte), moins celle du piano une fois acheté
+    const wins = [0, 1, 2, 4, 5, 6].filter((k) => !(S.svc.piano && k === 4));
+    const heads = Math.round((inside / WAITROOM[S.waitroom]) * wins.length * 4);
     ctx.fillStyle = 'rgb(40 32 36 / .8)';
     for (let i = 0; i < heads; i++) {
-      const wx = MX + 20 + (5 + Math.floor(i / 4)) * 45, hx = wx + 3 + (i % 4) * 5.5;
+      const wx = MX + 20 + wins[Math.floor(i / 4)] * 45, hx = wx + 3 + (i % 4) * 5.5;
       ctx.beginPath(); ctx.arc(hx, 357, 2.4, 0, Math.PI * 2); ctx.fill();
       ctx.fillRect(hx - 2.4, 359, 4.8, 5);
     }

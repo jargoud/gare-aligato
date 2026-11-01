@@ -273,7 +273,7 @@ Le type du prochain train s'affiche sur la scène (« 09:00 · TGV »).
 | 🤝 Hôtel partenaire | 6 (hôtel de 4 étages) | Les clients refusés faute de chambre sont envoyés en ville : 60 % acceptent le trajet, la gare touche 20 % du prix de la chambre ; ils ne dînent pas à la gare |
 | 🙋 Accueil voyageurs | 2 | Agents d'accueil : 5 % d'abandons au lieu de 15 % quand un train est en retard, 20 billets par train sur tablette (même en grève), la moitié des voyageurs sans billet attendent le train suivant s'il reste de la place à quai |
 | 💎 Salon 1re classe | 6 (gare nationale) | Billet double pour 10 % des voyageurs dès 4 ★ (3 % sinon) |
-| 🎹 Piano du hall | 0 | Piano en libre-service, en ombre chinoise dans la salle d'attente : appréciation +0,1 ; des notes s'en élèvent quand quelqu'un en joue |
+| 🎹 Piano du hall | 0 | Piano en libre-service, en ombre chinoise derrière une fenêtre du hall : appréciation +0,1 ; des notes s'en élèvent quand quelqu'un en joue |
 | 🚌 Car de substitution | 4 | Les voyageurs qui abandonnent après un retard, et ceux restés sans billet pendant une grève, partent en car avec un billet à −30 % ; entretien 1 500 €/jour, triplé les jours de grève |
 | ❄️ Salle d'attente climatisée | 5 (salle d'attente) | Forte chaleur deux fois moins pénible pour tous les voyageurs, appréciation +0,1 |
 
