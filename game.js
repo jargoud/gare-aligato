@@ -956,7 +956,7 @@ function checkGoals() {
   if (g && g.value() >= g.target) {
     S.goal++;
     S.today.goals.push(g);
-    toast(`🎯 Objectif atteint ! Débloqué : ${g.unlocks}`, 'goal');
+    toast(`🎯 Objectif atteint ! Débloqué : ${g.unlocks}`, 'goal', null, 'goal');
     if (S.goal === GOALS.length) toast('🏆 Vous êtes une Légende du rail ! Place aux défis de fréquentation.', 'goal');
   }
   const c = S.goal >= GOALS.length && CHALLENGES[S.challenge];
@@ -2007,6 +2007,8 @@ const SFX = {
   // actions du joueur
   upgrade: [[523, 0, 0.3, 0.09, 'triangle'], [659, 0.1, 0.3, 0.09, 'triangle'], [784, 0.2, 0.3, 0.09, 'triangle'], [1047, 0.3, 0.9, 0.09, 'triangle']], // petite fanfare
   hire: [[587, 0, 0.3, 0.09, 'triangle'], [880, 0.12, 0.6, 0.09, 'triangle']], // deux notes montantes
+  goal: [[523, 0, 0.2, 0.09, 'triangle'], [659, 0.12, 0.2, 0.09, 'triangle'], [784, 0.24, 0.2, 0.09, 'triangle'], [1047, 0.36, 0.2, 0.09, 'triangle'],
+    [784, 0.6, 0.15, 0.09, 'triangle'], [1047, 0.72, 0.15, 0.09, 'triangle'], [1319, 0.84, 1.1, 0.09, 'triangle'], [1047, 0.84, 1.1, 0.05, 'triangle']], // fanfare d'objectif
   fire: [[440, 0, 0.3, 0.08, 'triangle'], [294, 0.15, 0.7, 0.08, 'triangle']], // deux notes descendantes
   piano: [[523, 0, 0.6, 0.05, 'triangle'], [659, 0.25, 0.6, 0.05, 'triangle'], [784, 0.5, 0.9, 0.05, 'triangle']], // arpège de piano
   stock: [[1319, 0, 0.15, 0.08, 'triangle'], [1976, 0.07, 0.4, 0.08, 'triangle']], // tintement de caisse
@@ -2021,7 +2023,7 @@ const SFX = {
   delay: [[440, 0, 0.25, 0.08, 'triangle'], [440, 0.3, 0.25, 0.08, 'triangle'], [330, 0.6, 0.7, 0.08, 'triangle']],
   fault: [[180, 0, 0.15, 0.05, 'square'], [180, 0.2, 0.15, 0.05, 'square'], [140, 0.4, 0.4, 0.05, 'square']],
 };
-const SFX_CAT = { tickets: 'tickets', piano: 'ambiance', upgrade: 'actions', hire: 'actions', fire: 'actions', stock: 'actions', rooster: 'night', owl: 'night', jingle: 'announce', good: 'events', bad: 'events', delay: 'events', fault: 'events' };
+const SFX_CAT = { tickets: 'tickets', piano: 'ambiance', upgrade: 'actions', hire: 'actions', fire: 'actions', stock: 'actions', goal: 'events', rooster: 'night', owl: 'night', jingle: 'announce', good: 'events', bad: 'events', delay: 'events', fault: 'events' };
 const play = (name) => { if (sound.on && sound.cats[SFX_CAT[name]] && sound.ctx?.state === 'running') SFX[name].forEach((n) => tone(...n)); };
 function soundButton() {
   $('#sound').textContent = sound.on ? '🔊' : '🔇';
@@ -2072,6 +2074,14 @@ function toast(msg, kind = '', view = null, sfx = null) {
   const box = $('#toasts'), el = document.createElement('div');
   el.className = `toast ${kind}`;
   el.textContent = msg;
+  if (kind === 'goal') {
+    const colors = ['#f1c40f', '#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#ff8c42'];
+    for (let i = 0; i < 12; i++) {
+      const c = document.createElement('i');
+      c.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};animation-delay:${Math.random() * 0.6}s;--spin:${(Math.random() * 720 - 360) | 0}deg`;
+      el.append(c);
+    }
+  }
   if (view) {
     el.classList.add('action');
     el.onclick = () => openModal(view);

@@ -97,7 +97,10 @@ canvas { display: block; width: 100%; aspect-ratio: 1280 / 520; }
 }
 .toast.good { border-color: #2ecc71; }
 .toast.bad { border-color: #ff6b5b; }
-.toast.goal { border-color: var(--gold); font-weight: 600; }
+.toast.goal { border-color: var(--gold); font-weight: 600; position: relative; }
+.toast.goal i { position: absolute; top: 0; width: 6px; height: 10px; border-radius: 1px; pointer-events: none; animation: confetti 1.8s ease-in both; }
+@keyframes confetti { to { transform: translateY(70px) rotate(var(--spin)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast.goal i { display: none; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
 /* vitesse à gauche, actions au centre, son et nouvelle partie à droite */
