@@ -584,6 +584,8 @@ function stepMinute() {
   if (hasSpecial(h) && m > 10 && m <= 30) S.waitingCommuters += S.plan.commuters[h] / 20;
   if (hasExtra(h) && m > 0 && m <= 30) S.waitingExtra += S.plan.extras[h] / 30;
 
+  if (m % 20 === 0 && h >= 6 && h < 22) spawnShopWalkers();
+  if (m % 15 === 0 && h >= 5 && h < 23) spawnStationExits();
   if (S.shuttle && m % 30 === 0 && h >= 6 && h <= 22) {
     cars.push({ kind: 'bus', len: 92, color: '#f5b82e', lane: 1, dir: 1, x: -100, speed: 110, stopAt: BUS_STOP_X, wait: 2.5 });
   }
@@ -1031,14 +1033,47 @@ const WINDOWS = [];
 const SIGNAL = { x: 26, y: 372 };
 const platX = () => PLATFORM_X[S.platform];
 const hotelTop = () => GF - S.hotel * FLOOR_H;
-const SHOP_TOP = 328;
+const SHOP_TOP = GF; // les commerces ont la hauteur du rez-de-chaussée de la gare
+// Emplacement [x, pied] de la barrière d'un chantier : là où l'ouvrage apparaîtra
+const SHOP_OTHERS = ['wc', 'cafeteria', 'relay'];
+function shopSite(id) { // milieu de la façade que le commerce aura une fois livré (mêmes règles que shopFronts)
+  const ext = Object.keys(EXT_SHOPS).filter((k) => EXT_SHOPS[k].on() || buildOf(k) || k === id), x0 = (S.station >= 2 ? SHOP_X : MX) - ext.length * EXT_SLOT;
+  if (ext.includes(id)) return x0 + ext.indexOf(id) * EXT_SLOT + EXT_SLOT / 2;
+  const owned = (k) => (k === 'wc' ? S.shops.wc : S.svc[k]) || buildOf(k);
+  return x0 - (SHOP_OTHERS.slice(0, SHOP_OTHERS.indexOf(id)).filter(owned).length + 1) * EXT_SLOT + 31;
+}
+const buildSite = (id, i) => {
+  const g = Y.platform + 11, edge = 438, span = (1230 - platX() - 120) / 5, track = (k) => [platX() + 60 + k * span, edge];
+  if (id in EXT_SHOPS || SHOP_OTHERS.includes(id)) return [shopSite(id), g]; // sa future façade
+  return {
+    quai: track(0), wagon: track(1), comfort: track(2), barCar: track(3), category: track(4), track2: track(5),
+    shelters: [SHELTER_X[Math.min(S.shelters, 2)] + SHELTER_W / 2, 424], canopy: [PLATFORM_X[2] + 70, 424], benches: [520, 424],
+    waitroom: [MX + 280, g], hotel: [DOOR_X + 70, g], checkin: [DOOR_X + 34, g], kiosk: [MX - 30, g], phone: [DOOR_X - 40, g],
+    gare: [830, g], cafe: [758, g], wifi: [DOOR_X + 60, g], security: [700, g], piano: [DOOR_X - 20, g],
+  }[id] ?? [DOOR_X - 70 - i * 40, g];
+};
 const BUS_STOP_X = 130; // arrêt de la navette, à gauche de la galerie de commerces
-const FRONTS = [
-  ...['news', 'bakery', 'books', 'market', 'wc'].map((k) => ({ k, get label() { return shopAt(k).label; }, color: SHOPS[k].color, owned: () => S.shops[k] })),
-  { k: 'cafeteria', label: 'CAFÉTÉRIA', color: '#b5432f', owned: () => S.svc.cafeteria },
-  { k: 'relay', label: 'RELAIS COLIS', color: '#e67e22', owned: () => S.svc.relay },
-];
-const shopFronts = () => FRONTS.map((f, i) => ({ ...f, x: 230 + i * 68, w: 62 })).filter((f) => f.owned());
+const EXT_SLOT = 68, WC_W = 34; // largeur d'un commerce et de l'annexe des toilettes
+// commerces et services de l'extension, dans l'ordre d'apparition ; cafétéria et relais colis sont des services, hors de SHOPS
+const EXT_SHOPS = {
+  ...Object.fromEntries(['news', 'bakery', 'books', 'market'].map((k) => [k, { on: () => S.shops[k], label: () => shopAt(k).label, icon: SHOPS[k].icon, color: SHOPS[k].color }])),
+  cafeteria: { on: () => S.svc.cafeteria, label: () => 'CAFÉTÉRIA', icon: '🍽️', color: '#5d4037' },
+  relay: { on: () => S.svc.relay, label: () => 'RELAIS COLIS', icon: '📦', color: '#e67e22' },
+};
+const shopFloors = (n) => (n >= 5 ? 3 : n >= 3 ? 2 : 1); // l'extension prend un étage à 3 puis à 5 commerces
+// un seul bâtiment collé à la gare, de plus en plus large et haut ; les toilettes sont une porte annexe sur son côté gauche
+const shopFronts = () => {
+  const ks = Object.keys(EXT_SHOPS).filter((k) => EXT_SHOPS[k].on()), x0 = (S.station >= 2 ? SHOP_X : MX) - ks.length * EXT_SLOT;
+  const fronts = ks.map((k, i) => ({ k, ext: true, label: EXT_SHOPS[k].label(), icon: EXT_SHOPS[k].icon, color: EXT_SHOPS[k].color, x: x0 + i * EXT_SLOT, w: EXT_SLOT }));
+  if (S.shops.wc) fronts.push({ k: 'wc', annex: true, icon: SHOPS.wc.icon, x: x0 - WC_W, w: WC_W });
+  return fronts;
+};
+
+// les lampadaires situés devant l'emplacement du bâtiment des commerces disparaissent une fois celui-ci construit
+const lamps = () => {
+  const xs = shopFronts().map((f) => f.x), left = Math.min(...xs) - 20, right = S.station >= 2 ? SHOP_X : MX;
+  return LAMPS.filter((lx) => !xs.length || lx + 17 < left || lx >= right);
+};
 
 function layer(draw) {
   const c = document.createElement('canvas');
@@ -1213,7 +1248,7 @@ function drawFront(g) {
   g.fillStyle = '#3a404a'; g.fillRect(DOOR_X - 60, top - 34, 4, 12); g.fillRect(DOOR_X + 56, top - 34, 4, 12);
 
   // lampadaires
-  for (const lx of LAMPS) {
+  for (const lx of lamps()) {
     g.fillStyle = '#3a404a';
     g.fillRect(lx - 2, 300, 4, Y.roadEnd + 10 - 300);
     g.fillRect(lx - 2, 300, 18, 3);
@@ -1276,22 +1311,50 @@ function drawFront(g) {
 
   // galerie de commerces le long de la route
   const fronts = shopFronts();
-  for (const sh of fronts) {
-    const { x, w } = sh, top = SHOP_TOP, s = sh;
-    // mur de liaison avec le commerce voisin : la route ne se voit plus entre deux façades
-    if (fronts.some((o) => o.x === x + 68)) {
-      g.fillStyle = '#d9cfc0'; g.fillRect(x + w, top, 68 - w, Y.platform + 2 - top);
-      g.fillStyle = '#4a3a3e'; g.fillRect(x + w, top - 4, 68 - w, 5);
+  const exts = fronts.filter((f) => f.ext), annex = fronts.find((f) => f.annex), gTop = SHOP_TOP;
+  const cornice = (x, w, y) => { g.fillStyle = '#e9dccb'; g.fillRect(x, y, w, 6); }; // même corniche que les étages de l'hôtel
+  if (exts.length) { // un seul bâtiment, une seule porte centrale, fenêtres espacées comme celles de la gare ; étages à 3 puis 5 commerces
+    const n = exts.length, x0 = exts[0].x, wTot = n * EXT_SLOT, fl = shopFloors(n), top = gTop - (fl - 1) * FLOOR_H, dcx = x0 + wTot / 2;
+    const m = Math.floor(wTot / 45), wx = Array.from({ length: m }, (_, k) => x0 + (wTot - m * 45) / 2 + 12 + k * 45);
+    bricks(g, x0, top, wTot, bottom - top, '#b5432f');
+    g.fillStyle = '#3b3036'; g.beginPath();
+    if (top === hotelTop()) { // même hauteur que la gare : un seul toit continu
+      g.moveTo(x0 - 16, top + 2); g.lineTo(MX + MW + 16, top + 2); g.lineTo(MX + MW - 24, top - 24); g.lineTo(x0 + 24, top - 24);
+    } else { // sinon toit à un pan qui s'appuie contre le mur de la gare
+      g.moveTo(x0 - 6, top + 2); g.lineTo(x0 + wTot, top + 2); g.lineTo(x0 + wTot, top - 14); g.lineTo(x0 + 10, top - 14);
     }
-    g.fillStyle = '#efe6d8'; g.fillRect(x, top, w, Y.platform + 2 - top);
-    g.fillStyle = '#4a3a3e'; g.fillRect(x - 2, top - 4, w + 4, 5);
-    g.fillStyle = s.color; g.fillRect(x + 3, top + 3, w - 6, 11);
-    g.fillStyle = '#fff'; g.font = '700 7px system-ui, sans-serif'; g.fillText(s.label, x + w / 2, top + 11);
-    for (let j = 0; j < 6; j++) { g.fillStyle = j % 2 ? '#fff' : s.color; g.fillRect(x + (j * w) / 6, top + 16, w / 6, 7); }
-    windowAt(g, x + 6, top + 29, 28, 18);
-    g.fillStyle = '#26354f'; g.fillRect(x + 40, top + 28, 16, Y.platform + 2 - top - 28);
+    g.fill();
+    g.fillStyle = '#54474e'; // gouttière comme celle de la gare
+    if (top === hotelTop()) g.fillRect(x0 - 16, top, MX - x0, 4); else g.fillRect(x0 - 6, top, wTot + 6, 4);
+    for (let f = 1; f < fl; f++) {
+      const fy = gTop - f * FLOOR_H;
+      cornice(x0, wTot, fy + FLOOR_H - 6);
+      for (const x of wx) windowAt(g, x, fy + 8, 22, 24);
+    }
+    cornice(x0, wTot, gTop - 6);
+    for (const x of wx) if (Math.abs(x + 11 - dcx) > 37) windowAt(g, x, 340, 22, 24);
+    g.fillStyle = '#e9dccb'; g.fillRect(dcx - 26, 334, 52, bottom - 334);
+    g.fillStyle = '#26354f'; g.fillRect(dcx - 22, 338, 44, bottom - 338);
+    g.fillStyle = '#9fb4d3'; g.fillRect(dcx - 1, 338, 2, bottom - 338);
+    for (const { x, label, icon, color } of exts) { // enseignes alignées au bas du premier étage
+      g.fillStyle = color; g.fillRect(x + 4, gTop - 6, EXT_SLOT - 8, 10);
+      const txt = `${icon} ${label}`;
+      let fs = 6.5;
+      g.fillStyle = '#fff'; g.font = `700 ${fs}px system-ui, sans-serif`;
+      while (g.measureText(txt).width > EXT_SLOT - 14 && fs > 4) g.font = `700 ${(fs -= 0.25)}px system-ui, sans-serif`; // marge de 3 px autour du texte
+      g.fillText(txt, x + EXT_SLOT / 2, gTop + 2);
+    }
   }
-
+  if (annex) { // toilettes : annexe de la hauteur du rez-de-chaussée, une porte et son icône
+    const { x, w, icon } = annex;
+    bricks(g, x, gTop - 6, w, bottom - gTop + 6, '#9c3d2a');
+    g.fillStyle = '#3b3036'; g.beginPath(); g.moveTo(x - 4, gTop - 6); g.lineTo(x + w, gTop - 6); g.lineTo(x + w, gTop - 18); g.lineTo(x + 6, gTop - 18); g.fill(); // petit toit à un pan
+    g.fillStyle = '#54474e'; g.fillRect(x - 4, gTop - 8, w + 4, 3);
+    cornice(x, w, gTop - 6);
+    g.font = '14px system-ui, sans-serif';
+    g.fillText(icon, x + w / 2 + 3, gTop + 15); // décalé pour paraître centré sur la porte
+    g.fillStyle = '#26354f'; g.fillRect(x + 9, gTop + 20, 16, bottom - gTop - 20);
+  }
 }
 
 let back, front;
@@ -1463,7 +1526,10 @@ const LITTER = (() => {
   return Array.from({ length: 160 }, () => ({ u: r(), y: Y.platform + 6 + r() * 44, c: pick(['#f4f4f4', '#e8c547', '#c0392b', '#7f8c8d', '#8d6e63']), w: 3 + r() * 4 }));
 })();
 
-function drawPerson(p, x, y, t, walking) {
+// Pendant le rendu des sprites, personnages et barrières sont triés par ordonnée du pied : ceux qui sont plus près du quai passent devant
+let depthQueue = null;
+const drawPerson = (...a) => (depthQueue ? depthQueue.push({ y: a[2], draw: () => paintPerson(...a) }) : paintPerson(...a));
+function paintPerson(p, x, y, t, walking) {
   const s = 0.85 + ((y - Y.platform) / 56) * 0.25;
   const bob = walking ? Math.abs(Math.sin(t * 9 + p.phase)) * -1.2 : Math.sin(t * 2 + p.phase) * 0.5;
   const step = walking ? Math.sin(t * 9 + p.phase) * 2 : 0;
@@ -1498,11 +1564,12 @@ function drawStaff(t) {
   const x0 = platX() + 30, len = 1230 - x0;
 
   // bornes de billets (bleues) à gauche de la gare, bornes de check-in (vertes) à droite de la porte
-  const kiosk = (x, color) => {
+  const inDepth = (dy, draw) => (depthQueue ? depthQueue.push({ y: dy, draw }) : draw()); // se place devant ou derrière les personnes selon sa profondeur
+  const kiosk = (x, color) => inDepth(y, () => {
     ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x - 7, y - 30, 14, 30, [4, 4, 1, 1]); ctx.fill();
     ctx.fillStyle = '#bfe0f5'; ctx.fillRect(x - 5, y - 27, 10, 8);
     ctx.fillStyle = '#f5b82e'; ctx.fillRect(x - 3, y - 15, 6, 2);
-  };
+  });
   for (let i = 0; i < S.machines.kiosk; i++) kiosk(MX - 30 - i * 20, '#2f6fd6');
   for (let i = 0; i < S.machines.checkin; i++) kiosk(DOOR_X + 34 + i * 18, '#12804a');
 
@@ -1529,7 +1596,7 @@ function drawStaff(t) {
   }
   // distributeurs automatiques (écran rouge quand ils sont vides), à côté des bancs, pieds sur la même ligne
   const vy = 422;
-  vendingSpots().forEach((x, i) => {
+  vendingSpots().forEach((x, i) => inDepth(vy, () => {
     for (const [k, p] of Object.entries(PRODUCTS)) {
       if (i >= S.vending[k]) continue;
       ctx.fillStyle = p.color; ctx.beginPath(); ctx.roundRect(x - 5, vy - 27, 10, 27, [3, 3, 1, 1]); ctx.fill();
@@ -1538,7 +1605,7 @@ function drawStaff(t) {
       ctx.fillStyle = 'rgb(0 0 0 / .35)'; ctx.fillRect(x - 3, vy - 8, 6, 3);
       x += 12;
     }
-  });
+  }));
 
   // chantier en cours : barrières « TRAVAUX » sur la zone, bâche sur l'étage d'hôtel rénové
   const barrier = (bx, by) => {
@@ -1604,24 +1671,101 @@ function spawnWalkers(special, type) {
     // les travailleurs partent tous vers la ville, en costume
     if (special) Object.assign(p, { shirt: pick(SUITS), pants: '#1b1f27', bag: true });
     walkers.push({ ...p, x: clamp(left + r() * (trainLen(type) - LOCO_W), platX() + 20, 1240), y: Y.platform + 14 + r() * 36,
-      tx: !special && r() < 0.65 ? DOOR_X - 15 + r() * 30 : -30, speed: 40 + r() * 30, delay: r() * 1.5 });
+      ...(S.platform < 3 || (!special && r() < 0.65) ? { tx: pick(doorXs()) - 10 + r() * 20, ty: DOOR_FOOT } : { tx: -30 }), speed: 40 + r() * 30, delay: r() * 1.5 });
   }
 }
 // Voyageurs déposés par la navette : ils longent le trottoir jusqu'à la gare
 function spawnBusWalkers() {
   for (let i = 0; i < 3 + rand(4); i++) {
     walkers.push({ ...person(Math.random), x: BUS_STOP_X + 10 + rand(30), y: Y.roadEnd + 12 + rand(8),
-      tx: DOOR_X - 15 + rand(30), speed: 40 + rand(30), delay: i * 0.3 });
+      tx: DOOR_X - 10 + rand(20), ty: DOOR_FOOT, speed: 40 + rand(30), delay: i * 0.3 });
+  }
+}
+const doorXs = () => [DOOR_X, shopDoorX()].filter((x) => x !== null); // portes de la gare et des commerces
+const onPlatform = (x) => clamp(x, platX() + 10, 1240); // les passants ne marchent pas dans l'herbe
+const DOOR_FOOT = Y.platform + 8; // pied des portes, où les voyageurs entrent et sortent
+const shopDoorX = () => { const e = shopFronts().filter((f) => f.ext); return e.length ? e[0].x + (e.length * EXT_SLOT) / 2 : null; };
+// une personne sort de la porte `dx` (invisible jusqu'à son tour) et s'éloigne
+const spawnExit = (dx, tx, delay) => {
+  const w = { ...person(Math.random), x: dx - 6 + rand(12), y: DOOR_FOOT, tx, ty: DOOR_FOOT + 4 + rand(18), speed: 40 + rand(30), delay, hidden: true };
+  walkers.push(w);
+  return w;
+};
+// Passants des commerces : un groupe de taille aléatoire entre par la porte du bâtiment, un autre en ressort un peu plus tard ;
+// les voyageurs s'enchaînent à moins d'une seconde d'intervalle, donc la porte reste ouverte tant que dure le groupe
+function spawnShopWalkers() {
+  const dx = shopDoorX();
+  if (dx === null) return;
+  const total = sum(shopFronts().filter((f) => f.ext && SHOPS[f.k] && shopOpen(f.k)).map((f) => Math.round(shopAt(f.k).rate * 20)));
+  if (!total) return;
+  const side = Math.random() < 0.5 ? -1 : 1, n = 1 + rand(Math.min(5, total)), outAt = 3 + n * 0.6;
+  for (let i = 0; i < n; i++) {
+    walkers.push({ ...person(Math.random), x: onPlatform(dx + side * (30 + rand(50))), y: DOOR_FOOT + rand(22), tx: dx - 6 + rand(12), ty: DOOR_FOOT, speed: 40 + rand(30), delay: i * (0.4 + Math.random() * 0.4) });
+    spawnExit(dx, onPlatform(dx - side * (30 + rand(50))), outAt + i * (0.4 + Math.random() * 0.4));
+  }
+}
+// Voyageurs qui sortent de la gare par petits groupes : quai de niveau 3, ils quittent l'écran par la gauche ; sinon ils rejoignent
+// la porte des commerces, ou le quai
+function spawnStationExits() {
+  const shop = shopDoorX();
+  for (let i = 1 + rand(4); i > 0; i--) {
+    const tx = S.platform >= 3 ? (Math.random() < 0.5 ? BUS_STOP_X + 20 : -30) : shop !== null && Math.random() < 0.6 ? shop : onPlatform(platX() + 40 + rand(600));
+    const w = spawnExit(DOOR_X, tx, i * (0.4 + Math.random() * 0.4));
+    if (tx === shop) Object.assign(w, { tx: shop - 6 + rand(12), ty: DOOR_FOOT }); // ils entrent dans le commerce par sa porte
   }
 }
 function updateWalkers(dt) {
   if (walkers.length > 200) walkers.splice(0, walkers.length - 200); // garde-fou si l'onglet a été mis en veille
   for (const w of walkers) {
     if ((w.delay -= dt) > 0) continue;
-    const d = w.tx - w.x;
-    w.x += Math.sign(d) * Math.min(Math.abs(d), w.speed * dt);
+    const dx = w.tx - w.x, dy = (w.ty ?? w.y) - w.y, dist = Math.hypot(dx, dy), step = w.speed * dt;
+    if (dist <= step) { w.x = w.tx; w.y = w.ty ?? w.y; } else { w.x += (dx / dist) * step; w.y += (dy / dist) * step; }
   }
-  for (let i = walkers.length - 1; i >= 0; i--) if (walkers[i].x === walkers[i].tx) walkers.splice(i, 1);
+  for (let i = walkers.length - 1; i >= 0; i--) {
+    const w = walkers[i];
+    if (w.x !== w.tx || w.y !== (w.ty ?? w.y)) continue;
+    if (w.arrival) crowdShown++; // un nouveau voyageur arrivé à sa place apparaît dans la foule
+    walkers.splice(i, 1);
+  }
+}
+
+// Foule du quai : un nouveau voyageur sort d'une porte et marche jusqu'à sa place, il n'apparaît pas d'un coup
+let crowdShown = null; // nombre de personnages de la foule effectivement affichés
+const crowdCounts = () => {
+  const sp = crowdSplit(), vc = Math.min(CROWD_MAX, Math.round(sp.classic - sp.inside));
+  return [vc, Math.min(CROWD_MAX - vc, Math.round(sp.commuters))];
+};
+function updateArrivals() {
+  const [vc, vw] = crowdCounts(), total = vc + vw, flying = walkers.filter((w) => w.arrival).length;
+  if (crowdShown === null || crowdShown > total) crowdShown = total; // au chargement ou à l'embarquement : pas d'animation
+  if (total - crowdShown - flying > 8) crowdShown = Math.max(0, total - flying - 8); // gros saut : seuls les 8 derniers marchent
+  const under = S.canopy ? 0 : S.shelters * SHELTER_SEATS, need = total - crowdShown - flying;
+  for (let k = 0; k < need; k++) {
+    const idx = crowdShown + flying + k, p = crowd.find((q) => q.order === idx);
+    if (!p) { crowdShown++; continue; }
+    const dx = pick(doorXs()), w = spawnExit(dx, 0, 0);
+    Object.assign(w, idx < vc ? p : p.suit, { x: dx - 6 + rand(12), y: DOOR_FOOT, tx: idx < under ? shelterX(p.u) : crowdX(p.u), ty: p.y, speed: 40 + rand(30), delay: k * 0.5, hidden: true, arrival: true });
+  }
+}
+
+// Portes coulissantes de la gare et des commerces : elles s'ouvrent quand quelqu'un arrive ou sort
+const doorOpen = { station: 0, shop: 0 };
+let doorT = 0;
+function drawDoors(now) {
+  const dt = Math.min(0.1, now - doorT);
+  doorT = now;
+  const shopX = shopDoorX();
+  for (const [k, cx] of [['station', DOOR_X], ['shop', shopX]]) {
+    if (cx === null) continue;
+    const near = walkers.some((w) => w.delay <= (w.hidden ? 0.5 : 0) && Math.abs(w.x - cx) < 34 && w.y < Y.platform + 26);
+    doorOpen[k] += ((near ? 1 : 0) - doorOpen[k]) * Math.min(1, dt * 8);
+    const o = doorOpen[k];
+    if (o < 0.03) continue;
+    const x = cx - 22, y = 338, h = Y.platform + 2 - y, leaf = 22 - 18 * o;
+    ctx.fillStyle = '#10151f'; ctx.fillRect(x, y, 44, h);
+    ctx.fillStyle = '#26354f'; ctx.fillRect(x, y, leaf, h); ctx.fillRect(x + 44 - leaf, y, leaf, h);
+    ctx.fillStyle = '#9fb4d3'; ctx.fillRect(x + leaf - 1, y, 1, h); ctx.fillRect(x + 44 - leaf, y, 1, h);
+  }
 }
 
 // ---------- Train ----------
@@ -1828,6 +1972,7 @@ function render(now) {
   for (const c of cars) if (!c.lane) drawCar(c);
   for (const c of cars) if (c.lane) drawCar(c);
   ctx.drawImage(front, 0, 0, W, H);
+  drawDoors(now);
   if (S.station >= 3) drawClockHands();
   // rideaux tirés des chambres occupées ; lumière allumée en soirée et au réveil, éteinte la nuit
   const occupied = occupiedWindows(), roomLights = (t >= 17 && t < 23) || (t >= 6 && t < 8);
@@ -1843,9 +1988,11 @@ function render(now) {
     ctx.fillStyle = l.c;
     ctx.fillRect(crowdX(l.u), l.y, l.w, 2.5);
   }
+  depthQueue = [];
   drawStaff(simT);
   const split = crowdSplit();
-  const vc = Math.min(CROWD_MAX, Math.round(split.classic - split.inside)), vw = Math.min(CROWD_MAX - vc, Math.round(split.commuters));
+  const [vcT, vwT] = crowdCounts(), shownN = Math.min(vcT + vwT, crowdShown ?? Infinity); // seuls les voyageurs déjà arrivés à leur place sont affichés
+  const vc = Math.min(vcT, shownN), vw = Math.min(vwT, shownN - vc);
   const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec l'extension, tout le quai est couvert
   const cl = cleaners(simT);
   for (const p of crowd) {
@@ -1855,7 +2002,9 @@ function render(now) {
     else if (p.order < vc + vw) drawPerson(p.suit, x, p.y, simT, false);
   }
   for (const c of cl) c.draw();
-  for (const w of walkers) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
+  for (const w of walkers) if (!w.hidden || w.delay <= 0) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
+  depthQueue.sort((a, b) => a.y - b.y).forEach((o) => o.draw());
+  depthQueue = null;
   // abris voyageurs et leur extension, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
   for (const x of [...SHELTER_X.slice(0, S.shelters), ...extensionX()]) {
     const w = SHELTER_W;
@@ -1878,11 +2027,14 @@ function render(now) {
     ctx.fillStyle = `rgb(10 18 45 / ${dark * 0.6})`;
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
-    for (const lx of LAMPS) glow(lx + 17, 308, 70, `rgb(255 200 110 / ${dark * 0.45})`);
     ctx.save(); // les phares disparaissent derrière les bâtiments de la gare et les commerces
     ctx.beginPath(); ctx.rect(0, 0, S.station >= 2 ? SHOP_X : MX, H);
-    for (const sh of shopFronts()) ctx.rect(sh.x - 2, SHOP_TOP - 4, sh.w + 4, H);
+    const fr = shopFronts(), ex = fr.filter((f) => f.ext), an = fr.find((f) => f.annex);
+    if (ex.length) ctx.rect(ex[0].x, SHOP_TOP - (shopFloors(ex.length) - 1) * FLOOR_H - 26, ex.length * EXT_SLOT, H);
+    if (an) ctx.rect(an.x - 4, SHOP_TOP - 18, an.w + 4, H);
     ctx.clip('evenodd');
+    for (const lx of lamps()) glow(lx + 17, 308, 70, `rgb(255 200 110 / ${dark * 0.45})`); // lampadaires derrière les bâtiments : masqués aussi
+    for (const lx of lamps()) { ctx.fillStyle = `rgb(255 236 190 / ${dark})`; ctx.fillRect(lx + 12, 305, 10, 2); }
     for (const c of cars) glow(c.x + c.dir * c.len / 2, laneY(c.lane) - 10, 30, `rgb(255 230 160 / ${dark * 0.5})`);
     ctx.restore();
     ctx.globalCompositeOperation = 'source-over';
@@ -1892,7 +2044,6 @@ function render(now) {
       ctx.fillStyle = `rgb(255 190 110 / ${dark * 0.8})`;
       for (const wn of occupied) ctx.fillRect(wn.x, wn.y, wn.w, wn.h);
     }
-    for (const lx of LAMPS) { ctx.fillStyle = `rgb(255 236 190 / ${dark})`; ctx.fillRect(lx + 12, 305, 10, 2); }
   }
   drawInsideDetails(split.inside);
   ctx.drawImage(sprites, 0, 0, W, H);
@@ -2619,6 +2770,7 @@ function frame(now) {
   simT += sdt;
   updateCars(sdt, S.minutes / 60); // voitures au rythme du jeu, comme les voyageurs
   updateWalkers(sdt);
+  updateArrivals();
   updateFloats(dt / 1000);
   render(now / 1000);
   if ((uiTimer += dt) > 150) { uiTimer = 0; updateHUD(); }
