@@ -94,7 +94,7 @@ function rollWeather(day) {
 // avec des baristas, des cafés et viennoiseries plus chers
 const CAFE_CAPS = [0, 600, 1500, 2700], BARISTA_CUPS = 600, CAFE_NAMES = ['', 'Café du quai', 'Terrasse', 'Grand café'];
 const cafePrice = () => (S.cafe >= 2 ? 6 : 3.5), cafeCost = () => (S.cafe >= 2 ? 1.5 : 1);
-const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des goodies avant les distributeurs
+const BOUTIQUE_GOODIES = 200; // la boutique de la gare vend des souvenirs avant les distributeurs
 // Services : bonus d'appréciation et coût d'entretien par jour
 const SERVICES = {
   wifi: { icon: '📶', name: 'Wi-Fi gratuit', desc: 'Appréciation +0,15', req: 0, cost: 25000, upkeep: 600, rep: 0.15 },
@@ -123,7 +123,7 @@ const ROOMS = [['Une Chambre Simple', 350], ['Une Chambre Double', 600], ['Une S
 const PRODUCTS = {
   coffee: { icon: '☕', name: 'Cafés', rate: 0.22, price: 3, cost: 1, cap: 320, color: '#8d5a3b' },
   meal: { icon: '🥪', name: 'Repas', rate: 0.1, price: 9, cost: 4, cap: 170, color: '#e67e22' },
-  goodies: { icon: '🎁', name: 'Goodies', rate: 0.04, price: 18, cost: 8, cap: 80, color: '#8e44ad' },
+  goodies: { icon: '🎁', name: 'Souvenirs', rate: 0.04, price: 18, cost: 8, cap: 80, color: '#8e44ad' },
 };
 const VENDING_PRICE = 8000, VENDING_MAX = 4, VENDING_UPKEEP = 100;
 // Commerces loués : part des visiteurs qui achètent, recette pour la gare par achat, bonus d'appréciation
@@ -416,7 +416,7 @@ const roomRate = () => 0.007 * (0.5 + satisfaction()) * (0.4 + S.rep / 5) * Math
 const stockCap = (k) => S.vending[k] * PRODUCTS[k].cap;
 const productRate = (k) => PRODUCTS[k].rate * (WEATHERS[S.plan?.weather]?.misc ?? 1) * (k === 'meal' ? 1 - MARKET_MEAL_CUT * S.shops.market : 1);
 // Comptoirs servis avant les distributeurs : la cafétéria pour les repas, le café du quai pour les cafés,
-// la boutique de la gare pour les goodies
+// la boutique de la gare pour les souvenirs
 // part des clients qui préfèrent les distributeurs (plus rapides, moins chers) ; chacun se rabat sur l'autre s'il est plein ou vide
 const VENDING_PREF = { meal: 0.35, coffee: 0.35 };
 const COUNTERS = {
@@ -1480,7 +1480,7 @@ function drawPerson(p, x, y, t, walking) {
   if (p.hat) ctx.fillRect(x - 5 * s, y - 26 * s + bob, 10 * s, 1.6 * s);
 }
 
-// Coins d'attente sous les abris : banc à gauche, distributeurs café-repas-goodies à droite, au même rang.
+// Coins d'attente sous les abris : banc à gauche, distributeurs café-repas-souvenirs à droite, au même rang.
 // Le 4e coin de distributeurs se place à côté d'un banc du décor (ou au début du quai s'il n'est pas agrandi).
 const vendingSpots = () => [...SHELTER_X.map((sx) => sx + 66), S.platform >= 2 ? 520 : 580];
 function drawStaff(t) {
@@ -2293,7 +2293,7 @@ const VIEWS = {
     title: '🛒 Stocks & distributeurs',
     html: () => {
       const e = expect(S.plan);
-      return `<p class="hint">Chaque visiteur peut acheter un café, un repas ou un goodies. Un distributeur vide fait des clients mécontents.
+      return `<p class="hint">Chaque visiteur peut acheter un café, un repas ou un souvenir. Un distributeur vide fait des clients mécontents.
         Le réapprovisionnement est payé à minuit.</p>`
         + Object.entries(PRODUCTS).map(([k, p]) => {
           const cap = stockCap(k);
