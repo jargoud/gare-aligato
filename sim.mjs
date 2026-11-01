@@ -23,7 +23,7 @@ function newGame() {
   });
   const code = readFileSync(new URL('./game.js', import.meta.url), 'utf8');
   // expose les variables internes du jeu (déclarées en const) à la simulation
-  vm.runInContext(`${code}\nglobalThis.G = { S, stepMinute, UPGRADES, upState, expect, makePlan, PRODUCTS, refill, VENDING_MAX, VENDING_PRICE, GOALS, walkers, acceptWorks };`, context);
+  vm.runInContext(`${code}\nglobalThis.G = { S, stepMinute, UPGRADES, upState, expect, makePlan, PRODUCTS, refill, VENDING_MAX, VENDING_PRICE, GOALS, walkers, acceptWorks, buyUpgrade };`, context);
   return context.G;
 }
 
@@ -37,24 +37,22 @@ function play(G, days) {
     for (let i = 0; i < 1440; i++) {
       G.stepMinute();
       minBudget = Math.min(minBudget, S.budget);
-      if (S.minutes === 22 * 60) {
-        // réserve : les frais payés à minuit, plus une marge
-        const reserve = G.expect(S.plan).costs + 50000;
-        for (const u of G.UPGRADES) {
-          if (!u.ad && G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + reserve) {
-            S.budget -= u.cost(u.level());
-            u.buy();
-            S.today.bought[u.id] = true;
-          }
-        }
-        for (const k of G.expect(S.plan).stockShort) {
-          if (S.vending[k] < G.VENDING_MAX && S.budget > G.VENDING_PRICE + reserve) { S.vending[k]++; S.budget -= G.VENDING_PRICE; }
-        }
-        Object.assign(S.staff, G.expect(G.makePlan(false, S.day + 1)).need);
-      }
       if (S.minutes === 13 * 60) Object.keys(G.PRODUCTS).forEach(G.refill);
     }
     G.walkers.length = 0;
+    // fin de journée : achats, distributeurs et effectif (seule période où ils sont permis)
+    // réserve : les frais payés à minuit, plus une marge
+    const reserve = G.expect(S.plan).costs + 50000;
+    for (const u of G.UPGRADES) {
+      if (!u.ad && G.upState(u) === 'ok' && S.budget > u.cost(u.level()) + reserve) {
+        G.buyUpgrade(u); // payé ce soir, livré après le chantier
+      }
+    }
+    for (const k of G.expect(S.plan).stockShort) {
+      if (S.vending[k] < G.VENDING_MAX && S.budget > G.VENDING_PRICE + reserve) { S.vending[k]++; S.budget -= G.VENDING_PRICE; }
+    }
+    Object.assign(S.staff, G.expect(G.makePlan(false, S.day)).need);
+    S.night = false;
     maxDebtDays = Math.max(maxDebtDays, S.debtDays);
     const R = S.report;
     log.push({ day: R.day, net: R.revenue - R.total, pax: R.passengers, rep: S.rep, sat: R.sat });

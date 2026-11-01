@@ -163,7 +163,7 @@ const S = {
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ad: 0,
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
-  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
+  plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, night: false, builds: [], works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
 };
 
 const STAFF = {
@@ -215,6 +215,13 @@ const worksOn = (k) => S.works?.kind === k;
 const minorNow = () => (S.minor && S.minutes >= S.minor.from && S.minutes < S.minor.until ? S.minor : null);
 const minorOn = (k) => minorNow()?.kind === k;
 const hotelRooms = () => (S.hotel - (worksOn('hotel') ? 1 : 0)) * ROOMS_PER_FLOOR; // un étage fermé pendant sa rénovation
+// chômage technique : salaire payé, production déjà nulle via les capacités ci-dessus
+const idleStaff = () => ({
+  cafe: minorOn('cafeteria') ? S.staff.cafe : 0,
+  barista: minorOn('cafe') ? S.staff.barista : 0,
+  hotel: worksOn('hotel') ? Math.round(S.staff.hotel / S.hotel) : 0,
+  guichet: striking() ? Math.floor(S.staff.guichet / 2) : 0,
+});
 const waitroomSeats = () => (worksOn('waitroom') || minorOn('waitroom') ? 0 : WAITROOM[S.waitroom]);
 const roomCap = () => Math.min(hotelRooms(), S.staff.hotel * ROOMS_PER_STAFF + (minorOn('checkin') ? 0 : S.machines.checkin) * CHECKIN_ROOMS);
 const seatsPerTrain = () => Math.round(S.wagons * SEATS_PER_WAGON * SEAT_SHARE);
@@ -285,7 +292,7 @@ const UPGRADES = [
   ...ADS.map((a, i) => ({
     id: 'ad' + i, ad: true, icon: a.icon, name: `Publicité : ${a.name}`, desc: () => `Clientèle +${Math.round(a.boost * 100)} % demain seulement · un achat par jour`,
     level: () => (S.ad === i + 1 ? 1 : 0), max: 1, req: [7], cost: () => a.cost, buy: () => { S.ad = i + 1; },
-    pre: () => !S.ad, preText: () => 'Une campagne à la fois', tag: '📣 Campagne demain',
+    pre: () => !S.ad, preText: () => 'Une campagne à la fois', tag: '📣 Campagne lancée',
   })),
   ...Object.entries(SERVICES).map(([k, v]) => ({
     id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++, pre: v.pre, preText: v.preText,
@@ -301,9 +308,38 @@ const UPGRADES = [
   }),
 ];
 const upReq = (u) => u.req[Math.min(u.level(), u.req.length - 1)];
-// une seule amélioration de chaque type par jour (les travaux prennent la journée)
-const upState = (u) => (u.level() >= u.max ? 'max' : S.goal < upReq(u) ? 'locked' : u.pre && !u.pre() ? 'pre' : S.today.bought[u.id] ? 'today'
+// achats uniquement en fin de journée, une amélioration de chaque type par soir
+const upState = (u) => (u.level() >= u.max ? 'max' : S.goal < upReq(u) ? 'locked' : u.pre && !u.pre() ? 'pre' : buildOf(u.id) ? 'building' : !S.night ? 'day' : S.today.bought[u.id] ? 'today'
   : S.budget < u.cost(u.level()) ? 'poor' : 'ok');
+
+// Chantiers : un achat est payé tout de suite mais livré après buildHours (S.builds = [{ id, until }], until en minutes absolues)
+// Vrai chantier (délai selon le prix, barrières) pour ce qui se construit ; le reste (matériel, équipement, service) s'installe en 1 h
+const SITES = ['category', 'quai', 'hotel', 'gare', 'cafe', 'shelters', 'canopy', 'waitroom', 'track2', 'parking', 'cafeteria', 'relay', ...Object.keys(SHOPS)];
+const isSite = (id) => SITES.includes(id);
+const buildHours = (cost, id) => (isSite(id) ? Math.max(2, Math.round(cost / 8000)) : 1);
+const buildWord = (id) => (isSite(id) ? 'chantier' : 'installation');
+const absMinute = () => S.day * 1440 + S.minutes;
+const buildOf = (id) => S.builds.find((b) => b.id === id);
+const buildEnd = (b) => `jour ${Math.floor(b.until / 1440)} à ${Math.floor((b.until % 1440) / 60)} h`;
+function buyUpgrade(u) {
+  S.budget -= u.cost(u.level());
+  S.today.bought[u.id] = true;
+  if (u.ad) { u.buy(); return; } // une campagne est instantanée
+  S.builds.push({ id: u.id, until: absMinute() + buildHours(u.cost(u.level()), u.id) * 60 });
+}
+function finishBuilds() {
+  const done = S.builds.filter((b) => b.until <= absMinute());
+  if (!done.length) return;
+  S.builds = S.builds.filter((b) => !done.includes(b));
+  for (const b of done) {
+    const u = UPGRADES.find((x) => x.id === b.id), name = u.name; // avant : nom du niveau livré (supérette)
+    u.buy();
+    toast(`${u.icon} ${name} : ${buildWord(b.id)} terminé${isSite(b.id) ? '' : 'e'} !`, 'good');
+  }
+  resetNeed();
+  rebuild();
+  play('upgrade');
+}
 
 const EVENTS = [
   { msg: '🚍 Un car de touristes arrive sur le quai !', kind: 'good', run: () => { S.waiting += 40 + rand(40); } },
@@ -351,8 +387,10 @@ const potential = () => MARKET * (1.6 - (S.tarif / 100) * 1.2) * (0.5 + (S.rep /
 
 // Plan de la journée, fixé à minuit : nombre de voyageurs par train, limité par la capacité de la gare
 // Le week-end attire plus de voyageurs de loisir ; en semaine, des express transportent les travailleurs
-function makePlan(noise = true, day = S.day) {
-  const weekend = weekday(day) >= 5, wx = noise ? rollWeather(day) : 'sun', season = seasonOf(day);
+// jour du plan « de demain » vu depuis une fenêtre : le soir (ou avant le premier jour) le plan en cours est déjà celui de demain
+const planDay = () => (S.night ? S.plan.day : S.day + 1);
+function makePlan(noise = true, day = S.day, weather = null) {
+  const weekend = weekday(day) >= 5, wx = noise ? weather ?? rollWeather(day) : 'sun', season = seasonOf(day);
   const pot = potential() * (weekend ? 1.15 : 1) * WEATHERS[wx].demand * season.demand * (1 + (ADS[S.ad - 1]?.boost ?? 0)), trains = {}, commuters = {}, types = {}, caps = {};
   const jitter = () => (noise ? 0.95 + Math.random() * 0.1 : 1);
   // les grands trains attirent une plus grande part des voyageurs ; le TGV boude une gare sous 4 ★
@@ -389,7 +427,7 @@ function bestRoomTarif() {
   let best = keep, bestNet = -Infinity;
   for (let t = 50; t <= 200; t += 10) {
     S.roomTarif = t;
-    const e = expect(makePlan(false, S.day + 1));
+    const e = expect(makePlan(false, planDay()));
     if (e.revenue - e.costs > bestNet) { bestNet = e.revenue - e.costs; best = t; }
   }
   S.roomTarif = keep;
@@ -402,7 +440,7 @@ function bestTarif() {
   let best = keep, bestNet = -Infinity;
   for (let t = 5; t <= 100; t += 5) {
     S.tarif = t;
-    const e = expect(makePlan(false, S.day + 1));
+    const e = expect(makePlan(false, planDay()));
     if (e.revenue - e.costs > bestNet) { bestNet = e.revenue - e.costs; best = t; }
   }
   S.tarif = keep;
@@ -571,6 +609,7 @@ const peakFactor = (h) => Math.exp(-((h - 8) ** 2) / 2) + Math.exp(-((h - 18) **
 function stepMinute() {
   S.minutes++;
   if (S.minutes >= 1440) { closeDay(); S.minutes = 0; S.day++; save(); }
+  finishBuilds();
   if (S.minor && (S.minutes === S.minor.from || S.minutes === S.minor.until)) {
     const w = MINOR[S.minor.kind], on = S.minutes === S.minor.from;
     toast(`🚧 ${w.name} : ${on ? `fermé pour travaux jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : 'travaux terminés, réouverture'}`, on ? 'warn' : 'good');
@@ -637,7 +676,6 @@ function stepMinute() {
   }
   if (m === 30 && hasSpecial(h)) exchangeSpecial(h);
   if (m === 30 && hasExtra(h)) exchangeExtra(h);
-  if (m === 30 && h >= 5 && h <= 21) checkStaff();
   S.rep = clamp(S.rep, 0, 5);
 }
 
@@ -799,6 +837,7 @@ function sell(prof, regular = false) {
 }
 
 function closeDay() {
+  S.night = true; // fin de journée : bilan consultable jusqu'à la fermeture de la fenêtre
   S.today.refused += S.hotelQueue; // les clients encore en attente repartent
   S.hotelQueue = 0;
   // les distributeurs encore en panne sont réparés la nuit, plus cher qu'en journée
@@ -828,8 +867,8 @@ function closeDay() {
   S.event = null;
   nightWorks();
   planMinor();
+  S.ad = 0; // la campagne achetée hier soir n'a servi que pour le plan de la journée écoulée
   S.plan = makePlan(true, S.day + 1);
-  S.ad = 0; // la campagne de publicité n'a servi que pour ce plan
   // après les travaux : un chantier qui commence réduit déjà la capacité de demain
 
   // Découvert toléré quelques jours, puis faillite
@@ -916,6 +955,10 @@ function acceptWorks() {
 }
 // Encart du chantier en cours ou proposé (bilan du soir et fenêtre Bilan)
 function worksBlock() {
+  const sites = S.builds.map((b) => `<div class="callout">${isSite(b.id) ? '🚧' : '🔧'} <b>${UPGRADES.find((u) => u.id === b.id).name}</b> : ${buildWord(b.id)} jusqu'au ${buildEnd(b)}</div>`).join('');
+  return sites + worksOffers();
+}
+function worksOffers() {
   if (S.works) {
     const w = WORKS[S.works.kind];
     return `<div class="callout">🚧 <b>${w.name}</b> en cours : ${w.effect}, encore ${S.works.days} jour(s) · ${money(S.works.cost)} / jour</div>`;
@@ -933,20 +976,6 @@ function worksBlock() {
 // recalculé seulement après un achat ou un prix qui le change (amélioration, distributeur, billet, chambres)
 const dayNeed = () => (S.plan.need ??= expect(S.plan).need);
 const resetNeed = () => { delete S.plan.need; };
-
-// Prévient quand l'effectif ne correspond plus aux voyageurs prévus du jour (une fois par changement)
-const staffAlert = {};
-function checkStaff() {
-  const need = dayNeed();
-  for (const [k, r] of staffRoles()) {
-    const d = need[k] - S.staff[k], state = d > 0 ? 'under' : d < 0 ? 'over' : 'ok';
-    if (state !== staffAlert[k] && state !== 'ok') {
-      toast(d > 0 ? `${r.icon} Il manque ${d} ${r.name.toLowerCase()} pour aujourd'hui`
-        : `${r.icon} ${-d} ${r.name.toLowerCase()} en trop : ${money(-d * r.salary)} de salaires inutiles par jour`, d > 0 ? 'bad' : 'warn', 'staff');
-    }
-    staffAlert[k] = state;
-  }
-}
 
 // Points du jour sur 200 : appréciation (100), clients satisfaits (50), bénéfice (50 pour 500 000 €)
 const dayPoints = (R) => Math.round(clamp(R.repEnd * 20, 0, 100) + clamp(R.sat, 0, 1) * 50 + clamp((R.revenue - R.total) / 10000, 0, 50));
@@ -1608,12 +1637,17 @@ function drawStaff(t) {
   }));
 
   // chantier en cours : barrières « TRAVAUX » sur la zone, bâche sur l'étage d'hôtel rénové
-  const barrier = (bx, by) => {
-    ctx.fillStyle = '#3a404a'; ctx.fillRect(bx - 14, by - 14, 2, 14); ctx.fillRect(bx + 12, by - 14, 2, 14);
-    for (let i = 0; i < 4; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#e8590c'; ctx.fillRect(bx - 15 + i * 7.5, by - 12, 7.5, 4); }
-    ctx.fillStyle = '#f5b82e'; ctx.fillRect(bx - 13, by - 25, 26, 9);
-    ctx.fillStyle = '#1b2540'; ctx.font = '700 5.5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 18.5);
+  const paintBarrier = (bx, by) => { // panneau jaune bordé de noir, deux lisses rayées orange et blanc sur deux pieds
+    ctx.fillStyle = '#3a404a';
+    ctx.fillRect(bx - 19, by - 15, 2.5, 15); ctx.fillRect(bx + 16.5, by - 15, 2.5, 15);
+    ctx.fillRect(bx - 21, by - 1.5, 6.5, 1.5); ctx.fillRect(bx + 14.5, by - 1.5, 6.5, 1.5); // pieds
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#e8590c'; ctx.fillRect(bx - 18 + i * 6, by - 13 + r * 5, 6, 3.5); }
+    ctx.fillStyle = '#1b2540'; ctx.fillRect(bx - 20, by - 29.5, 40, 12.5); // cadre
+    ctx.fillStyle = '#f5b82e'; ctx.fillRect(bx - 19, by - 28.5, 38, 10.5);
+    ctx.fillStyle = '#1b2540'; ctx.font = '800 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 20.5);
   };
+  const barrier = (bx, by) => (depthQueue ? depthQueue.push({ y: by - 6, draw: () => paintBarrier(bx, by) }) : paintBarrier(bx, by));
+  S.builds.filter((b) => isSite(b.id)).forEach((b, i) => { const [bx, by] = buildSite(b.id, i); barrier(bx, by); }); // chantiers d'amélioration, à l'emplacement de l'ouvrage
   if (S.works) {
     const k = S.works.kind, wc = shopFronts().find((f) => f.k === 'wc');
     if (k === 'platform') { barrier(platX() + 60, 438); barrier((platX() + 1250) / 2, 438); }
@@ -2280,7 +2314,7 @@ const HUD = {
   freeRooms: () => `${Math.max(0, hotelRooms() - S.today.rooms - S.hotelQueue)} / ${hotelRooms()}`,
   hotelQueue: () => S.hotelQueue,
   sat: () => `${Math.round(satisfaction() * 100)} %`,
-  works: () => (S.works ? `${WORKS[S.works.kind].effect} · ${S.works.days} j` : minorNow() ? `${MINOR[S.minor.kind].name} · ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : ''),
+  works: () => (S.works ? `${WORKS[S.works.kind].effect} · ${S.works.days} j` : minorNow() ? `${MINOR[S.minor.kind].name} · ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : S.builds.length ? `${S.builds.length} en cours` : ''),
 };
 $('#stockBars').innerHTML = Object.entries(PRODUCTS).map(([k, p]) => `<span class="kv"><span>${p.icon}</span><span class="bar" id="bar-${k}"><i></i></span></span>`).join('');
 const bound = [...document.querySelectorAll('[data-k]')];
@@ -2315,8 +2349,9 @@ function updateHUD() {
   $('#scoreStat').dataset.tip = `Points d'hier : ${S.report?.points ?? '—'} / 200\nRecord : ${fmt(Math.max(bestScore(), S.score))} points\n`
     + 'Chaque soir : appréciation (100) + clients satisfaits (50) + bénéfice (50)';
   $('#dayStat').dataset.tip = `${seasonOf().icon} ${seasonOf().name} · jour ${((S.day - 1) % SEASON_DAYS) + 1} / ${SEASON_DAYS}`;
-  $('#worksRow').style.display = S.works || minorNow() ? '' : 'none';
-  if (S.works) $('#worksRow').dataset.tip = `${WORKS[S.works.kind].name} : encore ${S.works.days} jour(s), ${money(S.works.cost)} par jour`;
+  $('#worksRow').style.display = S.works || minorNow() || S.builds.length ? '' : 'none';
+  if (!S.works && !minorNow() && S.builds.length) $('#worksRow').dataset.tip = S.builds.map((b) => `${UPGRADES.find((u) => u.id === b.id).name} : fin ${buildEnd(b)}`).join('\n');
+  else if (S.works) $('#worksRow').dataset.tip = `${WORKS[S.works.kind].name} : encore ${S.works.days} jour(s), ${money(S.works.cost)} par jour`;
   else if (minorNow()) $('#worksRow').dataset.tip = `${MINOR[S.minor.kind].name} fermé pour de petits travaux jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}, sans frais`;
   $('[data-k="sat"]').className = satisfaction() >= 0.9 ? 'good' : satisfaction() < 0.75 ? 'bad' : '';
 }
@@ -2414,22 +2449,28 @@ const VIEWS = {
           ${row('Frais prévus', money(m.costs))}
           <div class="row"><span>Résultat prévu</span>${net(m.revenue - m.costs)}</div></section>
       </div>
-      ${worksBlock()}
+      ${worksOffers()}
       ${tips.length ? `<div class="tips"><h3>Conseils</h3><ul>${tips.map((t) => `<li>${t}</li>`).join('')}</ul></div>` : ''}
-      <div class="actions"><button class="primary" data-act="close">Commencer le jour ${S.day + 1} ▶</button></div>`;
+      <div class="actions"><button class="primary" data-act="close">Commencer le jour ${S.day} ▶</button></div>`;
     },
+  },
+  start: {
+    title: '🌅 Début de journée',
+    html: () => `<p class="hint">Réglez les prix de la première journée avant l'ouverture : ils resteront fixes jusqu'au soir. Les onglets permettent aussi d'embaucher, d'acheter et de remplir les stocks.</p>${VIEWS.prices.html()}`,
+    bind() { VIEWS.prices.bind(); },
   },
   prices: {
     title: '💲 Tarifs',
-    html: () => `
+    html: () => `${S.night ? '' : '<p class="hint">🌙 Les tarifs se règlent en fin de journée et restent fixes pendant la journée.</p>'}
       <label class="field"><span>Prix du billet</span><output id="tarifOut"></output>
-        <input type="range" id="tarif" min="1" max="100" value="${S.tarif}"></label>
+        <input type="range" id="tarif" min="1" max="100" value="${S.tarif}" ${S.night ? '' : 'disabled'}></label>
       <div class="callout" id="pricePreview"></div>
       <label class="field"><span>Prix des chambres</span><output id="roomOut"></output>
-        <input type="range" id="roomTarif" min="50" max="200" step="5" value="${S.roomTarif}"></label>
+        <input type="range" id="roomTarif" min="50" max="200" step="5" value="${S.roomTarif}" ${S.night ? '' : 'disabled'}></label>
       <div class="callout" id="roomPreview"></div>`,
     bind() {
-      $('#tarif').oninput = (e) => { S.tarif = +e.target.value; resetNeed(); this.refresh(); }; // la fraude, donc les contrôleurs, dépend du prix
+      // le soir, le plan de la journée qui commence suit le prix (même météo) ; la fraude, donc les contrôleurs, en dépend aussi
+      $('#tarif').oninput = (e) => { S.tarif = +e.target.value; S.plan = makePlan(true, S.plan.day, S.plan.weather); this.refresh(); };
       $('#roomTarif').oninput = (e) => { S.roomTarif = +e.target.value; resetNeed(); this.refresh(); };
       // ne dépendent pas des curseurs : calculés une fois à l'ouverture
       this.best = bestTarif();
@@ -2437,7 +2478,7 @@ const VIEWS = {
       this.refresh();
     },
     refresh() {
-      const p = makePlan(false, S.day + 1), saturated = p.potential > p.classicCap, e = expect(p);
+      const p = makePlan(false, planDay()), saturated = p.potential > p.classicCap, e = expect(p);
       $('#tarifOut').textContent = `${money(ticketPrice())}`;
       $('#roomOut').textContent = `${money(roomPrice())} en moyenne`;
       const cap = hotelRooms(), wanted = expect(p).roomDemand;
@@ -2446,7 +2487,7 @@ const VIEWS = {
         ${row('Prix des chambres le plus rentable', `${this.bestRoom} %`, Math.abs(this.bestRoom - S.roomTarif) < 10 ? 'good' : '')}
         <p class="hint">${wanted > cap
           ? '🏨 L\'hôtel sera plein : montez le prix des chambres, vous gagnerez plus sans le vider.'
-          : '🛏️ Il reste des chambres : un prix plus bas attire plus de clients.'} Le prix des chambres agit tout de suite.</p>`;
+          : '🛏️ Il reste des chambres : un prix plus bas attire plus de clients.'} Le prix des chambres est fixé pour la journée.</p>`;
       $('#pricePreview').innerHTML = `
         ${row('Clientèle attirée demain', fmt(p.potential))}
         ${row('Capacité de la gare', `${fmt(p.capacity)} <small>(${capPerTrain()} par train)</small>`)}
@@ -2457,7 +2498,7 @@ const VIEWS = {
         <p class="hint">${saturated
           ? '🚦 La gare est saturée : monter le prix rapporte plus sans perdre beaucoup de voyageurs. Agrandissez le quai et ajoutez des wagons pour en accueillir davantage.'
           : '📉 La gare n\'est pas pleine : un billet moins cher attire plus de monde, mais rapporte moins par voyageur.'}
-          Le prix agit sur la fréquentation du lendemain.</p>`;
+          Le prix du billet est fixé pour la journée.</p>`;
     },
   },
   stocks: {
@@ -2485,28 +2526,30 @@ const VIEWS = {
   staff: {
     title: '👥 Personnel',
     html: () => {
-      const today = dayNeed(), tomorrow = expect(makePlan(false, S.day + 1)).need;
-      return `<p class="hint">L'effectif conseillé est calculé d'après les voyageurs prévus. Embauche ${money(HIRE_FEE)}, licenciement ${money(SEVERANCE)}.</p>`
+      const today = dayNeed(), tomorrow = expect(makePlan(false, planDay())).need, idle = idleStaff();
+      return `<p class="hint">L'effectif conseillé est calculé d'après les voyageurs prévus. Embauche ${money(HIRE_FEE)}, licenciement ${money(SEVERANCE)}. ${S.night ? '' : '🌙 Embauches et licenciements en fin de journée.'}</p>`
         + staffRoles().map(([k, r]) => `
         <div class="staff-row">
           <div><b>${r.icon} ${r.name}</b>
-            <small>${money(r.salary)} / jour · ${r.info()}</small>
-            <small>Conseillé : <span class="${adviceCls(S.staff[k], today[k])}">${today[k]} aujourd'hui</span> · ${tomorrow[k]} demain</small></div>
-          <button data-act="fire:${k}" ${S.staff[k] <= r.min() ? 'disabled' : ''}>−</button>
+            <small>${money(r.salary)} / jour · ${r.info()}${idle[k] ? ` · 🛠️ ${idle[k]} au chômage technique` : ''}</small>
+            <small>Conseillé : <span class="${adviceCls(S.staff[k], today[k])}">${today[k]} ${S.night ? (S.report ? 'demain' : 'jour 1') : 'aujourd\'hui'}</span> · ${tomorrow[k]} ${S.night ? 'ensuite' : 'demain'}</small></div>
+          <button data-act="fire:${k}" ${!S.night || S.staff[k] <= r.min() ? 'disabled' : ''}>−</button>
           <span class="n">${S.staff[k]}</span>
-          <button data-act="hire:${k}" ${S.staff[k] >= STAFF_MAX || S.budget < HIRE_FEE ? 'disabled' : ''}>+</button>
+          <button data-act="hire:${k}" ${!S.night || S.staff[k] >= STAFF_MAX || S.budget < HIRE_FEE ? 'disabled' : ''}>+</button>
         </div>`).join('');
     },
   },
   upgrades: {
     title: '🏗️ Améliorations',
-    html: () => '<p class="hint">Les agrandissements attirent plus de voyageurs dès le lendemain. Une amélioration de chaque type par jour. Atteignez les objectifs pour en débloquer d\'autres.</p><div class="ups">'
-      + UPGRADES.map((u) => {
+    html: () => '<p class="hint">Les agrandissements attirent plus de voyageurs dès le lendemain. Achats en fin de journée, livrés après un chantier (selon le prix) ou une courte installation, une amélioration de chaque type par soir. Atteignez les objectifs pour en débloquer d\'autres.</p><div class="ups">'
+      + [...UPGRADES].sort((a, b) => upReq(a) - upReq(b) || a.cost(a.level()) - b.cost(b.level())).map((u) => { // par objectif à atteindre, puis par prix
         const st = upState(u), l = u.level();
         const action = st === 'max' ? `<span class="tag">${u.tag ?? '✓ Acquis'}</span>`
           : st === 'locked' ? `<span class="tag">🔒 Objectif ${upReq(u)}</span>`
           : st === 'pre' ? `<span class="tag">🔒 ${u.preText()}</span>`
-          : st === 'today' ? '<span class="tag" title="Une amélioration de chaque type par jour">⏳ Demain</span>'
+          : st === 'building' ? `<span class="tag" title="${isSite(u.id) ? 'Le chantier se termine' : 'L\'installation se termine'} ${buildEnd(buildOf(u.id))}">${isSite(u.id) ? '🚧' : '🔧'} Fin ${buildEnd(buildOf(u.id))}</span>`
+          : st === 'day' ? '<span class="tag" title="Les achats se font en fin de journée">🌙 Ce soir</span>'
+          : st === 'today' ? '<span class="tag" title="Une amélioration de chaque type par soir">✓ Acheté ce soir</span>'
           : `<button data-act="buy:${u.id}" ${st === 'poor' ? 'disabled' : ''}>${money(u.cost(l))}</button>`;
         return `<div class="up ${st}"><span class="icon">${u.icon}</span>
           <div><b>${u.name}</b>${u.max > 1 ? ` <small>${l}/${u.max}</small>` : ''}<p>${u.desc()}</p></div>${action}</div>`;
@@ -2526,7 +2569,7 @@ const VIEWS = {
   report: {
     title: '📊 Bilan & prévisions',
     html: () => {
-      const t = expect(S.plan), m = expect(makePlan(false, S.day + 1)), R = S.report;
+      const t = expect(S.plan), m = expect(makePlan(false, planDay())), R = S.report;
       const net = (v) => `<b class="${v >= 0 ? 'good' : 'bad'}">${money(v)}</b>`;
       return `${worksBlock()}<div class="cols">
         <section><h3>Aujourd'hui</h3>
@@ -2536,7 +2579,7 @@ const VIEWS = {
           ${row('Frais prévus', money(t.costs))}
           <div class="row"><span>Résultat prévu</span>${net(t.revenue - t.costs)}</div></section>
         <section><h3>Demain</h3>
-          ${row('Voyageurs prévus', fmt(makePlan(false, S.day + 1).total))}
+          ${row('Voyageurs prévus', fmt(makePlan(false, planDay()).total))}
           ${row('Recettes prévues', money(m.revenue))}
           ${row('Frais prévus', money(m.costs))}
           <div class="row"><span>Résultat prévu</span>${net(m.revenue - m.costs)}</div></section>
@@ -2586,17 +2629,24 @@ function openModal(name) {
   renderModal();
 }
 // Onglets pour passer d'une fenêtre à l'autre sans la fermer (le bilan du soir n'en a pas)
-const TABS = { prices: '💲 Tarifs', staff: '👥 Personnel', stocks: '🛒 Stocks', upgrades: '🏗️ Améliorations', goals: '🎯 Objectifs', report: '📊 Bilan' };
+const TABS = { start: '🌅 Début de journée', summary: '🌙 Fin de journée', report: '📊 Bilan', goals: '🎯 Objectifs', upgrades: '🏗️ Améliorations', prices: '💲 Tarifs', staff: '👥 Personnel', stocks: '🛒 Stocks' };
 $('#modalTabs').innerHTML = Object.entries(TABS).map(([k, label]) => `<button data-tab="${k}">${label}</button>`).join('');
 $('#modalTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) openModal(b.dataset.tab); });
 function renderModal() {
-  for (const b of $('#modalTabs').children) b.classList.toggle('active', VIEWS[b.dataset.tab] === view);
+  for (const b of $('#modalTabs').children) {
+    b.classList.toggle('active', VIEWS[b.dataset.tab] === view);
+    // le bilan du soir n'existe que le soir ; « Début de journée » seulement avant le premier jour
+    b.hidden = (b.dataset.tab === 'summary' && !(S.night && S.report)) || (b.dataset.tab === 'start' && !(S.night && !S.report));
+  }
+  $('#modalClose').hidden = S.night;
   $('#modalTitle').textContent = view.title;
-  $('#modalBody').innerHTML = view.html();
+  // le bilan du soir a déjà son propre bouton
+  $('#modalBody').innerHTML = view.html() + (S.night && view !== VIEWS.summary ? `<div class="actions"><button class="primary" data-act="close">Commencer le jour ${S.day} ▶</button></div>` : '');
   view.bind?.();
 }
-modal.addEventListener('close', () => { if (!S.over) setSpeed(resumeSpeed); });
-modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
+modal.addEventListener('close', () => { S.night = false; if (!S.over) setSpeed(resumeSpeed); });
+modal.addEventListener('click', (e) => { if (e.target === modal && !S.night) modal.close(); }); // le soir, seul « Commencer le jour » ferme
+modal.addEventListener('cancel', (e) => { if (S.night) e.preventDefault(); }); // touche Échap
 $('#modalClose').onclick = () => modal.close();
 document.querySelectorAll('[data-modal]').forEach((b) => { b.onclick = () => openModal(b.dataset.modal); });
 // toucher : un tap affiche l'infobulle (pas de survol) ; un tap sur l'encart le déplie
@@ -2627,24 +2677,20 @@ $('#modalBody').addEventListener('click', (e) => {
     resetNeed();
     S.budget -= VENDING_PRICE;
   }
-  if (act === 'hire' && S.staff[key] < STAFF_MAX && S.budget >= HIRE_FEE) {
+  if (act === 'hire' && S.night && S.staff[key] < STAFF_MAX && S.budget >= HIRE_FEE) {
     S.staff[key]++;
     S.budget -= HIRE_FEE;
     toast(`${STAFF[key].icon} Embauche d'${STAFF[key].one} : −${money(HIRE_FEE)}, puis ${money(STAFF[key].salary)} de salaire par jour`, 'warn');
-  } else if (act === 'fire' && S.staff[key] > STAFF[key].min()) {
+  } else if (act === 'fire' && S.night && S.staff[key] > STAFF[key].min()) {
     S.staff[key]--;
     S.budget -= SEVERANCE;
     toast(`${STAFF[key].icon} Licenciement d'${STAFF[key].one} : −${money(SEVERANCE)} d'indemnités, ${money(STAFF[key].salary)} de salaire économisé par jour`, 'warn');
   } else if (act === 'buy') {
     const u = UPGRADES.find((x) => x.id === key);
     if (upState(u) !== 'ok') return;
-    const name = u.name; // avant l'achat : nom du niveau acheté (supérette)
-    S.budget -= u.cost(u.level());
-    u.buy();
-    S.today.bought[u.id] = true;
-    resetNeed();
-    rebuild();
-    toast(`${u.icon} ${name} : c'est fait !`, 'good');
+    buyUpgrade(u);
+    if (u.ad) S.plan = makePlan(true, S.day, S.plan.weather); // S.day est déjà celui de demain ; le plan a été tiré avant la campagne
+    toast(u.ad ? `${u.icon} ${u.name} : c'est fait !` : `${isSite(u.id) ? '🚧' : '🔧'} ${u.name} : ${buildWord(u.id)} lancé${isSite(u.id) ? '' : 'e'}, fin ${buildEnd(buildOf(u.id))}`, u.ad ? 'good' : 'warn');
   }
   // le remplissage n'est payé qu'à minuit : il ne fait pas baisser le budget
   if (S.budget < before || act === 'refill') play({ buy: 'upgrade', hire: 'hire', fire: 'fire' }[act] ?? 'stock');
@@ -2712,6 +2758,7 @@ const resumed = load();
 if (resumed) {
   rebuild();
   toast(`Partie reprise : ${DAYS[weekday()].toLowerCase()}, jour ${S.day}.`, 'good');
+  if (S.night) openModal(S.report ? 'summary' : 'start'); // rechargé en pleine fin de journée ou avant le premier jour
 } else {
   S.plan = makePlan();
   Object.assign(S.staff, expect(S.plan).need); // effectif de départ adapté à la demande prévue
@@ -2722,14 +2769,14 @@ if (resumed) {
 const TUTORIAL = [
   ['.stat.goal', '🎯 Votre objectif du moment. Chaque objectif atteint débloque de nouvelles améliorations.'],
   ['.overlay', '👀 L\'état de la gare en direct : prochain train, voyageurs à quai, hôtel, clients satisfaits et stocks. Survolez les jauges pour le détail.'],
-  ['.toolbar [data-modal="prices"]', '💲 Le prix du billet : bas, il attire du monde ; haut, il rapporte plus par voyageur. Il agit sur le lendemain.'],
-  ['.toolbar [data-modal="staff"]', '👥 Le personnel conseillé est calculé pour vous. Un guichetier manquant, et des voyageurs restent à quai.'],
-  ['.toolbar [data-modal="stocks"]', '🛒 Cafés, repas et goodies : un distributeur vide fait des mécontents. Ajoutez-en dès que possible.'],
-  ['.toolbar [data-modal="upgrades"]', '🏗️ Bancs, abris, quai, hôtel… Une amélioration de chaque type par jour.'],
+  ['.toolbar [data-modal="upgrades"]', '🏗️ Bancs, abris, quai, hôtel… Achats en fin de journée, un niveau de chaque type par soir.'],
+  ['.toolbar [data-modal="prices"]', '💲 Le prix du billet : bas, il attire du monde ; haut, il rapporte plus par voyageur. Il se règle en fin de journée.'],
+  ['.toolbar [data-modal="staff"]', '👥 Le personnel conseillé est calculé pour vous ; embauches le soir. Un guichetier manquant, et des voyageurs restent à quai.'],
+  ['.toolbar [data-modal="stocks"]', '🛒 Cafés, repas et souvenirs : un distributeur vide fait des mécontents. Ajoutez-en dès que possible.'],
   ['#repStat', '⭐ Survolez la note pour savoir ce qui plaît ou déplaît aux voyageurs. À minuit, un bilan vous attend. Bon jeu !'],
 ];
 function startTutorial() {
-  try { if (localStorage.getItem('aligato-tuto')) return; } catch { return; }
+  try { if (localStorage.getItem('aligato-tuto')) return false; } catch { return false; }
   const box = document.createElement('div');
   box.className = 'coach';
   document.body.append(box);
@@ -2738,7 +2785,7 @@ function startTutorial() {
     target?.classList.remove('coach-target');
     box.remove();
     try { localStorage.setItem('aligato-tuto', '1'); } catch { /* stockage indisponible */ }
-    setSpeed(1);
+    openStart();
   };
   const show = () => {
     target?.classList.remove('coach-target');
@@ -2756,8 +2803,11 @@ function startTutorial() {
   };
   setSpeed(0);
   show();
+  return true;
 }
-if (!resumed) startTutorial();
+// nouvelle partie : panneau « Début de journée » (après la visite guidée) pour régler les tarifs avant l'ouverture
+function openStart() { S.night = true; openModal('start'); }
+if (!resumed && !startTutorial()) openStart();
 let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.min(100, now - last);
