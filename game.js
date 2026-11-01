@@ -579,6 +579,7 @@ function stepMinute() {
 
   // les voyageurs du prochain train arrivent régulièrement pendant l'heure qui précède
   S.waiting += (S.plan.trains[m === 0 ? h : (h + 1) % 24] ?? 0) / 60;
+  if (S.svc.piano && h >= 10 && h < 18 && S.waiting >= 2 && simT >= pianoUntil && Math.random() < 0.035) { pianoUntil = simT + 4 + Math.random() * 8; } // un voyageur qui attend se met au piano
   // les travailleurs arrivent dans les 20 minutes qui précèdent leur express
   if (hasSpecial(h) && m > 10 && m <= 30) S.waitingCommuters += S.plan.commuters[h] / 20;
   if (hasExtra(h) && m > 0 && m <= 30) S.waitingExtra += S.plan.extras[h] / 30;
@@ -686,7 +687,6 @@ function exchange(h) {
   S.rep += (quality(S.lastMiss, exposure) - S.rep) * 0.06;
   floats.push({ text: '+' + money(tickets + extra), x: DOOR_X, y: 372, life: 2 });
   if (walkins) play('tickets');
-  if (S.svc.piano && Math.random() < 0.25) play('piano');
   spawnWalkers(false, S.plan.types[h]);
   checkGoals();
 }
@@ -1269,10 +1269,10 @@ function drawFront(g) {
     g.fillStyle = bg; g.beginPath(); g.roundRect(x, y, w, 9, 2); g.fill();
     g.fillStyle = fg; g.font = '700 6.5px system-ui, sans-serif'; g.fillText(text, x + w / 2, y + 7);
   };
-  if (S.waitroom) plaque(MX + 16, 368, 120, S.waitroom > 1 ? 'GRANDE SALLE D\'ATTENTE' : 'SALLE D\'ATTENTE', '#2f6fd6');
+  if (S.waitroom) plaque(MX + MW - 108, 368, 104, S.waitroom > 1 ? 'GRANDE SALLE D\'ATTENTE' : 'SALLE D\'ATTENTE', '#2f6fd6'); // sous les deux dernières fenêtres
   if (S.svc.lounge) plaque(MX + MW + 4, 352, 42, 'SALON 1re', '#c9a227', '#1b2540');
   if (S.svc.spa) plaque(MX + MW + 4, 364, 42, 'SPA', '#16a085');
-  if (S.svc.wifi) plaque(DOOR_X + 60, 368, 30, 'WI-FI', '#6c5ce7');
+  if (S.svc.wifi) plaque(MX + 16, 368, 30, 'WI-FI', '#6c5ce7');
 
   // galerie de commerces le long de la route
   const fronts = shopFronts();
@@ -1555,12 +1555,12 @@ function drawStaff(t) {
       barrier(DOOR_X + 70, y + 4);
     }
     if (k === 'wc' && wc) barrier(wc.x + wc.w / 2, y + 4);
-    if (k === 'waitroom') barrier(MX + 76, y + 4);
+    if (k === 'waitroom') barrier(MX + 280, y + 4);
   }
   const mn = minorNow();
   if (mn) {
     const cf = shopFronts().find((f) => f.k === 'cafeteria');
-    const bx = { cafe: 758, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: SHELTER_X[0] + 30, waitroom: MX + 76 }[mn.kind];
+    const bx = { cafe: 758, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: SHELTER_X[0] + 30, waitroom: MX + 280 }[mn.kind];
     if (bx) barrier(bx, y + 4);
   }
 
@@ -1745,19 +1745,28 @@ function drawInsideDetails(inside) {
     ctx.fillStyle = '#fff'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✊ GRÈVE', DOOR_X, 335);
   }
   if (S.waitroom) {
-    const heads = Math.round((inside / WAITROOM[S.waitroom]) * 12);
+    const heads = Math.round((inside / WAITROOM[S.waitroom]) * 8);
     ctx.fillStyle = 'rgb(40 32 36 / .8)';
     for (let i = 0; i < heads; i++) {
-      const wx = MX + 20 + Math.floor(i / 4) * 45, hx = wx + 3 + (i % 4) * 5.5;
+      const wx = MX + 20 + (5 + Math.floor(i / 4)) * 45, hx = wx + 3 + (i % 4) * 5.5;
       ctx.beginPath(); ctx.arc(hx, 357, 2.4, 0, Math.PI * 2); ctx.fill();
       ctx.fillRect(hx - 2.4, 359, 4.8, 5);
     }
   }
-  if (S.svc.piano) { // piano droit dans la vitrine du hall
-    const px = DOOR_X - 58;
-    ctx.fillStyle = '#1b1b22'; ctx.fillRect(px, 360, 28, 14); ctx.fillRect(px + 2, 374, 3, 4); ctx.fillRect(px + 23, 374, 3, 4);
-    ctx.fillStyle = '#f6f1e6'; ctx.fillRect(px + 2, 366, 24, 3);
-    ctx.fillStyle = '#1b1b22'; for (let i = 0; i < 6; i++) ctx.fillRect(px + 4 + i * 4, 366, 2, 2);
+  if (S.svc.piano) { // piano droit en ombre chinoise derrière la 5e fenêtre ; des notes s'en élèvent quand quelqu'un joue
+    const px = MX + 202, playing = simT < pianoUntil;
+    ctx.fillStyle = 'rgb(40 32 36 / .8)';
+    ctx.fillRect(px, 353, 18, 11); ctx.fillRect(px - 1, 352, 20, 2);
+    if (playing) { ctx.beginPath(); ctx.arc(px + 9, 349, 2.4, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(px + 6.6, 351, 4.8, 3); }
+    if (playing) {
+      ctx.fillStyle = '#f6f1e6'; ctx.strokeStyle = 'rgb(40 32 36 / .6)'; ctx.lineWidth = 2; ctx.font = '700 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      for (let i = 0; i < 3; i++) {
+        const k = (simT * 0.6 + i / 3) % 1, nx = px + 9 + Math.sin(simT * 2 + i * 2.1) * 7 + (i - 1) * 8, ny = 338 - k * 40;
+        ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+        ctx.strokeText(i % 2 ? '♪' : '♫', nx, ny); ctx.fillText(i % 2 ? '♪' : '♫', nx, ny);
+      }
+      ctx.globalAlpha = 1;
+    }
   }
   if (S.svc.screens) {
     const sx = MX + MW + 4, sy = 326;
@@ -1803,6 +1812,7 @@ function occupiedWindows() {
 
 // ---------- Rendu ----------
 let simT = 0; // temps d'animation, figé en pause
+let pianoUntil = 0; // le piano du hall joue jusqu'à cet instant
 function render(now) {
   const t = (S.minutes + acc) / 60;
   const d = daylight(t), dark = 1 - d;
