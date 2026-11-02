@@ -5,6 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-01
+
 ### Ajouté
 
 - **Extension des commerces** : commerces, cafétéria et relais colis sont regroupés dans un seul bâtiment en briques collé à la gare,
@@ -144,3 +146,9 @@ Première version jouable de *Gare de train Aligato*, clone hommage du jeu de Re
   notifications cliquables, bilan du soir avec conseils, historique sur 14 jours, visite guidée.
 - **Sauvegarde automatique** dans le navigateur et bouton de nouvelle partie.
 - **Simulation d'équilibrage** sans navigateur : `node sim.mjs`.
+
+[Unreleased]: https://github.com/jargoud/gare-aligato/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/jargoud/gare-aligato/compare/1.1.1...1.2.0
+[1.1.1]: https://github.com/jargoud/gare-aligato/compare/1.1.0...1.1.1
+[1.1.0]: https://github.com/jargoud/gare-aligato/compare/1.0.0...1.1.0
+[1.0.0]: https://github.com/jargoud/gare-aligato/releases/tag/1.0.0
