@@ -18,7 +18,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 - **Abri voyageurs** à trois niveaux (1/3, 2/3 puis tout le quai), reconstruit à chaque agrandissement du quai ;
   il remplace les trois abris et l'extension des abris (les sauvegardes sont converties).
 - **Galerie de commerces** de plain-pied, construite de droite à gauche dans l'ordre d'achat sans jamais décaler les commerces
-  existants, une porte par commerce ; la boutique et les toilettes y sont intégrées, la tour de l'horloge et le panneau
+  existants, une porte par commerce, les toilettes toujours à son extrémité gauche ; la boutique y est intégrée, la tour de l'horloge et le panneau
   publicitaire passent sur son toit, le parking et le café du quai à sa gauche pour rester visibles.
 - **Supérette** à un seul niveau (objectif 5) : l'épicerie et le supermarché disparaissent.
 - **Bornes de billets** déplacées à gauche de la porte de la gare, jamais devant une porte.

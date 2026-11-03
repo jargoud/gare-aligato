@@ -1058,7 +1058,7 @@ const platX = () => PLATFORM_X[S.platform];
 const hotelTop = () => GF - S.hotel * FLOOR_H;
 const SHOP_TOP = GF; // les commerces ont la hauteur du rez-de-chaussée de la gare
 // Galerie de commerces collée à la gare : chaque commerce s'ajoute à gauche des précédents, dans l'ordre de construction (S.shopOrder),
-// si bien que le bâtiment s'allonge sans jamais décaler ce qui existe ; les toilettes sont une case étroite comme les autres
+// si bien que le bâtiment s'allonge sans décaler les commerces existants ; les toilettes, une case étroite, restent toujours tout à gauche
 const EXT_SLOT = 68, WC_W = 34; // largeur d'une case et de celle des toilettes
 // cafétéria et relais colis sont des services, la boutique vient de l'agrandissement de la gare : tous hors de SHOPS
 const EXT_SHOPS = {
@@ -1075,11 +1075,11 @@ const shopFloors = () => (S.shops.gastro ? 2 : 1); // le restaurant gastronomiqu
 const rowTop = () => SHOP_TOP - (shopFloors() - 1) * FLOOR_H;
 // tour de l'horloge au-dessus de la case la plus proche de la gare (toujours bâtie quand il y a la boutique)
 const tower = () => ({ x: MX - EXT_SLOT / 2, base: rowTop(), clockY: rowTop() - 90 });
-// cases construites, de droite à gauche dans l'ordre de construction ; un commerce livré prend la place libre la plus à gauche
+// cases construites, de droite à gauche dans l'ordre de construction, toilettes en dernier
 const shopFronts = () => {
   for (const k of Object.keys(EXT_SHOPS)) if (EXT_SHOPS[k].on() && !S.shopOrder.includes(k)) S.shopOrder.push(k);
   let x = MX;
-  return S.shopOrder.filter((k) => EXT_SHOPS[k].on()).map((k) => {
+  return S.shopOrder.filter((k) => EXT_SHOPS[k].on()).sort((a, b) => (a === 'wc') - (b === 'wc')).map((k) => {
     const e = EXT_SHOPS[k];
     x -= slotW(k);
     return { k, ext: k !== 'wc', label: e.label(), icon: e.icon, color: e.color, x, w: slotW(k) };
@@ -1092,13 +1092,14 @@ const pubOnRoof = () => rowX() <= PUB_X - 80;
 // Emplacement [x, pied] de la barrière d'un chantier : là où l'ouvrage apparaîtra (les commerces en chantier, à gauche de la galerie)
 const rowKey = (id) => (id === 'gare' ? (S.station === 1 ? 'boutique' : null) : id in EXT_SHOPS ? id : null);
 function shopSite(id) {
-  const built = shopFronts().find((f) => f.k === rowKey(id));
+  const key = rowKey(id), built = shopFronts().find((f) => f.k === key);
   if (built) return built.x + built.w / 2;
   if (id === 'gastro') return (rowX() + MX) / 2;
-  let x = rowX();
-  for (const k of Object.keys(EXT_SHOPS).filter((k) => S.builds.some((b) => rowKey(b.id) === k))) {
+  // un commerce en chantier s'ajoute à gauche des commerces existants, les toilettes restant tout à gauche
+  let x = Math.min(MX, ...shopFronts().filter((f) => f.k !== 'wc').map((f) => f.x));
+  for (const k of [...Object.keys(EXT_SHOPS).filter((k) => k !== 'wc'), 'wc'].filter((k) => S.builds.some((b) => rowKey(b.id) === k))) {
     x -= slotW(k);
-    if (k === rowKey(id)) return x + slotW(k) / 2;
+    if (k === key) return x + slotW(k) / 2;
   }
   return x - EXT_SLOT / 2;
 }
