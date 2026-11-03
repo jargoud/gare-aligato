@@ -141,16 +141,15 @@ L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (
 | 2 | Accueillir 10 clients à l'hôtel en une journée | Étages d'hôtel, bornes de check-in, sanitaires |
 | 3 | Atteindre 3,6 ★ | Bornes de billets, boulangerie, cafétéria, gare nationale |
 | 4 | Transporter 3 750 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie, car de substitution |
-| 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, épicerie, salle d'attente climatisée |
-| 6 | Accueillir 36 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel, supérette |
-| 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, restaurant gastronomique, campagnes de publicité |
+| 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, supérette, salle d'attente climatisée |
+| 6 | Accueillir 36 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel |
+| 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, restaurant gastronomique, campagnes de publicité |
 | 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
-Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria, le relais colis et la boutique de la gare occupent une galerie de plain-pied collée à la gare, toujours dans cet ordre : chaque enseigne a sa case réservée (vitrine « À LOUER » tant qu'elle n'est pas construite), si bien qu'un nouveau commerce ne décale jamais les autres ; les toilettes sont une annexe sur son côté gauche. Chaque commerce a sa porte, par laquelle entrent et sortent des passants ; les autres restent ouverts pendant la construction d'un nouveau. La tour de l'horloge et le panneau publicitaire se dressent sur son toit, le parking et le café du quai à sa gauche.
+Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria, le relais colis et la boutique de la gare occupent une galerie de plain-pied collée à la gare, avec les toilettes : chaque nouveau commerce s'ajoute à gauche des précédents, dans l'ordre de construction, si bien que le bâtiment s'allonge sans jamais décaler ce qui existe. Chaque commerce a sa porte, par laquelle entrent et sortent des passants ; les autres restent ouverts pendant la construction d'un nouveau. La tour de l'horloge se dresse sur son toit, au-dessus du commerce le plus proche de la gare, tout comme le panneau publicitaire dès que la galerie est assez longue pour le porter ; le parking et le café du quai sont à sa gauche.
 Une fois tout le rez-de-chaussée occupé, le **🍽️ restaurant gastronomique** (objectif 7, 300 000 €) s'installe à l'unique étage : 3 % des visiteurs y dépensent 55 € (×1,5 le week-end), appréciation +0,3.
-Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La supérette grandit en trois niveaux :
-**épicerie** (objectif 5), **supérette** (objectif 6) puis **supermarché** (objectif 7), avec un loyer et une appréciation
-plus élevés à chaque niveau ; chaque niveau retire aussi 5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien
+Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La **supérette** (objectif 5, 150 000 €) retire aussi
+5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien
 mais rendent le quai moins sale et les voyageurs plus contents.
 
 ### Sons
