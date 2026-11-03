@@ -5,7 +5,7 @@ Jeu de gestion d'une gare et de son hôtel, en HTML, CSS et JavaScript, sans dé
 Ce jeu rend hommage à *Aligato*, le jeu de gestion ferroviaire de **René Paradis**, dont il reprend l'esprit et la
 mécanique. Il propose un style graphique moderne, plus détaillé et animé, à la place du pixel art d'origine.
 
-![La gare Aligato en milieu de partie : Intercités à quai, hôtel, commerces et encart d'état de la gare](docs/screenshot.png)
+![La gare Aligato en milieu de partie : galerie de commerces, tour de l'horloge, panneau publicitaire, hôtel, abri voyageurs et encart d'état de la gare](docs/screenshot.png)
 
 ## Lancer le jeu
 
