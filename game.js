@@ -320,6 +320,7 @@ function buyUpgrade(u) {
   S.today.bought[u.id] = true;
   if (u.ad) { u.buy(); return; } // une campagne est instantanée
   S.builds.push({ id: u.id, until: absMinute() + buildHours(u.cost(u.level()), u.id) * 60 });
+  if (isSite(u.id)) rebuild(); // l'ouvrage en chantier apparaît tout de suite
 }
 function finishBuilds() {
   const done = S.builds.filter((b) => b.until <= absMinute());
@@ -1397,8 +1398,44 @@ let back, front;
 const sprites = layer(() => {});
 const spriteCtx = sprites.getContext('2d');
 function rebuild() {
+  // chantiers en cours : les calques sont d'abord dessinés comme si les ouvrages étaient livrés (buy() ne touche que ces champs)
+  const sites = S.builds.filter((b) => isSite(b.id)), keep = { ...S, shops: { ...S.shops }, svc: { ...S.svc }, machines: { ...S.machines } };
+  let ghosts = null;
+  if (sites.length) {
+    for (const b of sites) UPGRADES.find((u) => u.id === b.id).buy();
+    ghosts = [layer(drawBack), layer(drawFront)];
+    Object.assign(S, keep);
+  }
   back = layer(drawBack);
-  front = layer(drawFront);
+  front = layer(drawFront); // en dernier : WINDOWS correspond au décor réel
+  if (ghosts) { ghostOver(back, ghosts[0]); ghostOver(front, ghosts[1]); }
+}
+// L'ouvrage en chantier apparaît là où il sera : translucide et hachuré de jaune et noir, jusqu'à sa livraison
+function ghostOver(real, ghost) {
+  const rg = real.getContext('2d'), w = real.width, h = real.height;
+  const a = rg.getImageData(0, 0, w, h).data, b = ghost.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = rg.createImageData(w, h), mask = rg.createImageData(w, h);
+  for (let i = 0; i < a.length; i += 4) {
+    if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2] && a[i + 3] === b[i + 3]) continue;
+    out.data[i] = b[i]; out.data[i + 1] = b[i + 1]; out.data[i + 2] = b[i + 2]; out.data[i + 3] = b[i + 3] * 0.55;
+    mask.data[i + 3] = b[i + 3] || a[i + 3];
+  }
+  const tmp = layer(() => {}), hatch = layer((g) => {
+    g.strokeStyle = '#f5b82e'; g.lineWidth = 4;
+    g.beginPath();
+    for (let x = -H; x < W; x += 12) { g.moveTo(x, 0); g.lineTo(x + H, H); }
+    g.stroke();
+  });
+  tmp.getContext('2d').putImageData(mask, 0, 0);
+  const hg = hatch.getContext('2d');
+  hg.setTransform(1, 0, 0, 1, 0, 0);
+  hg.globalCompositeOperation = 'destination-in'; hg.drawImage(tmp, 0, 0);
+  tmp.getContext('2d').putImageData(out, 0, 0);
+  rg.save();
+  rg.setTransform(1, 0, 0, 1, 0, 0);
+  rg.drawImage(tmp, 0, 0);
+  rg.globalAlpha = 0.35; rg.drawImage(hatch, 0, 0);
+  rg.restore();
 }
 rebuild();
 
@@ -2068,6 +2105,7 @@ function render(now) {
   depthQueue = null;
   // abri voyageurs devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
   if (S.shelters) drawShelter(...shelterSpan());
+  if (buildOf('shelters')) { ctx.globalAlpha = 0.4; drawShelter(shelterSpan(S.shelters + 1)[0], S.shelters ? shelterSpan()[0] : SHELTER_END); ctx.globalAlpha = 1; } // abri en chantier, translucide
 
   if (tl !== null) drawTrain(tl, ttype);
   if (dark > 0) {
