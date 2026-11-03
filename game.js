@@ -131,11 +131,7 @@ const SHOPS = {
   news: { icon: '📰', name: 'Marchand de journaux', label: 'PRESSE', rate: 0.1, spend: 4, rep: 0.1, color: '#2f6fd6', req: 1, cost: 43750 },
   bakery: { icon: '🥐', name: 'Boulangerie', label: 'BOULANGERIE', rate: 0.12, spend: 8, rep: 0.2, color: '#c98b3a', req: 3, cost: 75000 },
   books: { icon: '📚', name: 'Librairie', label: 'LIBRAIRIE', rate: 0.03, spend: 25, rep: 0.15, color: '#8e44ad', req: 4, cost: 87500 },
-  market: { icon: '🛒', color: '#27ae60', req: [5, 6, 7], cost: [110000, 180000, 280000], levels: [
-    { name: 'Épicerie', label: 'ÉPICERIE', rate: 0.05, spend: 22, rep: 0.1 },
-    { name: 'Supérette', label: 'SUPÉRETTE', rate: 0.06, spend: 30, rep: 0.15 },
-    { name: 'Supermarché', label: 'SUPERMARCHÉ', rate: 0.07, spend: 40, rep: 0.25 },
-  ] },
+  market: { icon: '🛒', name: 'Supérette', label: 'SUPÉRETTE', rate: 0.06, spend: 30, rep: 0.15, color: '#27ae60', req: 5, cost: 150000 },
   wc: { icon: '🚻', name: 'Sanitaires', label: 'TOILETTES', rate: 0, spend: 0, rep: 0.3, color: '#7f8c8d', req: 2, cost: 37500 },
   // à l'unique étage de la galerie, une fois tout le rez-de-chaussée occupé
   gastro: { icon: '🍽️', name: 'Restaurant gastronomique', label: 'RESTAURANT GASTRONOMIQUE', rate: 0.03, spend: 55, rep: 0.3, color: '#1b2540', req: 7, cost: 300000,
@@ -143,7 +139,7 @@ const SHOPS = {
     preText: () => 'Tous les commerces du rez-de-chaussée requis' },
 };
 const SHOP_UPKEEP = 600;
-const MARKET_MEAL_CUT = 0.05; // par niveau, les repas se prennent à la supérette plutôt qu'aux distributeurs
+const MARKET_MEAL_CUT = 0.05; // une part des repas se prend à la supérette plutôt qu'aux distributeurs
 // caractéristiques d'un commerce à son niveau l (1 = premier niveau)
 const shopAt = (k, l = S.shops[k]) => ({ ...SHOPS[k], ...SHOPS[k].levels?.[Math.max(l, 1) - 1] });
 const TRAIN_HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // de 5 h à 23 h
@@ -237,9 +233,9 @@ const GOALS = [
   { text: 'Accueillir 10 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 10, unlocks: 'Étages d\'hôtel · Bornes de check-in · Sanitaires · Écrans d\'information · Salle d\'attente · Atelier de maintenance · Accueil voyageurs' },
   { text: 'Atteindre une appréciation de 3,6 ★', value: () => S.rep, target: 3.6, unlocks: 'Bornes de billets · Boulangerie · Cafétéria · Consigne à bagages · Gare nationale' },
   { text: 'Transporter 3 750 voyageurs en une journée', value: () => S.today.passengers, target: 3750, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis · Car de substitution' },
-  { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Épicerie · Grande salle d\'attente · Salle d\'attente climatisée' },
-  { text: 'Accueillir 36 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 36, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Supérette · Gare grande vitesse' },
-  { text: 'Transporter 6 250 voyageurs en une journée', value: () => S.today.passengers, target: 6250, unlocks: 'Tour de l\'horloge · Panneau publicitaire · Supermarché · Restaurant gastronomique · Publicité (journal, radio, télévision)' },
+  { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Supérette · Grande salle d\'attente · Salle d\'attente climatisée' },
+  { text: 'Accueillir 36 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 36, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Gare grande vitesse' },
+  { text: 'Transporter 6 250 voyageurs en une journée', value: () => S.today.passengers, target: 6250, unlocks: 'Tour de l\'horloge · Panneau publicitaire · Restaurant gastronomique · Publicité (journal, radio, télévision)' },
   { text: 'Atteindre une appréciation de 4,5 ★', value: () => S.rep, target: 4.5, unlocks: 'Le titre de Légende du rail' },
 ];
 
@@ -2825,6 +2821,7 @@ function load() {
       delete S.canopy;
     }
     delete S.ad; // ancienne campagne unique, remplacée par S.ads
+    S.shops.market = Math.min(1, S.shops.market); // ancienne supérette à trois niveaux
     S.v = 3;
     S.today.goals = d.today.goals.map((i) => GOALS[i]);
     if (S.report) S.report.goals = d.report.goals.map((i) => GOALS[i]);
