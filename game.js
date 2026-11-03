@@ -161,7 +161,7 @@ const S = {
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, waitingExtra: 0, track2: 0, challenge: 0, weekTarget: 60000, weekPax: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ads: [],
-  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, v: 3, comfort: 0, barCar: 0, category: 1,
+  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, shopOrder: [], waitroom: 0, benches: 0, shelters: 0, v: 3, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
   plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, night: false, builds: [], works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
 };
@@ -1057,39 +1057,59 @@ const SIGNAL = { x: 26, y: 372 };
 const platX = () => PLATFORM_X[S.platform];
 const hotelTop = () => GF - S.hotel * FLOOR_H;
 const SHOP_TOP = GF; // les commerces ont la hauteur du rez-de-chaussée de la gare
-// Galerie de commerces : une rangée fixe de cases collée à la gare, de gauche à droite ; les toilettes sont une annexe à gauche.
-// Chaque commerce a sa case réservée (vitrine « À LOUER » tant qu'il n'est pas construit) : un nouveau commerce ne décale jamais les autres.
-const EXT_SLOT = 68, WC_W = 34; // largeur d'une case et de l'annexe des toilettes
+// Galerie de commerces collée à la gare : chaque commerce s'ajoute à gauche des précédents, dans l'ordre de construction (S.shopOrder),
+// si bien que le bâtiment s'allonge sans jamais décaler ce qui existe ; les toilettes sont une case étroite comme les autres
+const EXT_SLOT = 68, WC_W = 34; // largeur d'une case et de celle des toilettes
 // cafétéria et relais colis sont des services, la boutique vient de l'agrandissement de la gare : tous hors de SHOPS
 const EXT_SHOPS = {
   ...Object.fromEntries(['news', 'bakery', 'books', 'market'].map((k) => [k, { on: () => S.shops[k], label: () => shopAt(k).label, icon: SHOPS[k].icon, color: SHOPS[k].color }])),
+  wc: { on: () => S.shops.wc, label: () => '', icon: SHOPS.wc.icon, color: SHOPS.wc.color, w: WC_W },
   cafeteria: { on: () => S.svc.cafeteria, label: () => 'CAFÉTÉRIA', icon: '🍽️', color: '#5d4037' },
   relay: { on: () => S.svc.relay, label: () => 'RELAIS COLIS', icon: '📦', color: '#e67e22' },
   boutique: { on: () => S.station >= 2, label: () => 'BOUTIQUE', icon: '🎁', color: '#2f6fd6' },
 };
-const ROW_W = Object.keys(EXT_SHOPS).length * EXT_SLOT, ROW_X = MX - ROW_W, ROW_MID = ROW_X + ROW_W / 2;
-const slotX = (k) => ROW_X + Object.keys(EXT_SHOPS).indexOf(k) * EXT_SLOT;
+const slotW = (k) => EXT_SHOPS[k].w ?? EXT_SLOT;
+const ROW_MIN_X = MX - sum(Object.keys(EXT_SHOPS).map(slotW)); // bord gauche de la galerie complète
 const hasRow = () => Object.values(EXT_SHOPS).some((e) => e.on());
 const shopFloors = () => (S.shops.gastro ? 2 : 1); // le restaurant gastronomique occupe l'unique étage
 const rowTop = () => SHOP_TOP - (shopFloors() - 1) * FLOOR_H;
-// tour de l'horloge, centrée au-dessus de la galerie de commerces
-const tower = () => ({ x: ROW_MID, base: rowTop(), clockY: rowTop() - 90 });
-// cases de la galerie (toutes, construites ou non, dès qu'un commerce existe) et annexe des toilettes
+// tour de l'horloge au-dessus de la case la plus proche de la gare (toujours bâtie quand il y a la boutique)
+const tower = () => ({ x: MX - EXT_SLOT / 2, base: rowTop(), clockY: rowTop() - 90 });
+// cases construites, de droite à gauche dans l'ordre de construction ; un commerce livré prend la place libre la plus à gauche
 const shopFronts = () => {
-  const fronts = hasRow() ? Object.entries(EXT_SHOPS).map(([k, e]) => ({ k, ext: true, built: !!e.on(), label: e.label(), icon: e.icon, color: e.color, x: slotX(k), w: EXT_SLOT })) : [];
-  if (S.shops.wc) fronts.push({ k: 'wc', annex: true, built: true, icon: SHOPS.wc.icon, x: ROW_X - WC_W, w: WC_W });
-  return fronts;
+  for (const k of Object.keys(EXT_SHOPS)) if (EXT_SHOPS[k].on() && !S.shopOrder.includes(k)) S.shopOrder.push(k);
+  let x = MX;
+  return S.shopOrder.filter((k) => EXT_SHOPS[k].on()).map((k) => {
+    const e = EXT_SHOPS[k];
+    x -= slotW(k);
+    return { k, ext: k !== 'wc', label: e.label(), icon: e.icon, color: e.color, x, w: slotW(k) };
+  });
 };
-// Emplacement [x, pied] de la barrière d'un chantier : là où l'ouvrage apparaîtra
-const shopSite = (id) => (id === 'wc' ? ROW_X - WC_W / 2 : id === 'gastro' ? ROW_MID : slotX(id) + EXT_SLOT / 2);
+const rowX = () => Math.min(MX, ...shopFronts().map((f) => f.x));
+// panneau publicitaire sur le toit, à gauche de la tour, dès que la galerie est assez longue pour le porter (sinon au sol, derrière)
+const PUB_X = MX - EXT_SLOT / 2 - 136;
+const pubOnRoof = () => rowX() <= PUB_X - 80;
+// Emplacement [x, pied] de la barrière d'un chantier : là où l'ouvrage apparaîtra (les commerces en chantier, à gauche de la galerie)
+const rowKey = (id) => (id === 'gare' ? (S.station === 1 ? 'boutique' : null) : id in EXT_SHOPS ? id : null);
+function shopSite(id) {
+  const built = shopFronts().find((f) => f.k === rowKey(id));
+  if (built) return built.x + built.w / 2;
+  if (id === 'gastro') return (rowX() + MX) / 2;
+  let x = rowX();
+  for (const k of Object.keys(EXT_SHOPS).filter((k) => S.builds.some((b) => rowKey(b.id) === k))) {
+    x -= slotW(k);
+    if (k === rowKey(id)) return x + slotW(k) / 2;
+  }
+  return x - EXT_SLOT / 2;
+}
 const buildSite = (id, i) => {
   const g = Y.platform + 11, edge = 438, span = (1230 - platX() - 120) / 5, track = (k) => [platX() + 60 + k * span, edge];
-  if (id in EXT_SHOPS || id === 'wc' || id === 'gastro') return [shopSite(id), g]; // sa future façade
+  if (rowKey(id) || id === 'gastro') return [shopSite(id), g]; // sa future façade
   return {
     quai: track(0), wagon: track(1), comfort: track(2), barCar: track(3), category: track(4), track2: track(5),
     shelters: [(shelterSpan(S.shelters + 1)[0] + shelterSpan()[0]) / 2, 424], benches: [520, 424],
     waitroom: [MX + 280, g], hotel: [DOOR_X + 70, g], checkin: [DOOR_X + 34, g], kiosk: [KIOSK_X, g], phone: [DOOR_X - 40, g],
-    gare: [S.station === 1 ? shopSite('boutique') : ROW_MID, g], cafe: [CAFE_X + 38, g], wifi: [DOOR_X + 60, g], security: [700, g], piano: [DOOR_X - 20, g],
+    gare: [tower().x, g], cafe: [CAFE_X + 38, g], wifi: [DOOR_X + 60, g], security: [700, g], piano: [DOOR_X - 20, g],
   }[id] ?? [DOOR_X - 70 - i * 40, g];
 };
 const BUS_STOP_X = 130; // arrêt de la navette, à gauche de la galerie de commerces
@@ -1156,7 +1176,7 @@ function drawBack(g) {
   g.fillStyle = '#5b9a45'; g.fillRect(0, Y.grass, W, Y.road - Y.grass);
   g.fillStyle = '#6fb055'; g.fillRect(0, Y.grass, W, 3);
 
-  if (S.pub && !hasRow()) drawPub(g, 540, 190, 302); // sans commerces, au sol ; sinon sur leur toit (drawFront)
+  if (S.pub && !pubOnRoof()) drawPub(g, 540, 190, 302); // au sol tant que la galerie est trop courte pour le porter (drawFront)
   if (S.parking) { // entre le panneau « Gare » et la galerie de commerces, pour rester visible
     const px = PARKING_X, n = PARKED.length;
     g.fillStyle = '#4a4f58'; g.fillRect(px, 301, n * 47, 15);
@@ -1294,27 +1314,12 @@ function drawFront(g) {
   if (S.svc.spa) plaque(MX + MW + 4, 364, 42, 'SPA', '#16a085');
   if (S.svc.wifi) plaque(MX + 16, 368, 30, 'WI-FI', '#6c5ce7');
 
-  // galerie de commerces le long de la route : une case par commerce, toujours à la même place, et l'étage du restaurant
-  const fronts = shopFronts();
-  const exts = fronts.filter((f) => f.ext), annex = fronts.find((f) => f.annex), gTop = SHOP_TOP;
+  // galerie de commerces le long de la route : une case par commerce construit, de droite à gauche, et l'étage du restaurant
+  const fronts = shopFronts(), gTop = SHOP_TOP;
   const cornice = (x, w, y) => { g.fillStyle = '#e9dccb'; g.fillRect(x, y, w, 6); }; // même corniche que les étages de l'hôtel
-  // commerces de plain-pied : les toilettes partagent leur toit ; avec l'étage, l'annexe garde son propre toit
-  const joined = annex && exts.length && shopFloors() === 1;
-  if (annex) { // toilettes (dessinées avant le toit commun qui les recouvre) : annexe de la hauteur du rez-de-chaussée, une porte et son icône
-    const { x, w, icon } = annex;
-    bricks(g, x, gTop - 6, w, bottom - gTop + 6, '#9c3d2a');
-    if (!joined) { // petit toit à un pan contre le mur des commerces plus hauts, comme eux contre la gare
-      g.fillStyle = '#3b3036'; g.beginPath(); g.moveTo(x - 4, gTop - 6); g.lineTo(x + w, gTop - 6); g.lineTo(x + w, gTop - 18); g.lineTo(x + 6, gTop - 18); g.fill();
-      g.fillStyle = '#54474e'; g.fillRect(x - 4, gTop - 8, w + 4, 3);
-    }
-    cornice(x, w, gTop - 6);
-    g.font = '14px system-ui, sans-serif';
-    g.fillText(icon, x + w / 2 + 3, gTop + 15); // décalé pour paraître centré sur la porte
-    g.fillStyle = '#26354f'; g.fillRect(x + 9, gTop + 20, 16, bottom - gTop - 20);
-  }
-  if (exts.length) {
-    const x0 = ROW_X, wTot = ROW_W, top = rowTop(), tw = tower();
-    const left = joined ? annex.x : x0, eave = shopFloors() === 1 ? top - 6 : top + 2; // bord gauche et bas du toit
+  if (fronts.length) {
+    const x0 = rowX(), wTot = MX - x0, top = rowTop(), tw = tower();
+    const eave = shopFloors() === 1 ? top - 6 : top + 2; // bas du toit
     const roofTop = top - 24; // faîte le plus haut (toit continu) : le panneau ne bouge pas quand l'hôtel grandit
     if (S.station >= 3) { // tour de l'horloge, derrière le toit de la galerie
       bricks(g, tw.x - 26, tw.base - 120, 52, 120, '#a63c2a');
@@ -1328,37 +1333,37 @@ function drawFront(g) {
     if (top === hotelTop()) { // même hauteur que la gare : un seul toit continu
       g.moveTo(x0 - 16, top + 2); g.lineTo(MX + MW + 16, top + 2); g.lineTo(MX + MW - 24, top - 24); g.lineTo(x0 + 24, top - 24);
     } else { // sinon toit à un pan qui s'appuie contre le mur de la gare, au-dessus de la corniche quand il n'y a pas d'étage
-      g.moveTo(left - 6, eave); g.lineTo(x0 + wTot, eave); g.lineTo(x0 + wTot, eave - 16); g.lineTo(left + 10, eave - 16);
+      g.moveTo(x0 - 6, eave); g.lineTo(MX, eave); g.lineTo(MX, eave - 16); g.lineTo(x0 + 10, eave - 16);
     }
     g.fill();
     g.fillStyle = '#54474e'; // gouttière comme celle de la gare
-    if (top === hotelTop()) g.fillRect(x0 - 16, top, MX - x0, 4); else g.fillRect(left - 6, eave - 2, x0 + wTot - left + 6, 4);
-    if (S.pub) drawPub(g, ROW_X + 105, roofTop - 62, roofTop + 2); // panneau publicitaire sur le toit, à gauche de la tour
+    if (top === hotelTop()) g.fillRect(x0 - 16, top, wTot, 4); else g.fillRect(x0 - 6, eave - 2, wTot + 6, 4);
+    if (S.pub && pubOnRoof()) drawPub(g, PUB_X, roofTop - 62, roofTop + 2); // panneau publicitaire sur le toit, à gauche de la tour
     if (S.shops.gastro) { // restaurant gastronomique : tout l'étage, une grande enseigne
-      const fy = gTop - FLOOR_H, m = Math.floor(wTot / 45);
+      const fy = gTop - FLOOR_H, m = Math.floor(wTot / 45), mid = x0 + wTot / 2;
       for (let k = 0; k < m; k++) windowAt(g, x0 + (wTot - m * 45) / 2 + 12 + k * 45, fy + 14, 22, 18);
-      g.fillStyle = '#1b2540'; g.beginPath(); g.roundRect(ROW_MID - 84, fy + 1, 168, 10, 3); g.fill();
-      g.fillStyle = '#f5b82e'; g.font = '700 7px system-ui, sans-serif'; g.fillText('🍽️ RESTAURANT GASTRONOMIQUE', ROW_MID, fy + 8.5);
+      g.fillStyle = '#1b2540'; g.beginPath(); g.roundRect(mid - 84, fy + 1, 168, 10, 3); g.fill();
+      g.fillStyle = '#f5b82e'; g.font = '700 7px system-ui, sans-serif'; g.fillText('🍽️ RESTAURANT GASTRONOMIQUE', mid, fy + 8.5);
     }
     cornice(x0, wTot, gTop - 6);
-    for (const { x, built, label, icon, color } of exts) { // enseigne au bas de la corniche ; vitrines et porte, ou rideau baissé
-      const dx = x + EXT_SLOT / 2, txt = built ? `${icon} ${label}` : 'À LOUER';
-      g.fillStyle = built ? color : '#6b5a55'; g.fillRect(x + 4, gTop - 6, EXT_SLOT - 8, 10);
+    for (const { k, x, w, label, icon, color } of fronts) {
+      if (k === 'wc') { // toilettes : une porte et son icône, sans enseigne
+        g.font = '14px system-ui, sans-serif';
+        g.fillText(icon, x + w / 2 + 3, gTop + 15); // décalé pour paraître centré sur la porte
+        g.fillStyle = '#26354f'; g.fillRect(x + 9, gTop + 20, 16, bottom - gTop - 20);
+        continue;
+      }
+      // enseigne au bas de la corniche, deux vitrines et une porte
+      const dx = x + EXT_SLOT / 2, txt = `${icon} ${label}`;
+      g.fillStyle = color; g.fillRect(x + 4, gTop - 6, EXT_SLOT - 8, 10);
       let fs = 6.5;
-      g.fillStyle = built ? '#fff' : '#cbbfb8'; g.font = `700 ${fs}px system-ui, sans-serif`;
+      g.fillStyle = '#fff'; g.font = `700 ${fs}px system-ui, sans-serif`;
       while (g.measureText(txt).width > EXT_SLOT - 14 && fs > 4) g.font = `700 ${(fs -= 0.25)}px system-ui, sans-serif`; // marge de 3 px autour du texte
       g.fillText(txt, dx, gTop + 2);
-      if (built) {
-        windowAt(g, x + 6, 340, 12, 24); windowAt(g, x + 50, 340, 12, 24);
-        g.fillStyle = '#e9dccb'; g.fillRect(dx - 14, 334, 28, bottom - 334);
-        g.fillStyle = '#26354f'; g.fillRect(dx - 12, 338, 24, bottom - 338);
-        g.fillStyle = '#9fb4d3'; g.fillRect(dx - 1, 338, 2, bottom - 338);
-      } else {
-        g.fillStyle = '#e9dccb'; g.fillRect(x + 6, 334, EXT_SLOT - 12, bottom - 334);
-        g.fillStyle = '#7d8590'; g.fillRect(x + 9, 337, EXT_SLOT - 18, bottom - 337);
-        g.fillStyle = 'rgb(0 0 0 / .15)';
-        for (let ly = 340; ly < bottom; ly += 4) g.fillRect(x + 9, ly, EXT_SLOT - 18, 1);
-      }
+      windowAt(g, x + 6, 340, 12, 24); windowAt(g, x + 50, 340, 12, 24);
+      g.fillStyle = '#e9dccb'; g.fillRect(dx - 14, 334, 28, bottom - 334);
+      g.fillStyle = '#26354f'; g.fillRect(dx - 12, 338, 24, bottom - 338);
+      g.fillStyle = '#9fb4d3'; g.fillRect(dx - 1, 338, 2, bottom - 338);
     }
   }
 
@@ -1395,7 +1400,7 @@ const sprites = layer(() => {});
 const spriteCtx = sprites.getContext('2d');
 function rebuild() {
   // chantiers en cours : les calques sont d'abord dessinés comme si les ouvrages étaient livrés (buy() ne touche que ces champs)
-  const sites = S.builds.filter((b) => isSite(b.id)), keep = { ...S, shops: { ...S.shops }, svc: { ...S.svc }, machines: { ...S.machines } };
+  const sites = S.builds.filter((b) => isSite(b.id)), keep = { ...S, shops: { ...S.shops }, svc: { ...S.svc }, machines: { ...S.machines }, shopOrder: [...S.shopOrder] };
   let ghosts = null;
   if (sites.length) {
     for (const b of sites) UPGRADES.find((u) => u.id === b.id).buy();
@@ -1483,7 +1488,7 @@ const PARKED = [
   { kind: 'car', len: 56, color: '#e85d3a', dir: 1 }, { kind: 'van', len: 64, color: '#2f6fd6', dir: -1 }, null,
   { kind: 'pickup', len: 70, color: '#c99a52', dir: -1 },
 ];
-const PARKING_X = ROW_X - WC_W - 6 - PARKED.length * 47; // le parking s'arrête avant l'annexe des toilettes
+const PARKING_X = ROW_MIN_X - 6 - PARKED.length * 47; // le parking s'arrête avant la galerie complète
 let carTimer = 0;
 
 function updateCars(dt, t) {
@@ -1769,7 +1774,7 @@ function spawnBusWalkers() {
 const doorXs = () => [DOOR_X, ...shopDoors()]; // portes de la gare et des commerces
 const onPlatform = (x) => clamp(x, platX() + 10, 1240); // les passants ne marchent pas dans l'herbe
 const DOOR_FOOT = Y.platform + 8; // pied des portes, où les voyageurs entrent et sortent
-const shopDoors = () => shopFronts().filter((f) => f.ext && f.built).map((f) => f.x + EXT_SLOT / 2); // une porte par commerce construit
+const shopDoors = () => shopFronts().filter((f) => f.ext).map((f) => f.x + EXT_SLOT / 2); // une porte par commerce
 // une personne sort de la porte `dx` (invisible jusqu'à son tour) et s'éloigne
 const spawnExit = (dx, tx, delay) => {
   const w = { ...person(Math.random), x: dx - 6 + rand(12), y: DOOR_FOOT, tx, ty: DOOR_FOOT + 4 + rand(18), speed: 40 + rand(30), delay, hidden: true };
@@ -2134,9 +2139,7 @@ function render(now) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.save(); // les phares disparaissent derrière les bâtiments de la gare et les commerces
     ctx.beginPath(); ctx.rect(0, 0, MX, H);
-    const an = shopFronts().find((f) => f.annex);
-    if (hasRow()) ctx.rect(ROW_X, rowTop() - 26, ROW_W, H);
-    if (an) ctx.rect(an.x - 4, SHOP_TOP - 18, an.w + 4, H);
+    if (hasRow()) ctx.rect(rowX(), rowTop() - 26, MX - rowX(), H);
     ctx.clip('evenodd');
     for (const lx of lamps()) glow(lx + 17, 308, 70, `rgb(255 200 110 / ${dark * 0.45})`); // lampadaires derrière les bâtiments : masqués aussi
     for (const lx of lamps()) { ctx.fillStyle = `rgb(255 236 190 / ${dark})`; ctx.fillRect(lx + 12, 305, 10, 2); }
