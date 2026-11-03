@@ -1930,10 +1930,6 @@ function drawClockHands() {
 
 // Silhouettes dans la salle d'attente et écran des départs (par-dessus les fenêtres éclairées)
 function drawInsideDetails(inside) {
-  if (S.strike) {
-    ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.roundRect(DOOR_X - 34, 326, 68, 12, 3); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✊ GRÈVE', DOOR_X, 335);
-  }
   if (S.waitroom) {
     // fenêtres du rez-de-chaussée (sauf la porte), moins celle du piano une fois acheté
     const wins = [0, 1, 2, 4, 5, 6].filter((k) => !(S.svc.piano && k === 4));
@@ -2022,6 +2018,10 @@ function render(now) {
   ctx.drawImage(front, 0, 0, W, H);
   drawDoors(now);
   if (S.station >= 3) drawClockHands();
+  if (striking()) { // bandeau sur le mur de la gare, assombri la nuit comme lui
+    ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.roundRect(DOOR_X - 34, 326, 68, 12, 3); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✊ GRÈVE', DOOR_X, 335);
+  }
   // rideaux tirés des chambres occupées ; lumière allumée en soirée et au réveil, éteinte la nuit
   const occupied = occupiedWindows(), roomLights = (t >= 17 && t < 23) || (t >= 6 && t < 8);
   for (const wn of occupied) {
