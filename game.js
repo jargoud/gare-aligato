@@ -137,6 +137,10 @@ const SHOPS = {
     { name: 'Supermarché', label: 'SUPERMARCHÉ', rate: 0.07, spend: 40, rep: 0.25 },
   ] },
   wc: { icon: '🚻', name: 'Sanitaires', label: 'TOILETTES', rate: 0, spend: 0, rep: 0.3, color: '#7f8c8d', req: 2, cost: 37500 },
+  // à l'unique étage de la galerie, une fois tout le rez-de-chaussée occupé
+  gastro: { icon: '🍽️', name: 'Restaurant gastronomique', label: 'RESTAURANT GASTRONOMIQUE', rate: 0.03, spend: 55, rep: 0.3, color: '#1b2540', req: 7, cost: 300000,
+    pre: () => ['news', 'bakery', 'books', 'market', 'wc'].every((k) => S.shops[k]) && S.svc.cafeteria && S.svc.relay && S.station >= 2,
+    preText: () => 'Tous les commerces du rez-de-chaussée requis' },
 };
 const SHOP_UPKEEP = 600;
 const MARKET_MEAL_CUT = 0.05; // par niveau, les repas se prennent à la supérette plutôt qu'aux distributeurs
@@ -235,7 +239,7 @@ const GOALS = [
   { text: 'Transporter 3 750 voyageurs en une journée', value: () => S.today.passengers, target: 3750, unlocks: 'Boutique · Autolaveuses · Grand quai · Wagons 7 et 8 · Librairie · Point relais colis · Car de substitution' },
   { text: `Faire ${money(190000)} de bénéfice en une journée`, value: () => S.lastNet, target: 190000, money: true, unlocks: 'Navette · Café du quai · Épicerie · Grande salle d\'attente · Salle d\'attente climatisée' },
   { text: 'Accueillir 36 clients à l\'hôtel en une journée', value: () => S.today.rooms, target: 36, unlocks: 'Parking · Dernier étage d\'hôtel · Spa · Salon 1re classe · Supérette · Gare grande vitesse' },
-  { text: 'Transporter 6 250 voyageurs en une journée', value: () => S.today.passengers, target: 6250, unlocks: 'Tour de l\'horloge · Panneau publicitaire · Supermarché · Publicité (journal, radio, télévision)' },
+  { text: 'Transporter 6 250 voyageurs en une journée', value: () => S.today.passengers, target: 6250, unlocks: 'Tour de l\'horloge · Panneau publicitaire · Supermarché · Restaurant gastronomique · Publicité (journal, radio, télévision)' },
   { text: 'Atteindre une appréciation de 4,5 ★', value: () => S.rep, target: 4.5, unlocks: 'Le titre de Légende du rail' },
 ];
 
@@ -291,7 +295,7 @@ const UPGRADES = [
   ...Object.entries(SHOPS).map(([k, sh]) => {
     const max = sh.levels?.length ?? 1, next = () => shopAt(k, Math.min(S.shops[k] + 1, max));
     return {
-      id: k, icon: sh.icon, get name() { return next().name; }, level: () => S.shops[k], max, req: [].concat(sh.req), cost: (l) => [].concat(sh.cost)[l], buy: () => S.shops[k]++,
+      id: k, icon: sh.icon, get name() { return next().name; }, level: () => S.shops[k], max, req: [].concat(sh.req), cost: (l) => [].concat(sh.cost)[l], buy: () => S.shops[k]++, pre: sh.pre, preText: sh.preText,
       desc: () => (next().rate ? `Loyer sur les ventes · appréciation +${String(next().rep).replace('.', ',')}${k === 'market' ? ' · moins de repas aux distributeurs' : ''}`
         : 'Appréciation +0,3 · quai moins sale'),
     };
@@ -359,8 +363,8 @@ const SUB_SHARE = 0.5;                // un abonné paie la moitié d'un billet
 // Multiplicateurs d'achat selon le type de voyageur
 const PROFILES = {
   classic: { coffee: 1, meal: 1, goodies: 1, rooms: 1, lockers: 1, relay: 0, shops: {} },
-  weekend: { coffee: 1, meal: 1.8, goodies: 1.3, rooms: 2, lockers: 3, relay: 0, shops: { bakery: 1.5, books: 1.5 } },
-  commuter: { coffee: 2.2, meal: 1.5, goodies: 0, rooms: 0, lockers: 0, relay: 1, shops: { news: 2, bakery: 2, books: 0.5 } },
+  weekend: { coffee: 1, meal: 1.8, goodies: 1.3, rooms: 2, lockers: 3, relay: 0, shops: { bakery: 1.5, books: 1.5, gastro: 1.5 } },
+  commuter: { coffee: 2.2, meal: 1.5, goodies: 0, rooms: 0, lockers: 0, relay: 1, shops: { news: 2, bakery: 2, books: 0.5, gastro: 0.3 } },
 };
 // Petites recettes par visiteur : [taux, montant]
 const LOCKER = [0.03, 8], RELAY = [0.15, 6];
@@ -1065,7 +1069,7 @@ const EXT_SHOPS = {
 const ROW_W = Object.keys(EXT_SHOPS).length * EXT_SLOT, ROW_X = MX - ROW_W, ROW_MID = ROW_X + ROW_W / 2;
 const slotX = (k) => ROW_X + Object.keys(EXT_SHOPS).indexOf(k) * EXT_SLOT;
 const hasRow = () => Object.values(EXT_SHOPS).some((e) => e.on());
-const shopFloors = () => 1; // commerces de plain-pied
+const shopFloors = () => (S.shops.gastro ? 2 : 1); // le restaurant gastronomique occupe l'unique étage
 const rowTop = () => SHOP_TOP - (shopFloors() - 1) * FLOOR_H;
 // tour de l'horloge, centrée au-dessus de la galerie de commerces
 const tower = () => ({ x: ROW_MID, base: rowTop(), clockY: rowTop() - 90 });
