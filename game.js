@@ -1692,9 +1692,10 @@ function cleaners(t) {
 // Voyageurs visibles sur le quai, séparés entre voyageurs classiques et travailleurs
 function crowdSplit() {
   const [ph, p, special] = trainPhase();
-  const pend = ph === 'stopped' ? S.pendingBoard * (1 - Math.min(1, p * 2)) : 0;
-  // quand aucun train n'est à quai, la salle d'attente garde une partie des voyageurs à l'intérieur
-  const inside = ph === 'stopped' ? 0 : Math.min(waitroomSeats(), S.waiting);
+  const left = ph === 'stopped' ? 1 - Math.min(1, p * 2) : 0, pend = S.pendingBoard * left; // part de l'embarquement qui reste à faire
+  // la salle d'attente garde une partie des voyageurs à l'intérieur ; à l'arrêt d'un train classique, elle se vide au rythme de l'embarquement
+  const seats = waitroomSeats(), kept = Math.min(seats, S.waiting);
+  const inside = ph === 'stopped' && !special ? kept + (Math.min(seats, S.waiting + S.pendingBoard) - kept) * left : kept;
   return { classic: S.waiting + S.waitingExtra + (special ? 0 : pend), commuters: S.waitingCommuters + (special ? pend : 0), inside };
 }
 const displayWaiting = () => { const c = crowdSplit(); return c.classic + c.commuters; };
@@ -1782,6 +1783,18 @@ function updateArrivals() {
     if (!p) { crowdShown++; continue; }
     const dx = pick(doorXs()), w = spawnExit(dx, 0, 0);
     Object.assign(w, idx < vc ? p : p.suit, { x: dx - 6 + rand(12), y: DOOR_FOOT, tx: idx < under ? shelterX(p.u) : crowdX(p.u), ty: p.y, speed: 40 + rand(30), delay: k * 0.5, hidden: true, arrival: true });
+  }
+}
+
+// Occupants de la salle d'attente : ils sortent par la porte de la gare et rejoignent le train, un par un
+let insideShown = null;
+function updateWaitroomExits() {
+  const inside = crowdSplit().inside, [ph, , special] = trainPhase();
+  if (insideShown === null || inside > insideShown || ph !== 'stopped' || special) { insideShown = inside; return; }
+  for (let k = 0; insideShown - inside >= 1; insideShown--, k++) {
+    if (walkers.length > 150) continue;
+    const w = spawnExit(DOOR_X, onPlatform(Math.max(stopLeft(), platX()) + 30 + rand(1200 - Math.max(stopLeft(), platX()))), k * 0.25);
+    w.ty = Y.platformEdge - 8; // il disparaît en montant dans le train
   }
 }
 
@@ -2842,6 +2855,7 @@ function frame(now) {
   updateCars(sdt, S.minutes / 60); // voitures au rythme du jeu, comme les voyageurs
   updateWalkers(sdt);
   updateArrivals();
+  updateWaitroomExits();
   updateFloats(dt / 1000);
   render(now / 1000);
   if ((uiTimer += dt) > 150) { uiTimer = 0; updateHUD(); }
