@@ -156,7 +156,7 @@ const SHAPE = (() => {
   return raw;
 })();
 
-const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, struck: false, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
+const newDay = (rep = 3) => ({ passengers: 0, visitors: 0, rooms: 0, refused: 0, missed: 0, revenue: 0, commuters: 0, counter: { meal: 0, coffee: 0, goodies: 0 }, fraud: 0, caught: 0, fines: 0, partner: 0, works: 0, renov: 0, struck: false, challenges: [], demand: 0, served: 0, restock: 0, empty: {}, low: {}, bought: {}, goals: [], repStart: rep });
 const DEBT_DAYS = 3; // jours de découvert tolérés avant la faillite
 const S = {
   budget: 30000, day: 1, minutes: 4 * 60, // départ à 4 h : les voyageurs du premier train ont le temps d'arriver
@@ -605,8 +605,9 @@ function stepMinute() {
   if (S.minutes >= 1440) { closeDay(); S.minutes = 0; S.day++; save(); }
   finishBuilds();
   if (S.minor && (S.minutes === S.minor.from || S.minutes === S.minor.until)) {
-    const w = MINOR[S.minor.kind], on = S.minutes === S.minor.from;
-    toast(`🚧 ${w.name} : ${on ? `fermé pour travaux jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}` : 'travaux terminés, réouverture'}`, on ? 'warn' : 'good');
+    const w = MINOR[S.minor.kind], on = S.minutes === S.minor.from, cost = on ? renovCost(S.minor.kind) : 0;
+    S.today.renov += cost;
+    toast(`🚧 ${w.name} : ${on ? `fermé pour rénovation jusqu'à ${S.minor.until / 60 | 0} h ${pad(S.minor.until % 60)}, ${money(cost)} payés à minuit` : 'travaux terminés, réouverture'}`, on ? 'warn' : 'good');
   }
   const h = Math.floor(S.minutes / 60), m = S.minutes % 60;
 
@@ -840,7 +841,7 @@ function closeDay() {
   S.strike = 0;
   const works = S.today.works + (S.works?.cost ?? 0); // chantier du jour et travaux ponctuels acceptés
   const costs = [...dailyCosts(S.today.rooms, S.today.restock), ...(repairs ? [['Réparations de nuit', repairs]] : []),
-    ...(works ? [['Travaux', Math.round(works)]] : [])];
+    ...(works ? [['Travaux', Math.round(works)]] : []), ...(S.today.renov ? [['Rénovation', S.today.renov]] : [])];
   const total = sum(costs.map(([, v]) => v));
   const revenue = S.today.revenue + S.pub * PUB_INCOME;
   S.budget += S.pub * PUB_INCOME - total;
@@ -893,14 +894,17 @@ const WORKS = {
   waitroom: { icon: '🚪', name: 'Rénovation de la salle d\'attente', effect: 'salle d\'attente fermée', days: true, ok: () => S.waitroom },
 };
 // Petits travaux : dès l'objectif 2, un jour sur quatre, un équipement possédé ferme 2 à 5 h entre 7 h et 18 h
+// la rénovation coûte RENOV_SHARE du prix d'achat de l'équipement (id de son amélioration), payée à minuit
+const RENOV_SHARE = 0.05;
 const MINOR = {
-  cafe: { name: 'Café du quai', ok: () => S.cafe },
-  cafeteria: { name: 'Cafétéria', ok: () => S.svc.cafeteria },
-  kiosk: { name: 'Bornes de billets', ok: () => S.machines.kiosk },
-  checkin: { name: 'Bornes de check-in', ok: () => S.machines.checkin },
-  shelter: { name: 'Abris', ok: () => S.shelters },
-  waitroom: { name: 'Salle d\'attente', ok: () => S.waitroom },
+  cafe: { name: 'Café du quai', id: 'cafe', ok: () => S.cafe },
+  cafeteria: { name: 'Cafétéria', id: 'cafeteria', ok: () => S.svc.cafeteria },
+  kiosk: { name: 'Bornes de billets', id: 'kiosk', ok: () => S.machines.kiosk },
+  checkin: { name: 'Bornes de check-in', id: 'checkin', ok: () => S.machines.checkin },
+  shelter: { name: 'Abri voyageurs', id: 'shelters', ok: () => S.shelters },
+  waitroom: { name: 'Salle d\'attente', id: 'waitroom', ok: () => S.waitroom },
 };
+const renovCost = (kind) => { const u = UPGRADES.find((x) => x.id === MINOR[kind].id); return Math.round(RENOV_SHARE * sum(Array.from({ length: u.level() }, (_, l) => u.cost(l)))); };
 function planMinor() {
   const kinds = Object.keys(MINOR).filter((k) => MINOR[k].ok());
   if (S.goal < 2 || !kinds.length || Math.random() >= 0.25) return (S.minor = null);
