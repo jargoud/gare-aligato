@@ -1044,6 +1044,7 @@ mainCtx.scale(DPR, DPR);
 const Y = { grass: 300, road: 316, roadEnd: 366, platform: 384, platformEdge: 440, track: 452, rail: 474, ground: 494 };
 const MX = 900, MW = 330, GF = 330, FLOOR_H = 42; // bâtiment principal : x, largeur, haut du rez-de-chaussée
 const DOOR_X = MX + MW / 2;
+const KIOSK_X = DOOR_X - 36; // bornes de billets à gauche de la porte de la gare (puis vers la gauche), jamais devant une porte
 const CAR_W = 146, GAP = 4, LOCO_W = 170;
 const LAMPS = [70, 290, 510, 700];
 const WINDOWS = [];
@@ -1082,7 +1083,7 @@ const buildSite = (id, i) => {
   return {
     quai: track(0), wagon: track(1), comfort: track(2), barCar: track(3), category: track(4), track2: track(5),
     shelters: [(shelterSpan(S.shelters + 1)[0] + shelterSpan()[0]) / 2, 424], benches: [520, 424],
-    waitroom: [MX + 280, g], hotel: [DOOR_X + 70, g], checkin: [DOOR_X + 34, g], kiosk: [MX - 30, g], phone: [DOOR_X - 40, g],
+    waitroom: [MX + 280, g], hotel: [DOOR_X + 70, g], checkin: [DOOR_X + 34, g], kiosk: [KIOSK_X, g], phone: [DOOR_X - 40, g],
     gare: [S.station === 1 ? shopSite('boutique') : ROW_MID, g], cafe: [CAFE_X + 38, g], wifi: [DOOR_X + 60, g], security: [700, g], piano: [DOOR_X - 20, g],
   }[id] ?? [DOOR_X - 70 - i * 40, g];
 };
@@ -1586,14 +1587,14 @@ function drawStaff(t) {
 
   const x0 = platX() + 30, len = 1230 - x0;
 
-  // bornes de billets (bleues) à gauche de la gare, bornes de check-in (vertes) à droite de la porte
+  // bornes de billets (bleues) à gauche de la porte, bornes de check-in (vertes) à droite de la porte
   const inDepth = (dy, draw) => (depthQueue ? depthQueue.push({ y: dy, draw }) : draw()); // se place devant ou derrière les personnes selon sa profondeur
   const kiosk = (x, color) => inDepth(y, () => {
     ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x - 7, y - 30, 14, 30, [4, 4, 1, 1]); ctx.fill();
     ctx.fillStyle = '#bfe0f5'; ctx.fillRect(x - 5, y - 27, 10, 8);
     ctx.fillStyle = '#f5b82e'; ctx.fillRect(x - 3, y - 15, 6, 2);
   });
-  for (let i = 0; i < S.machines.kiosk; i++) kiosk(MX - 30 - i * 20, '#2f6fd6');
+  for (let i = 0; i < S.machines.kiosk; i++) kiosk(KIOSK_X - i * 18, '#2f6fd6');
   for (let i = 0; i < S.machines.checkin; i++) kiosk(DOOR_X + 34 + i * 18, '#12804a');
 
   // autolaveuses conduites par un agent d'entretien, sur une voie derrière les bancs
@@ -1655,7 +1656,7 @@ function drawStaff(t) {
   const mn = minorNow();
   if (mn) {
     const cf = shopFronts().find((f) => f.k === 'cafeteria');
-    const bx = { cafe: CAFE_X + 38, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: shelterSpan()[0] + 30, waitroom: MX + 280 }[mn.kind];
+    const bx = { cafe: CAFE_X + 38, cafeteria: cf && cf.x + cf.w / 2, kiosk: KIOSK_X, checkin: DOOR_X + 34, shelter: shelterSpan()[0] + 30, waitroom: MX + 280 }[mn.kind];
     if (bx) barrier(bx, y + 4);
   }
 
