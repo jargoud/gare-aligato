@@ -2155,7 +2155,8 @@ function render(now) {
   if (dark > 0 && S.shelters && !minorOn('shelter')) { // réglettes allumées sous le toit de l'abri
     ctx.globalCompositeOperation = 'lighter';
     for (const x of shelterBays(...shelterSpan()).map((x, i, a) => (x + (a[i + 1] ?? x)) / 2).slice(0, -1)) {
-      glow(x, 352, 46, `rgb(255 225 160 / ${dark * 0.35})`);
+      glow(x, 356, 75, `rgb(255 225 160 / ${dark * 0.6})`);
+      glow(x, 412, 55, `rgb(255 225 160 / ${dark * 0.3})`); // flaque de lumière sur le quai
       ctx.fillStyle = `rgb(255 244 210 / ${dark})`; ctx.fillRect(x - 12, 345, 24, 2);
     }
     ctx.globalCompositeOperation = 'source-over';
