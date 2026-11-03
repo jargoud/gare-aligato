@@ -5,6 +5,11 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-03
+
+Une gare mieux rangée : galerie de commerces qui s'allonge sans rien décaler, abri voyageurs éclairé sur tout le quai,
+chantiers visibles dès l'achat et voyageurs qui ne traversent plus le décor.
+
 ### Ajouté
 
 - **Restaurant gastronomique** (objectif 7) à l'unique étage de la galerie de commerces, une fois tout le rez-de-chaussée occupé.
@@ -172,7 +177,8 @@ Première version jouable de *Gare de train Aligato*, clone hommage du jeu de Re
 - **Sauvegarde automatique** dans le navigateur et bouton de nouvelle partie.
 - **Simulation d'équilibrage** sans navigateur : `node sim.mjs`.
 
-[Unreleased]: https://github.com/jargoud/gare-aligato/compare/1.2.0...HEAD
+[Unreleased]: https://github.com/jargoud/gare-aligato/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/jargoud/gare-aligato/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/jargoud/gare-aligato/compare/1.1.1...1.2.0
 [1.1.1]: https://github.com/jargoud/gare-aligato/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/jargoud/gare-aligato/compare/1.0.0...1.1.0
