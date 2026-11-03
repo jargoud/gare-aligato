@@ -40,12 +40,13 @@ const HIRE_FEE = 5000, SEVERANCE = 8000, STAFF_MAX = 10; // effectif maximal par
 const MACHINE_UPKEEP = { kiosk: 300, robot: 400, checkin: 250 }; // par jour
 const PUB_INCOME = 15000;
 const BUS_PRICE = 0.7; // part du prix du billet payée par un voyageur du car de substitution
-// campagnes de publicité : un seul achat par jour, clientèle en plus le lendemain seulement
+// campagnes de publicité : une de chaque type par soir, cumulables, clientèle en plus le lendemain seulement
 const ADS = [
   { icon: '📰', name: 'Journal', cost: 80000, boost: 0.15 },
   { icon: '📻', name: 'Radio', cost: 200000, boost: 0.3 },
   { icon: '📺', name: 'Télévision', cost: 500000, boost: 0.5 },
 ];
+const adBoost = () => sum(S.ads.map((i) => ADS[i].boost));
 const WAITROOM = [0, 80, 160];            // places supplémentaires par train selon le niveau de la salle d'attente
 const MEALS_PER_WAITER = 200, CAFETERIA_PRICE = 18, CAFETERIA_COST = 5;
 const VANDAL_COST = 15000;
@@ -160,7 +161,7 @@ const S = {
   stock: { coffee: 320, meal: 170, goodies: 80 }, vending: { coffee: 1, meal: 1, goodies: 1 }, autoRefill: true,
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, waitingExtra: 0, track2: 0, challenge: 0, weekTarget: 60000, weekPax: 0, pendingBoard: 0, disembark: 0, boarding: 0,
-  wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ad: 0,
+  wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ads: [],
   staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
   plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, night: false, builds: [], works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
@@ -290,9 +291,8 @@ const UPGRADES = [
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
     level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [87500, 175000][l], buy: () => S.waitroom++ },
   ...ADS.map((a, i) => ({
-    id: 'ad' + i, ad: true, icon: a.icon, name: `Publicité : ${a.name}`, desc: () => `Clientèle +${Math.round(a.boost * 100)} % demain seulement · un achat par jour`,
-    level: () => (S.ad === i + 1 ? 1 : 0), max: 1, req: [7], cost: () => a.cost, buy: () => { S.ad = i + 1; },
-    pre: () => !S.ad, preText: () => 'Une campagne à la fois', tag: '📣 Campagne lancée',
+    id: 'ad' + i, ad: true, icon: a.icon, name: `Publicité : ${a.name}`, desc: () => `Clientèle +${Math.round(a.boost * 100)} % demain seulement · cumulable avec les autres campagnes`,
+    level: () => (S.ads.includes(i) ? 1 : 0), max: 1, req: [7], cost: () => a.cost, buy: () => { S.ads.push(i); }, tag: '📣 Campagne lancée',
   })),
   ...Object.entries(SERVICES).map(([k, v]) => ({
     id: k, icon: v.icon, name: v.name, level: () => S.svc[k], max: 1, req: [v.req], cost: () => v.cost, buy: () => S.svc[k]++, pre: v.pre, preText: v.preText,
@@ -391,7 +391,7 @@ const potential = () => MARKET * (1.6 - (S.tarif / 100) * 1.2) * (0.5 + (S.rep /
 const planDay = () => (S.night ? S.plan.day : S.day + 1);
 function makePlan(noise = true, day = S.day, weather = null) {
   const weekend = weekday(day) >= 5, wx = noise ? weather ?? rollWeather(day) : 'sun', season = seasonOf(day);
-  const pot = potential() * (weekend ? 1.15 : 1) * WEATHERS[wx].demand * season.demand * (1 + (ADS[S.ad - 1]?.boost ?? 0)), trains = {}, commuters = {}, types = {}, caps = {};
+  const pot = potential() * (weekend ? 1.15 : 1) * WEATHERS[wx].demand * season.demand * (1 + adBoost()), trains = {}, commuters = {}, types = {}, caps = {};
   const jitter = () => (noise ? 0.95 + Math.random() * 0.1 : 1);
   // les grands trains attirent une plus grande part des voyageurs ; le TGV boude une gare sous 4 ★
   const weight = (h) => SHAPE[h] * TRAIN_TYPES[types[h]].seats * (types[h] === 'tgv' && S.rep < 4 ? 0.6 : 1);
@@ -867,7 +867,7 @@ function closeDay() {
   S.event = null;
   nightWorks();
   planMinor();
-  S.ad = 0; // la campagne achetée hier soir n'a servi que pour le plan de la journée écoulée
+  S.ads = []; // les campagnes achetées hier soir n'ont servi que pour le plan de la journée écoulée
   S.plan = makePlan(true, S.day + 1);
   // après les travaux : un chantier qui commence réduit déjà la capacité de demain
 
@@ -2390,7 +2390,7 @@ function advice() {
   if (weather().severity && shelterCap() < p.peak && shelter.length) {
     tips.push(`${weather().icon} ${weather().name} prévue : seulement ${shelterCap()} voyageurs à l'abri sur ${p.peak} au plus fort. Pensez à ${link(shelter.join(', '), 'upgrades')}.`);
   }
-  if (S.ad) tips.push(`📣 Campagne ${ADS[S.ad - 1].name.toLowerCase()} demain : clientèle +${Math.round(ADS[S.ad - 1].boost * 100)} %.`);
+  if (S.ads.length) tips.push(`📣 Campagne${S.ads.length > 1 ? 's' : ''} ${S.ads.map((i) => ADS[i].name.toLowerCase()).join(', ')} demain : clientèle +${Math.round(adBoost() * 100)} %.`);
   if (S.budget < 0) tips.push(`💸 Budget négatif : faillite si c'est encore le cas dans ${DEBT_DAYS - S.debtDays} soir(s). Réduisez l'effectif ou montez le prix.`);
   const n = UPGRADES.filter((u) => !u.ad && upState(u) === 'ok').length;
   if (n) tips.push(`🏗️ ${link(`${n} amélioration(s) à votre portée`, 'upgrades')}.`);
@@ -2745,6 +2745,7 @@ function load() {
     }
     S.event = EVENTS[d.event] ?? null;
     if (!d.v && d.canopy) S.canopy = 2; // sauvegarde d'avant l'extension à deux niveaux : elle couvrait tout le grand quai
+    delete S.ad; // ancienne campagne unique, remplacée par S.ads
     S.v = 2;
     S.today.goals = d.today.goals.map((i) => GOALS[i]);
     if (S.report) S.report.goals = d.report.goals.map((i) => GOALS[i]);
