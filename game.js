@@ -1375,7 +1375,7 @@ function drawFront(g) {
     for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#f6f1e6' : '#d62f45'; g.fillRect(CAFE_X + i * 9.5, top, 9.5, 10); }
     g.fillStyle = '#3a404a'; g.fillRect(CAFE_X + 2, top + 10, 3, 388 - top - 10); g.fillRect(CAFE_X + 71, top + 10, 3, 388 - top - 10);
     if (S.cafe >= 2) { // tables de la terrasse, devant le comptoir
-      for (const tx of (S.cafe >= 3 ? [-20, 20, 60] : [10, 50]).map((dx) => CAFE_X + dx)) {
+      for (const tx of TABLES()) {
         g.fillStyle = '#3a404a'; g.fillRect(tx - 1, 392, 2, 8); g.fillRect(tx - 5, 399, 10, 1.5);
         g.fillStyle = '#f6f1e6'; g.beginPath(); g.ellipse(tx, 392, 7, 2, 0, 0, Math.PI * 2); g.fill();
         g.fillStyle = '#7a5537'; g.fillRect(tx - 12, 393, 4, 7); g.fillRect(tx + 8, 393, 4, 7);
@@ -1687,29 +1687,43 @@ function drawStaff(t) {
     ctx.fillStyle = '#1b2540'; ctx.font = '800 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TRAVAUX', bx, by - 20.5);
   };
   const barrier = (bx, by) => (depthQueue ? depthQueue.push({ y: by - 6, draw: () => paintBarrier(bx, by) }) : paintBarrier(bx, by));
-  S.builds.filter((b) => isSite(b.id)).forEach((b, i) => { const [bx, by] = buildSite(b.id, i); barrier(bx, by); }); // chantiers d'amélioration, à l'emplacement de l'ouvrage
-  if (S.works) {
-    const k = S.works.kind, wc = shopFronts().find((f) => f.k === 'wc');
-    if (k === 'platform') { barrier(platX() + 60, 438); barrier((platX() + 1250) / 2, 438); }
-    if (k === 'hotel') {
-      ctx.fillStyle = 'rgb(232 89 12 / .45)'; ctx.fillRect(MX + 6, hotelTop() + 2, MW - 12, FLOOR_H - 8);
-      barrier(DOOR_X + 70, y + 4);
-    }
-    if (k === 'wc' && wc) barrier(wc.x + wc.w / 2, y + 4);
-    if (k === 'waitroom') barrier(MX + 280, y + 4);
-  }
-  const mn = minorNow();
-  if (mn) {
-    const cf = shopFronts().find((f) => f.k === 'cafeteria');
-    const bx = { cafe: CAFE_X + 38, cafeteria: cf && cf.x + cf.w / 2, kiosk: KIOSK_X, checkin: DOOR_X + 34, shelter: shelterSpan()[0] + 30, waitroom: MX + 280 }[mn.kind];
-    if (bx) barrier(bx, y + 4);
-  }
+  barrierSpots().forEach(([bx, by]) => barrier(bx, by));
+  if (worksOn('hotel')) { ctx.fillStyle = 'rgb(232 89 12 / .45)'; ctx.fillRect(MX + 6, hotelTop() + 2, MW - 12, FLOOR_H - 8); } // bâche sur l'étage rénové
 
   // contrôleurs (casquette rouge), sur la voie devant les bancs
   for (let i = 0; i < Math.min(S.staff.controleur, 4); i++) {
     const d = (t * 16 + i * 611 + 90) % (len * 2);
     drawPerson(uniforms.controleur[i], x0 + (d < len ? d : len * 2 - d), Y.platform + 46, t, true);
   }
+}
+
+// barrières « TRAVAUX » [x, pied] : chantiers d'amélioration (à l'emplacement de l'ouvrage), travaux d'entretien et petits travaux
+function barrierSpots() {
+  const y = Y.platform + 11, out = S.builds.filter((b) => isSite(b.id)).map((b, i) => buildSite(b.id, i));
+  if (S.works) {
+    const k = S.works.kind, wc = shopFronts().find((f) => f.k === 'wc');
+    if (k === 'platform') out.push([platX() + 60, 438], [(platX() + 1250) / 2, 438]);
+    if (k === 'hotel') out.push([DOOR_X + 70, y]);
+    if (k === 'wc' && wc) out.push([wc.x + wc.w / 2, y]);
+    if (k === 'waitroom') out.push([MX + 280, y]);
+  }
+  const mn = minorNow();
+  if (mn) {
+    const bx = { cafe: CAFE_X + 38, cafeteria: shopSite('cafeteria'), kiosk: KIOSK_X, checkin: DOOR_X + 34, shelter: shelterSpan()[0] + 30, waitroom: MX + 280 }[mn.kind];
+    if (bx) out.push([bx, y]);
+  }
+  return out;
+}
+// Place d'un voyageur arrêté : jamais à travers une barrière (devant ou derrière), toujours devant les tables de la terrasse du café
+const TABLES = () => (S.cafe >= 3 ? [-20, 20, 60] : S.cafe >= 2 ? [10, 50] : []).map((dx) => CAFE_X + dx);
+function standY(x, y, spots = barrierSpots()) {
+  const lo = Y.platform + 6, hi = Y.platformEdge - 8;
+  if (TABLES().some((tx) => Math.abs(x - tx) < 16) && y < 404) y = 404 + (y - lo) / 4;
+  for (const [bx, by] of spots) {
+    if (Math.abs(x - bx) > 24 || y < by - 14 || y > by + 5) continue;
+    y = (y < by - 6 || by + 6 > hi) && by - 15 >= lo ? by - 15 : Math.min(hi, by + 6); // côté le plus proche, s'il reste sur le quai
+  }
+  return y;
 }
 
 // agents d'entretien : dessinés au milieu de la foule, triés par profondeur (y) pour passer devant ceux qui sont plus haut sur le quai
@@ -1819,7 +1833,8 @@ function updateArrivals() {
     const idx = crowdShown + flying + k, p = crowd.find((q) => q.order === idx);
     if (!p) { crowdShown++; continue; }
     const dx = pick(doorXs()), w = spawnExit(dx, 0, 0);
-    Object.assign(w, idx < vc ? p : p.suit, { x: dx - 6 + rand(12), y: DOOR_FOOT, tx: idx < under ? shelterX(p.u) : crowdX(p.u), ty: p.y, speed: 40 + rand(30), delay: k * 0.5, hidden: true, arrival: true });
+    const tx = idx < under ? shelterX(p.u) : crowdX(p.u);
+    Object.assign(w, idx < vc ? p : p.suit, { x: dx - 6 + rand(12), y: DOOR_FOOT, tx, ty: standY(tx, p.y), speed: 40 + rand(30), delay: k * 0.5, hidden: true, arrival: true });
   }
 }
 
@@ -2091,13 +2106,13 @@ function render(now) {
   const split = crowdSplit();
   const [vcT, vwT] = crowdCounts(), shownN = Math.min(vcT + vwT, crowdShown ?? Infinity); // seuls les voyageurs déjà arrivés à leur place sont affichés
   const vc = Math.min(vcT, shownN), vw = Math.min(vwT, shownN - vc);
-  const underShelters = shelterSeats();
+  const underShelters = shelterSeats(), spots = barrierSpots();
   const cl = cleaners(simT);
   for (const p of crowd) {
     while (cl.length && cl[0].y <= p.y) cl.shift().draw();
-    const x = p.order < underShelters ? shelterX(p.u) : crowdX(p.u);
-    if (p.order < vc) drawPerson(p, x, p.y, simT, false);
-    else if (p.order < vc + vw) drawPerson(p.suit, x, p.y, simT, false);
+    if (p.order >= vc + vw) continue;
+    const x = p.order < underShelters ? shelterX(p.u) : crowdX(p.u), y = standY(x, p.y, spots);
+    drawPerson(p.order < vc ? p : p.suit, x, y, simT, false);
   }
   for (const c of cl) c.draw();
   for (const w of walkers) if (!w.hidden || w.delay <= 0) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
