@@ -5,6 +5,30 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Restaurant gastronomique** (objectif 7) à l'unique étage de la galerie de commerces, une fois tout le rez-de-chaussée occupé.
+- **Chantiers visibles** : dès l'achat, l'ouvrage apparaît dans le décor, translucide et hachuré, jusqu'à sa livraison.
+- **Éclairage nocturne** sous l'abri voyageurs.
+- **Rénovation payante** : les petits travaux coûtent 5 % du prix d'achat de l'équipement fermé.
+
+### Modifié
+
+- **Campagnes de publicité** cumulables : une de chaque média par soir.
+- **Abri voyageurs** à trois niveaux (1/3, 2/3 puis tout le quai), reconstruit à chaque agrandissement du quai ;
+  il remplace les trois abris et l'extension des abris (les sauvegardes sont converties).
+- **Galerie de commerces** de plain-pied, avec une case réservée par enseigne dans un ordre fixe (vitrine « À LOUER »),
+  une porte par commerce ; la boutique y est intégrée, la tour de l'horloge et le panneau publicitaire passent sur son toit,
+  le parking et le café du quai à sa gauche pour rester visibles.
+- **Bornes de billets** déplacées à gauche de la porte de la gare, jamais devant une porte.
+- **Salle d'attente** : elle se vide peu à peu à l'arrêt d'un train, ses occupants rejoignent le train à pied ;
+  elle ne se vide plus pour un express ou un train de renfort.
+- **Voyageurs** : jamais au travers des barrières « TRAVAUX » ni derrière les tables de la terrasse du café.
+
+### Corrigé
+
+- Le bandeau « GRÈVE » n'est plus éclairé la nuit et disparaît à la fin de la grève.
+
 ## [1.2.0] - 2026-11-01
 
 ### Ajouté

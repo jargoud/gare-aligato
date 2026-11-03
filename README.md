@@ -133,7 +133,7 @@ Elle baisse vite si des voyageurs restent sans billet.
 
 Chaque objectif atteint débloque de nouvelles améliorations, toutes visibles dans le décor.
 Les achats ne se font qu'**en fin de journée**, dans la fenêtre Améliorations, et on ne peut acheter qu'**un niveau de chaque amélioration par soir** (par exemple un seul niveau de bancs).
-L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (quais, abris, hôtel, commerces, parking, gare…) demande un **chantier** : environ 1 heure par 8 000 € (2 heures minimum, 10 000 € → 2 h, 100 000 € → 13 h, 500 000 € → 2,6 jours), à partir de minuit. Des barrières « TRAVAUX » signalent le chantier, qui s'ajoute à l'encart « 🚧 Travaux » ; le matériel et les services (wifi, piano, bornes, wagons, bancs…) ne demandent qu'**1 h d'installation**, sans barrières ; les publicités sont instantanées :
+L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (quais, abris, hôtel, commerces, parking, gare…) demande un **chantier** : environ 1 heure par 8 000 € (2 heures minimum, 10 000 € → 2 h, 100 000 € → 13 h, 500 000 € → 2,6 jours), à partir de minuit. Dès l'achat, l'ouvrage apparaît dans le décor, translucide et hachuré de jaune et noir, avec des barrières « TRAVAUX » (les voyageurs se placent devant ou derrière, jamais au travers) ; le chantier s'ajoute à l'encart « 🚧 Travaux » ; le matériel et les services (wifi, piano, bornes, wagons, bancs…) ne demandent qu'**1 h d'installation**, sans barrières ; les publicités sont instantanées :
 
 | # | Objectif | Débloque |
 |---|---|---|
@@ -143,10 +143,11 @@ L'achat est payé tout de suite mais **livré plus tard**. Ce qui se construit (
 | 4 | Transporter 3 750 voyageurs en une journée | Boutique, autolaveuses, grand quai, wagons 7 et 8, librairie, car de substitution |
 | 5 | Faire 190 000 € de bénéfice en une journée | Navette, café du quai, épicerie, salle d'attente climatisée |
 | 6 | Accueillir 36 clients à l'hôtel en une journée | Parking, dernier étage d'hôtel, supérette |
-| 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, campagnes de publicité |
+| 7 | Transporter 6 250 voyageurs en une journée | Tour de l'horloge, panneau publicitaire, supermarché, restaurant gastronomique, campagnes de publicité |
 | 8 | Atteindre 4,5 ★ | Le titre de Légende du rail, la seconde voie et les défis de fréquentation |
 
-Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria et le relais colis s'installent dans un bâtiment en briques collé à la gare, qui s'élargit à chaque enseigne et gagne un étage à 3 puis 5 ; les toilettes sont une porte annexe sur son côté, sous le même toit tant que les commerces sont de plain-pied, avec leur propre toit ensuite. Des passants y entrent et en sortent.
+Les commerces (marchand de journaux, boulangerie, librairie, supérette), la cafétéria, le relais colis et la boutique de la gare occupent une galerie de plain-pied collée à la gare, toujours dans cet ordre : chaque enseigne a sa case réservée (vitrine « À LOUER » tant qu'elle n'est pas construite), si bien qu'un nouveau commerce ne décale jamais les autres ; les toilettes sont une annexe sur son côté gauche. Chaque commerce a sa porte, par laquelle entrent et sortent des passants ; les autres restent ouverts pendant la construction d'un nouveau. La tour de l'horloge et le panneau publicitaire se dressent sur son toit, le parking et le café du quai à sa gauche.
+Une fois tout le rez-de-chaussée occupé, le **🍽️ restaurant gastronomique** (objectif 7, 300 000 €) s'installe à l'unique étage : 3 % des visiteurs y dépensent 55 € (×1,5 le week-end), appréciation +0,3.
 Ils versent un loyer sur leurs ventes et améliorent l'appréciation. La supérette grandit en trois niveaux :
 **épicerie** (objectif 5), **supérette** (objectif 6) puis **supermarché** (objectif 7), avec un loyer et une appréciation
 plus élevés à chaque niveau ; chaque niveau retire aussi 5 % de la demande de repas (sandwichs achetés à la supérette). Les sanitaires ne rapportent rien
@@ -197,7 +198,7 @@ Les plus hauts paliers demandent une gare entièrement développée, la seconde 
 
 Les **📣 campagnes de publicité** (objectif 7) donnent un coup de pouce d'un jour : achetées en fin de journée dans la
 fenêtre Améliorations, elles attirent plus de clientèle **pendant la journée qui commence seulement**, dans la limite de la
-capacité de la gare. Une campagne par soir au plus.
+capacité de la gare. Une campagne de chaque média par soir, cumulables (journal + radio + télévision : +95 %).
 
 | Média | Prix | Clientèle de la journée |
 |---|---|---|
@@ -229,12 +230,12 @@ Chaque jour a sa météo, qui dépend de la saison, annoncée la veille dans le 
 ☀️ soleil, ⛅ nuageux, 🌧️ pluie, 🥵 forte chaleur, ❄️ neige. Pluie et neige font aussi venir un peu moins de monde ; par forte chaleur, on boit et on mange davantage.
 
 Par pluie, neige ou forte chaleur, les voyageurs qui attendent **sans abri** font baisser l'appréciation.
-Sont à l'abri : 60 voyageurs par **abri voyageurs** (3 au maximum, débloqués à l'objectif 1 ; le 2ᵉ demande le quai niveau 2, le 3ᵉ le grand quai) et ceux de la salle d'attente.
-L'**extension des abris** a deux niveaux : sur tout le quai niveau 2 (objectif 2, 75 000 €, avec les 2 abris du quai), elle abrite 120 voyageurs de plus ;
-sur tout le grand quai (objectif 4, 80 000 €), 250 au total.
-Sur la scène, les voyageurs abrités se placent sous les abris.
+Sont à l'abri les voyageurs de la salle d'attente et ceux de l'**abri voyageurs**, qui a trois niveaux : il couvre 1/3 du quai
+depuis son extrémité droite (objectif 1, 31 250 €), puis 2/3 (objectif 2, 62 500 €), puis tout le quai (objectif 4, 125 000 €),
+et abrite la même part des voyageurs que le quai peut accueillir. À chaque agrandissement du quai, l'abri est reconstruit à la même proportion.
+La nuit, des réglettes l'éclairent. Sur la scène, les voyageurs abrités se placent dessous.
 Les **bancs sur le quai** (3 niveaux, le premier dès le début, les suivants avec le quai niveau 2) ajoutent +0,05 ★ chacun.
-Chaque banc s'installe sous l'abri de même rang : un abri équipé d'un banc donne +0,05 ★ de plus.
+Chaque banc placé sous l'abri donne +0,05 ★ de plus.
 
 ### Catégorie de la gare
 
@@ -295,7 +296,7 @@ La fenêtre Personnel conseille l'effectif le plus rentable, et le bilan du soir
   Stocks (1 500 €) ; sinon il est réparé la nuit pour 3 000 €.
 - 🔧 L'**atelier de maintenance** (objectif 2) rend retards et pannes 4 fois plus rares et répare les distributeurs dans l'heure.
 - 🚧 **Petits travaux** (dès l'objectif 2, environ un jour sur quatre) : un équipement possédé (café du quai, cafétéria,
-  bornes de billets ou de check-in, abris, salle d'attente) ferme 2 à 5 heures dans la journée, sans frais. Une notification
+  bornes de billets ou de check-in, abri, salle d'attente) ferme 2 à 5 heures dans la journée pour rénovation, facturée 5 % de son prix d'achat (ligne « Rénovation » du bilan). Une notification
   l'annonce, l'encart d'état indique l'heure de réouverture et des barrières « TRAVAUX » apparaissent devant.
 
 ### Travaux d'entretien
