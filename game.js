@@ -74,9 +74,8 @@ const WEATHERS = {
   heat: { icon: '🥵', name: 'Forte chaleur', p: 0.07, severity: 0.5, demand: 1, misc: 1.6 }, // on boit et on mange davantage
   snow: { icon: '❄️', name: 'Neige', p: 0.05, severity: 1.2, demand: 0.85 },
 };
-const SHELTER_SEATS = 60;
-// emplacements des abris le long du quai (bord gauche) ; le banc de même rang se place dessous
-const SHELTER_X = [1120, 980, 840], SHELTER_W = 110, BENCH_UNDER = 0.05;
+// bancs achetés le long du quai (bord gauche), de droite à gauche ; abrités s'ils sont sous l'abri
+const BENCH_X = [1128, 988, 848], BENCH_UNDER = 0.05;
 // Saisons de 4 jours : météo probable, clientèle de loisir, chambres et travailleurs (vacances d'été)
 const SEASON_DAYS = 4; // une saison tous les 4 jours, indépendamment de la semaine
 const SEASONS = [
@@ -162,7 +161,7 @@ const S = {
   shops: Object.fromEntries(Object.keys(SHOPS).map((k) => [k, 0])), hotelQueue: 0, checkinAcc: 0,
   waiting: 0, waitingCommuters: 0, waitingExtra: 0, track2: 0, challenge: 0, weekTarget: 60000, weekPax: 0, pendingBoard: 0, disembark: 0, boarding: 0,
   wagons: 4, hotel: 1, station: 1, platform: 1, phone: 0, shuttle: 0, cafe: 0, parking: 0, pub: 0, ads: [],
-  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, canopy: 0, v: 2, comfort: 0, barCar: 0, category: 1,
+  staff: { guichet: 3, entretien: 2, hotel: 2, cafe: 0, barista: 0, controleur: 0 }, waitroom: 0, benches: 0, shelters: 0, v: 3, comfort: 0, barCar: 0, category: 1,
   svc: Object.fromEntries(Object.keys(SERVICES).map((k) => [k, 0])), machines: { kiosk: 0, robot: 0, checkin: 0 },
   plan: null, today: newDay(), report: null, lastNet: 0, score: 0, history: [], lastMiss: 0, lastExposure: 0, lastFraud: 0, lastDelay: 0, broken: {}, strike: 0, debtDays: 0, night: false, builds: [], works: null, minor: null, worksOffer: null, nextWorks: null, event: null, goal: 0, speed: 1, over: false,
 };
@@ -192,16 +191,13 @@ const fraudRate = (n = S.staff.controleur, plan = S.plan) => (S.goal >= FRAUD_GO
 const cafeCap = () => (S.cafe && !minorOn('cafe') ? Math.min(CAFE_CAPS[S.cafe], CAFE_CAPS[1] + S.staff.barista * BARISTA_CUPS) : 0);
 const COMFORT = ['Sièges confortables', 'Climatisation', 'Prises et Wi-Fi à bord'];
 const BAR = { rate: 0.15, spend: 7, share: 0.85, upkeep: 1200 }; // voiture-bar : achats à bord, moins de demande aux distributeurs
-// extension des abris (id 'canopy') : sur tout le quai niveau 2, puis sur tout le grand quai
-const CANOPY_SEATS = [0, 120, 250];
-// modules d'abris de l'extension, à gauche des trois abris, au même pas qu'eux
-const extensionX = () => {
-  const start = S.canopy >= 2 ? platX() + 10 : PLATFORM_X[2] + 10, xs = [];
-  if (S.canopy) for (let x = SHELTER_X[2] - 140; x >= start; x -= 140) xs.push(x);
-  return xs;
-};
-// voyageurs à l'abri : abris, extension et salle d'attente
-const shelterCap = () => (minorOn('shelter') ? 0 : S.shelters * SHELTER_SEATS) + CANOPY_SEATS[S.canopy] + waitroomSeats();
+// abri voyageurs : couvre 1/3, 2/3 puis tout le quai depuis son extrémité droite ; reconstruit à chaque agrandissement du quai
+const SHELTER_END = 1240;
+const shelterSpan = (l = S.shelters) => [SHELTER_END - (SHELTER_END - platX() - 10) * l / 3, SHELTER_END];
+const shelterSeats = (l = S.shelters) => Math.round(PLATFORM_MAX[S.platform] * l / 3);
+const benchesUnder = () => BENCH_X.slice(0, S.benches).filter((x) => S.shelters && x >= shelterSpan()[0]).length;
+// voyageurs à l'abri : abri et salle d'attente
+const shelterCap = () => (minorOn('shelter') ? 0 : shelterSeats()) + waitroomSeats();
 const weather = () => WEATHERS[S.plan.weather];
 const screensMult = () => (S.svc.screens ? 1.25 : 1);
 // en cas de grève (S.strike = minute de fin), les guichetiers vendent deux fois moins : les bornes tournent normalement
@@ -279,15 +275,9 @@ const UPGRADES = [
     desc: () => (S.track2 ? `Renfort à chaque demi-heure libre (14 trains de plus en semaine, 18 le week-end) · ${money(TRACK2_UPKEEP[2])} / jour`
       : `4 trains de renfort par jour à h:30 aux heures de pointe · ${money(TRACK2_UPKEEP[1])} / jour`),
     level: () => S.track2, max: 2, req: [8, 8], cost: (l) => [375000, 500000][l], buy: () => S.track2++ },
-  { id: 'canopy', icon: '⛱️', name: 'Extension des abris',
-    desc: () => (S.canopy ? `Abris sur tout le grand quai : ${CANOPY_SEATS[2]} voyageurs à l'abri au total · ${money(400)} / jour`
-      : `Abris sur tout le quai niveau 2 : ${CANOPY_SEATS[1]} voyageurs de plus à l'abri · ${money(200)} / jour`),
-    level: () => S.canopy, max: 2, req: [2, 4], cost: (l) => [75000, 100000][l], buy: () => S.canopy++,
-    pre: () => S.platform >= S.canopy + 2 && S.shelters >= S.canopy + 2,
-    preText: () => (S.platform < S.canopy + 2 ? (S.canopy ? 'Grand quai requis' : 'Quai niveau 2 requis') : `${S.canopy + 2} abris requis`) },
-  { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs', desc: () => `Abrite ${SHELTER_SEATS} voyageurs de la pluie, de la neige et du soleil ; avec un banc dessous, appréciation +0,05`,
-    level: () => S.shelters, max: 3, req: [1], cost: (l) => 31250 * (l + 1), buy: () => S.shelters++,
-    pre: () => !S.shelters || S.platform > S.shelters, preText: () => (S.shelters === 1 ? 'Quai niveau 2 requis' : 'Grand quai requis') },
+  { id: 'shelters', icon: '⛱️', name: 'Abri voyageurs',
+    desc: () => `Abri éclairé sur ${Math.min(3, S.shelters + 1)}/3 du quai : ${shelterSeats(Math.min(3, S.shelters + 1))} voyageurs à l'abri de la pluie, de la neige et du soleil, suit les agrandissements du quai ; bancs dessous : appréciation +0,05`,
+    level: () => S.shelters, max: 3, req: [1, 2, 4], cost: (l) => [31250, 62500, 125000][l], buy: () => S.shelters++ },
   { id: 'waitroom', icon: '🚪', name: 'Salle d\'attente', desc: () => `+${WAITROOM[Math.min(2, S.waitroom + 1)]} voyageurs par train, appréciation +0,1`,
     level: () => S.waitroom, max: 2, req: [2, 5], cost: (l) => [87500, 175000][l], buy: () => S.waitroom++ },
   ...ADS.map((a, i) => ({
@@ -314,7 +304,7 @@ const upState = (u) => (u.level() >= u.max ? 'max' : S.goal < upReq(u) ? 'locked
 
 // Chantiers : un achat est payé tout de suite mais livré après buildHours (S.builds = [{ id, until }], until en minutes absolues)
 // Vrai chantier (délai selon le prix, barrières) pour ce qui se construit ; le reste (matériel, équipement, service) s'installe en 1 h
-const SITES = ['category', 'quai', 'hotel', 'gare', 'cafe', 'shelters', 'canopy', 'waitroom', 'track2', 'parking', 'cafeteria', 'relay', ...Object.keys(SHOPS)];
+const SITES = ['category', 'quai', 'hotel', 'gare', 'cafe', 'shelters', 'waitroom', 'track2', 'parking', 'cafeteria', 'relay', ...Object.keys(SHOPS)];
 const isSite = (id) => SITES.includes(id);
 const buildHours = (cost, id) => (isSite(id) ? Math.max(2, Math.round(cost / 8000)) : 1);
 const buildWord = (id) => (isSite(id) ? 'chantier' : 'installation');
@@ -483,7 +473,7 @@ function dailyCosts(rooms, restock) {
     ['Blanchisserie', Math.round(rooms * 60)],
     ['Salaires', sum(Object.entries(STAFF).map(([k, r]) => S.staff[k] * r.salary))],
     ['Redevance réseau', CATEGORIES[S.category].fee],
-    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + 200 * S.canopy + TRACK2_UPKEEP[S.track2] + BAR.upkeep * S.barCar + (S.svc.bus && S.today.struck ? 2 * SERVICES.bus.upkeep : 0)],
+    ['Services', sum(Object.entries(SERVICES).map(([k, v]) => S.svc[k] * v.upkeep)) + 800 * S.waitroom + TRACK2_UPKEEP[S.track2] + BAR.upkeep * S.barCar + (S.svc.bus && S.today.struck ? 2 * SERVICES.bus.upkeep : 0)],
     ['Entretien machines', sum(Object.entries(MACHINE_UPKEEP).map(([k, v]) => S.machines[k] * v)) + VENDING_UPKEEP * sum(Object.values(S.vending))],
   ];
 }
@@ -569,7 +559,7 @@ function qualityFactors(missRatio = S.lastMiss, exposure = S.lastExposure) {
     [sat >= 0.8 ? 'Clients bien servis' : 'Clients mal servis (distributeurs ou hôtel)', (sat - 0.8) * 3],
     [clean >= 80 ? 'Quai propre' : 'Quai trop sale', clean >= 80 ? 0.5 : clean < 50 ? -1 : 0],
     ['Bonne restauration (café, cafétéria)', (S.cafe ? 0.3 + 0.1 * S.cafe : 0) + sv('cafeteria')],
-    ['Confort (bancs, abris équipés, salle d\'attente, wagons, Wi-Fi)', 0.05 * S.benches + BENCH_UNDER * Math.min(S.benches, S.shelters) + 0.1 * S.waitroom + 0.1 * S.comfort + sv('wifi')],
+    ['Confort (bancs, abris équipés, salle d\'attente, wagons, Wi-Fi)', 0.05 * S.benches + BENCH_UNDER * benchesUnder() + 0.1 * S.waitroom + 0.1 * S.comfort + sv('wifi')],
     ['Commerces', shopRep()],
     ['Services (sécurité, écrans, consigne…)', others],
     ['Gare agrandie', 0.25 * (S.station - 1)],
@@ -1076,7 +1066,7 @@ const buildSite = (id, i) => {
   if (id in EXT_SHOPS || SHOP_OTHERS.includes(id)) return [shopSite(id), g]; // sa future façade
   return {
     quai: track(0), wagon: track(1), comfort: track(2), barCar: track(3), category: track(4), track2: track(5),
-    shelters: [SHELTER_X[Math.min(S.shelters, 2)] + SHELTER_W / 2, 424], canopy: [PLATFORM_X[2] + 70, 424], benches: [520, 424],
+    shelters: [(shelterSpan(S.shelters + 1)[0] + shelterSpan()[0]) / 2, 424], benches: [520, 424],
     waitroom: [MX + 280, g], hotel: [DOOR_X + 70, g], checkin: [DOOR_X + 34, g], kiosk: [MX - 30, g], phone: [DOOR_X - 40, g],
     gare: [830, g], cafe: [758, g], wifi: [DOOR_X + 60, g], security: [700, g], piano: [DOOR_X - 20, g],
   }[id] ?? [DOOR_X - 70 - i * 40, g];
@@ -1539,11 +1529,8 @@ const crowd = (() => {
   return arr.sort((a, b) => a.y - b.y);
 })();
 const crowdX = (u) => platX() + 20 + u * (1250 - platX() - 20);
-// voyageurs abrités : les premiers se placent sous les abris (avec l'extension, tout le quai est couvert)
-const shelterX = (u) => {
-  const zones = SHELTER_X.slice(0, S.shelters), i = Math.floor(u * zones.length), f = u * zones.length - i;
-  return zones[i] + 8 + f * (SHELTER_W - 16);
-};
+// voyageurs abrités : les premiers se placent sous l'abri
+const shelterX = (u) => { const [a, b] = shelterSpan(); return a + 8 + u * (b - a - 16); };
 
 // Personnel : uniformes reconnaissables
 const r2 = rng(9);
@@ -1582,7 +1569,7 @@ function paintPerson(p, x, y, t, walking) {
 
 // Coins d'attente sous les abris : banc à gauche, distributeurs café-repas-souvenirs à droite, au même rang.
 // Le 4e coin de distributeurs se place à côté d'un banc du décor (ou au début du quai s'il n'est pas agrandi).
-const vendingSpots = () => [...SHELTER_X.map((sx) => sx + 66), S.platform >= 2 ? 520 : 580];
+const vendingSpots = () => [...BENCH_X.map((bx) => bx + 58), S.platform >= 2 ? 520 : 580];
 function drawStaff(t) {
   const y = Y.platform + 7;
   if (S.svc.security) { // ronde lente devant la gare
@@ -1623,7 +1610,7 @@ function drawStaff(t) {
   }
 
   // bancs alignés sur une même rangée, en retrait de la bordure du quai : ceux achetés (sous les abris), puis ceux du décor
-  for (const bx of [...SHELTER_X.slice(0, S.benches).map((sx) => sx + 8), 470, 330]) {
+  for (const bx of [...BENCH_X.slice(0, S.benches), 470, 330]) {
     if (bx < platX() + 20) continue;
     ctx.fillStyle = '#7a5537'; ctx.fillRect(bx, 412, 40, 4); ctx.fillRect(bx, 404, 40, 3);
     ctx.fillStyle = '#3a404a'; ctx.fillRect(bx + 4, 416, 3, 6); ctx.fillRect(bx + 33, 416, 3, 6);
@@ -1666,7 +1653,7 @@ function drawStaff(t) {
   const mn = minorNow();
   if (mn) {
     const cf = shopFronts().find((f) => f.k === 'cafeteria');
-    const bx = { cafe: 758, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: SHELTER_X[0] + 30, waitroom: MX + 280 }[mn.kind];
+    const bx = { cafe: 758, cafeteria: cf && cf.x + cf.w / 2, kiosk: MX - 30, checkin: DOOR_X + 34, shelter: shelterSpan()[0] + 30, waitroom: MX + 280 }[mn.kind];
     if (bx) barrier(bx, y + 4);
   }
 
@@ -1778,7 +1765,7 @@ function updateArrivals() {
   const [vc, vw] = crowdCounts(), total = vc + vw, flying = walkers.filter((w) => w.arrival).length;
   if (crowdShown === null || crowdShown > total) crowdShown = total; // au chargement ou à l'embarquement : pas d'animation
   if (total - crowdShown - flying > 8) crowdShown = Math.max(0, total - flying - 8); // gros saut : seuls les 8 derniers marchent
-  const under = S.canopy ? 0 : S.shelters * SHELTER_SEATS, need = total - crowdShown - flying;
+  const under = shelterSeats(), need = total - crowdShown - flying;
   for (let k = 0; k < need; k++) {
     const idx = crowdShown + flying + k, p = crowd.find((q) => q.order === idx);
     if (!p) { crowdShown++; continue; }
@@ -1910,6 +1897,17 @@ function glow(x, y, r, color) {
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
 
+// poteaux de l'abri : une travée d'environ 140 px
+const shelterBays = (a, b) => { const n = Math.max(1, Math.round((b - a) / 140)); return Array.from({ length: n + 1 }, (_, k) => a + (k * (b - a)) / n); };
+function drawShelter(a, b) {
+  ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(a, 350, b - a, 60);
+  ctx.fillStyle = '#2f3b4f';
+  for (const x of shelterBays(a, b)) ctx.fillRect(clamp(x - 1.5, a, b - 3), 344, 3, 80);
+  ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(a - 8, 337, b - a + 16, 8, 3); ctx.fill();
+  ctx.fillStyle = '#c9d0db'; // réglettes d'éclairage sous le toit, au milieu de chaque travée
+  for (const [x, nx] of shelterBays(a, b).map((x, i, xs) => [x, xs[i + 1]]).slice(0, -1)) ctx.fillRect((x + nx) / 2 - 12, 345, 24, 2);
+}
+
 function drawClockHands() {
   const a = ((S.minutes + acc) / 60 / 12) * Math.PI * 2, b = (((S.minutes + acc) % 60) / 60) * Math.PI * 2;
   ctx.strokeStyle = '#1b2540'; ctx.lineCap = 'round';
@@ -2034,7 +2032,7 @@ function render(now) {
   const split = crowdSplit();
   const [vcT, vwT] = crowdCounts(), shownN = Math.min(vcT + vwT, crowdShown ?? Infinity); // seuls les voyageurs déjà arrivés à leur place sont affichés
   const vc = Math.min(vcT, shownN), vw = Math.min(vwT, shownN - vc);
-  const underShelters = S.canopy ? 0 : S.shelters * SHELTER_SEATS; // avec l'extension, tout le quai est couvert
+  const underShelters = shelterSeats();
   const cl = cleaners(simT);
   for (const p of crowd) {
     while (cl.length && cl[0].y <= p.y) cl.shift().draw();
@@ -2046,13 +2044,8 @@ function render(now) {
   for (const w of walkers) if (!w.hidden || w.delay <= 0) drawPerson(w, w.x, w.y, simT, w.delay <= 0);
   depthQueue.sort((a, b) => a.y - b.y).forEach((o) => o.draw());
   depthQueue = null;
-  // abris voyageurs et leur extension, devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
-  for (const x of [...SHELTER_X.slice(0, S.shelters), ...extensionX()]) {
-    const w = SHELTER_W;
-    ctx.fillStyle = 'rgb(170 205 235 / .35)'; ctx.fillRect(x, 350, w, 60);
-    ctx.fillStyle = '#2f3b4f'; ctx.fillRect(x, 344, 3, 80); ctx.fillRect(x + w - 3, 344, 3, 80);
-    ctx.fillStyle = '#2f6fd6'; ctx.beginPath(); ctx.roundRect(x - 8, 337, w + 16, 8, 3); ctx.fill();
-  }
+  // abri voyageurs devant la foule (vitre translucide), en retrait de la ligne jaune comme les bancs
+  if (S.shelters) drawShelter(...shelterSpan());
 
   if (tl !== null) drawTrain(tl, ttype);
   if (dark > 0) {
@@ -2088,6 +2081,14 @@ function render(now) {
   }
   drawInsideDetails(split.inside);
   ctx.drawImage(sprites, 0, 0, W, H);
+  if (dark > 0 && S.shelters && !minorOn('shelter')) { // réglettes allumées sous le toit de l'abri
+    ctx.globalCompositeOperation = 'lighter';
+    for (const x of shelterBays(...shelterSpan()).map((x, i, a) => (x + (a[i + 1] ?? x)) / 2).slice(0, -1)) {
+      glow(x, 352, 46, `rgb(255 225 160 / ${dark * 0.35})`);
+      ctx.fillStyle = `rgb(255 244 210 / ${dark})`; ctx.fillRect(x - 12, 345, 24, 2);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
   if (dark > 0 && tl !== null) {
     ctx.fillStyle = `rgb(255 230 170 / ${dark * 0.7})`;
     for (let i = 0; i < trainCars(ttype); i++) ctx.fillRect(tl + i * (CAR_W + GAP) + 8, 412, CAR_W - 16, 20);
@@ -2386,7 +2387,7 @@ function advice() {
   // les conseils ne proposent que des améliorations qu'il reste à acheter
   const left = (id) => { const u = UPGRADES.find((x) => x.id === id); return u.level() < u.max; };
   const ideas = (list) => list.filter(([id]) => left(id)).map(([, text]) => text);
-  const shelter = ideas([['shelters', 'des abris'], ['canopy', 'l\'extension des abris'], ['waitroom', 'la salle d\'attente']]);
+  const shelter = ideas([['shelters', 'l\'abri voyageurs'], ['waitroom', 'la salle d\'attente']]);
   if (weather().severity && shelterCap() < p.peak && shelter.length) {
     tips.push(`${weather().icon} ${weather().name} prévue : seulement ${shelterCap()} voyageurs à l'abri sur ${p.peak} au plus fort. Pensez à ${link(shelter.join(', '), 'upgrades')}.`);
   }
@@ -2744,9 +2745,12 @@ function load() {
       S[k] = v && def && typeof v === 'object' && typeof def === 'object' && !Array.isArray(v) ? { ...def, ...v } : v;
     }
     S.event = EVENTS[d.event] ?? null;
-    if (!d.v && d.canopy) S.canopy = 2; // sauvegarde d'avant l'extension à deux niveaux : elle couvrait tout le grand quai
+    if ('canopy' in d) { // sauvegarde d'avant l'abri unique : abris et extension fusionnés
+      S.shelters = Math.min(3, S.shelters + (!d.v && d.canopy ? 2 : d.canopy));
+      delete S.canopy;
+    }
     delete S.ad; // ancienne campagne unique, remplacée par S.ads
-    S.v = 2;
+    S.v = 3;
     S.today.goals = d.today.goals.map((i) => GOALS[i]);
     if (S.report) S.report.goals = d.report.goals.map((i) => GOALS[i]);
     return true;
